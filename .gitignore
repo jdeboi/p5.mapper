@@ -1,0 +1,5 @@
+docs
+node_modules
+examples/__test
+*.DS_Store
+.vscode
