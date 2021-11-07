@@ -27,21 +27,17 @@ function draw() {
 }
 
 function displayQuad() {
-    quad.push();
     quad.clear();
     quad.imageMode(CENTER);
     quad.background(255, 0, 0);
     quad.image(img, 0, 0);
     quad.fill(255);
     quad.ellipse(x++%300, 100, 100);
-    quad.pop();
 }
 
 function displayTri() {
-    tri.push();
     tri.clear();
     tri.background(255, 255, 0);
-    tri.pop();
 }
 
 function keyPressed() {

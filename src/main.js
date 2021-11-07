@@ -139,6 +139,17 @@ class Main {
         this.calibrate = !this.calibrate;
     }
 
+    endSurfaces() {
+        for (const surface of this.surfaces) {
+            surface.endDrawing();
+        }
+    }
+
+    beginSurfaces() {
+        for (const surface of this.surfaces) {
+            surface.beginDrawing();
+        }
+    }
 }
 
 const p5mapper = new Main();
@@ -157,9 +168,17 @@ p5.prototype.createSurface = function (w, h, res) {
 };
 
 p5.prototype.renderSurfaces = function () {
+    p5mapper.endSurfaces();
     p5mapper.renderSurfaces();
 }
 
+p5.prototype.beginSurfaces = function () {
+    p5mapper.beginSurfaces();
+}
+
+
+
+p5.prototype.registerMethod('pre', p5.prototype.beginSurfaces);
 p5.prototype.registerMethod('post', p5.prototype.renderSurfaces);
 
 export default p5mapper;

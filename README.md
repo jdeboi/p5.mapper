@@ -28,14 +28,12 @@ function setup() {
 The Quad and Tri `p5Mapper` objects extend the `p5.Graphics` class, which means you can call any methods associated with a `p5.Graphics` object. For example:
 
 ```javascript
-quad.push();
 quad.clear();
 quad.imageMode(CENTER);
 quad.background(255, 0, 0);
 quad.image(img, 0, 0);
 quad.fill(255);
 quad.ellipse(frameCount%300, 100, 100);
-quad.pop();
 ```
 
 ### Calibrating

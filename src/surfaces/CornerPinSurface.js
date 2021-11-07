@@ -21,6 +21,14 @@ class CornerPinSurface extends Surface {
         this.calculateMesh();
     }
 
+    beginDrawing() {
+        this.push();
+    }
+
+    endDrawing() {
+        this.pop();
+    }
+
     initMesh() {
         this.mesh = [];
         for (let y = 0; y < this.res; y++) {
