@@ -2,7 +2,7 @@
  
  # p5mapper
 
- This library is designed to making projection mapping easy using the popular, easy-to-learn JavaScript library, [p5.js](https://p5js.org/).
+ This library is designed to making projection mapping easy using the popular, easy-to-learn JavaScript library, [p5.js](https://p5js.org/). Checkout the [examples](examples) folder to see full working p5.js sketches.
 
  ### Installation
  You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. Include the library in your `index.html` (after loading p5.js):
@@ -10,9 +10,6 @@
  ```html
  <script type="text/javascript" src="p5.mapper.min.js"></script>
  ```
-
-## Examples
-Checkout the [examples](examples) folder to see full working p5.js sketches.
 
 ### Creating surfaces
 ```javascript
@@ -28,14 +25,9 @@ function setup() {
 ```
 
 ### Drawing on surfaces
-The Quad and Tri p5Mapper objects extend the `p5.Graphics` class, which means you can call any methods associated with a `p5.Graphics` object. 
+The Quad and Tri `p5Mapper` objects extend the `p5.Graphics` class, which means you can call any methods associated with a `p5.Graphics` object. For example:
 
 ```javascript
-// setup()
-p5Mapper = getP5Mapper();
-quad = p5Mapper.createQuad(400, 400, 20, this);
-
-// draw()
 quad.push();
 quad.clear();
 quad.imageMode(CENTER);
