@@ -2,7 +2,7 @@
 
 This library is designed to making projection mapping easy using the popular, easy-to-learn JavaScript library, [p5.js](https://p5js.org/). Created by [Jenna deBoisblanc](https://jdeboi.com/).
 
-* [Examples](examples/README.md)
+* [Examples](examples)
 * [Reference](reference/README.md)
 
 You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. Include the library in your `index.html` (after loading p5.js).
