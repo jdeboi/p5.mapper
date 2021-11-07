@@ -7,6 +7,7 @@ This library is designed to making projection mapping easy using the popular, ea
 
 
 ## Overview 
+
 You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. Include the library in your `index.html` (after loading p5.js).
 
 ```html
