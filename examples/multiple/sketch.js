@@ -9,9 +9,7 @@ function setup() {
     for (let i = 0; i < 5; i++) {
         surfaces.push(pMapper.createQuadMap(100, 400, 20, this));
     }
-    
-    // p5Mapper will look for calibration files in "maps" directory
-    pMapper.load("maps");
+    pMapper.load("maps/map.json");
 }
 
 function draw() {
@@ -30,19 +28,15 @@ function draw() {
 function keyPressed() {
     switch (key) {
         case 'c':
-            // enter/leave calibration mode, where surfaces can be warped 
-            // and moved
             pMapper.toggleCalibration();
             break;
 
         case 'l':
-            // loads the saved surface layouts in "maps directory"
-            pMapper.load("maps");
+            pMapper.load("maps/map.json");
             break;
 
         case 's':
-            // saves the surface layouts
-            pMapper.save();
+            pMapper.save("map.json");
             break;
     }
 }

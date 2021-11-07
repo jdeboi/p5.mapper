@@ -42,8 +42,8 @@ class ProjectionMapper {
         return s;
     }
 
-    createLineMap(x0, y0, x1, y1) {
-        const l = new LineMap(x0, y0, x1, y1);
+    createLineMap(x0=0, y0=0, x1=100, y1=100) {
+        const l = new LineMap(x0, y0, x1, y1, this.lines.length);
         this.lines.push(l);
         return l;
     }
@@ -55,23 +55,7 @@ class ProjectionMapper {
         for (const surface of this.surfaces) {
             surface.render();
         }
-
-        for (const line of this.lines) {
-            line.display();
-        }
     }
-
-    // getSurface(i) {
-    //     return this.surfaces[i];
-    // }
-
-    // getSurfaceCount() {
-    //     return this.surfaces.length;
-    // }
-
-    // clearSurfaces() {
-    //     this.surfaces = [];
-    // }
 
     ////////////////////////////////////////
     // INTERACTION
@@ -101,7 +85,7 @@ class ProjectionMapper {
             }
         }
 
-        
+
 
         if (top != null) {
             // TODO
@@ -131,19 +115,54 @@ class ProjectionMapper {
     ////////////////////////////////////////
     // LOADING / SAVING
     ////////////////////////////////////////
-    load(dir="") {
-        console.log(`loading json calibration files in directory ${dir}/`);
-        for (const surface of this.surfaces) {
-            surface.load(dir);
+    load(filepath = "maps/map.json") {
+        console.log(`loading json file: ${filepath}`);
+        let mainThis = this;
+        let error = (err) => console.log(`error loading ${filepath}`, err);
+        loadJSON(`${filepath}`, mainThis.loadedJson.bind(mainThis), error);
+    }
+
+    loadedJson(json) {
+        let jSurfaces = json.surfaces;
+        if (jSurfaces.length !== this.surfaces.length) {
+            console.warn(`json calibration file has ${jSurfaces.length} surface maps but there are ${this.surfaces.length} surface maps in memory (check sketch.js for # of map objects)`)
+        }
+
+        let index = 0;
+        while (index < jSurfaces.length && index < this.surfaces.length) {
+            const s = this.surfaces[index];
+            if (s.isEqual(this.surfaces[index]))
+                s.load(jSurfaces[index]);
+            else
+                console.warn("mismatch between calibration surface types / ids")
+
+            index++;
+        }
+
+        let jLines = json.lines;
+        if (jLines.length !== this.lines.length) {
+            console.warn(`json calibration file has ${jLines.length} line maps but there are only ${this.lines.length} line maps in memory`)
+        }
+
+        index = 0;
+        while (index < jLines.length && index < this.lines.length) {
+            this.lines[index].load(jLines[index]);
+            index++;
         }
     }
 
 
-    save() {
+    save(filename = "map.json") {
         console.log("saving all mapped surfaces to json...");
+        let json = { surfaces: [], lines: [] }
         for (const surface of this.surfaces) {
-            surface.save();
+            json.surfaces.push(surface.getJson());
         }
+
+        for (const line of this.lines) {
+            json.lines.push(line.getJson());
+        }
+        saveJSON(json, `${filename}`)
     }
 
     ////////////////////////////////////////
@@ -161,16 +180,32 @@ class ProjectionMapper {
         this.calibrate = !this.calibrate;
     }
 
+     ////////////////////////////////////////
+    // RENDERING
+    ////////////////////////////////////////
+    beginSurfaces() {
+        for (const surface of this.surfaces) {
+            surface.beginDrawing();
+        }
+    }
+
     endSurfaces() {
         for (const surface of this.surfaces) {
             surface.endDrawing();
         }
     }
 
-    beginSurfaces() {
-        for (const surface of this.surfaces) {
-            surface.beginDrawing();
+
+    displayControlPoints() {
+        if (this.calibrate) {
+            for (const surface of this.surfaces) {
+                surface.displayControlPoints();
+            }
+            for (const lineMap of this.lines) {
+                lineMap.displayControlPoints();
+            }
         }
+        
     }
 }
 
@@ -186,13 +221,14 @@ p5.prototype.isCalibratingMapper = function () {
 };
 
 
+p5.prototype.beginSurfaces = function () {
+    pMapper.beginSurfaces();
+}
+
 p5.prototype.renderSurfaces = function () {
     pMapper.endSurfaces();
     pMapper.renderSurfaces();
-}
-
-p5.prototype.beginSurfaces = function () {
-    pMapper.beginSurfaces();
+    pMapper.displayControlPoints();
 }
 
 

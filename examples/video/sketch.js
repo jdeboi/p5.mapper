@@ -1,13 +1,12 @@
 let pMapper;
-let quadMap, triMap, lineMap;
-
+let video;
+let quadMap;
 let myFont;
-let img;
-let x = 0;
 
 function preload() {
-    img = loadImage("assets/catnap.jpg");
     myFont = loadFont('assets/Roboto.ttf');
+    video = createVideo(['assets/fingers.mov','assets/fingers.webm']);
+    video.hide();
 }
 
 function setup() {
@@ -16,12 +15,8 @@ function setup() {
     textFont(myFont);
 
     pMapper = createProjectionMapper();
-    quadMap = pMapper.createQuadMap(400, 400, 20, this);
-    triMap = pMapper.createTriMap(300, 300, 20, this);
-    lineMap = pMapper.createLineMap(-200, -200, 300, 100);
-
-    // loads calibration in the "maps" directory
-    // pMapper.load("maps/map.json");
+    quadMap = pMapper.createQuadMap(video.width, video.height, 20, this);
+    pMapper.load("maps/map.json");
 }
 
 function draw() {
@@ -29,16 +24,11 @@ function draw() {
     displayFrameRate();
 
     quadMap.clear();
-    quadMap.imageMode(CENTER);
-    quadMap.background(255, 0, 0);
-    quadMap.image(img, 0, 0);
-    quadMap.fill(255);
-    quadMap.ellipse(x++%300, 100, 100);
-
-    triMap.clear();
-    triMap.background(255, 255, 0);
-
-    lineMap.display(color(0, 255, 0));
+    quadMap.translate(-quadMap.width/2, -quadMap.height/2);
+    quadMap.image(video, 0, 0);
+    quadMap.noFill();
+    quadMap.stroke(0, 255, 0);
+    quadMap.rect(5, 5, quadMap.width-25, quadMap.height-20);
 }
 
 function displayFrameRate() {
@@ -50,8 +40,6 @@ function displayFrameRate() {
 function keyPressed() {
     switch (key) {
         case 'c':
-            // enter/leave calibration mode, where surfaces can be warped 
-            // and moved
             pMapper.toggleCalibration();
             break;
 
@@ -60,13 +48,13 @@ function keyPressed() {
             break;
 
         case 's':
-            // saves the calibration to map.json
             pMapper.save("map.json");
             break;
     }
 }
 
 function mousePressed() {
+    video.loop();
     pMapper.onClick();
 }
 

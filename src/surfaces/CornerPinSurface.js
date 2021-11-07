@@ -29,6 +29,7 @@ class CornerPinSurface extends Surface {
         this.pop();
     }
 
+
     initMesh() {
         this.mesh = [];
         for (let y = 0; y < this.res; y++) {
@@ -36,12 +37,16 @@ class CornerPinSurface extends Surface {
                 let mx = Math.floor(map(x, 0, this.res, 0, this.width));
                 let my = Math.floor(map(y, 0, this.res, 0, this.height));
                 let u = map(x, 0, this.res, 0, 1);
-                let v = map(y, 0, this.res, 0, 1)
-                // let x = (i % this.res) / (this.res - 1);
-                // let y = Math.floor((i / this.res)) / (this.res - 1);
+                let v = map(y, 0, this.res, 0, 1);
                 this.mesh[y * this.res + x] = new MeshPoint(this, mx, my, u, v);
             }
         }
+
+        // for (let i = 0; i < this.res*this.res; i++) {
+		// 	let x = floor(i % this.res) / (this.res - 1);
+		// 	let y = floor(i / this.res) / (this.res - 1);
+		// 	this.mesh[i] = new MeshPoint(this, x * this.width, y * this.height, x * this.width, y * this.height);
+		// }
 
         this.TL = 0 + 0; // x + y
         this.TR = this.res - 1 + 0;
@@ -56,18 +61,8 @@ class CornerPinSurface extends Surface {
     }
 
 
-    load(dir="", filename="") {
-        if (dir !== "")
-            dir += "/";
-        if (filename === "")
-            filename = `${dir}${this.type}_${this.id}.json`;
-        console.log(`loading ${filename} ...`);
-        let mainThis = this;
-        let error = (err) => console.log(`error loading ${filename}`, err);
-        loadJSON(`${filename}`, mainThis.loadPoints.bind(mainThis), error);
-    }
 
-    loadPoints(json) {
+    load(json) {
         const { x, y, points } = json;
         this.x = x;
         this.y = y;
@@ -84,8 +79,9 @@ class CornerPinSurface extends Surface {
         this.calculateMesh();
     }
 
-    save() {
+    getJson() {
         let sJson = {};
+        sJson.id = this.id;
         sJson.res = this.res;
         sJson.x = this.x;
         sJson.y = this.y;
@@ -105,14 +101,19 @@ class CornerPinSurface extends Surface {
                 sJson.points.push(point);
             }
         }
-        saveJSON(sJson, `${this.type}_${this.id}.json`)
+        // saveJSON(sJson, `${this.type}_${this.id}.json`)
+        return sJson;
     }
 
-    // abstract render()
-    // abstract isMouseOver();
-    calculateMesh() {
-        // nada
+    isEqual(json) {
+        return json.id === this.id && json.type === this.type;
     }
+
+    // ABSTRACT / OVERRIDDEN METHODS
+    render() { }
+    isMouseOver() { }
+    getControlPoints() { return []; }
+    calculateMesh() { }
 
 
     /*
@@ -156,19 +157,22 @@ class CornerPinSurface extends Surface {
     /**
      * Draws targets around the control points
      */
-    renderControlPoints() {
-        if (isCalibratingMapper()) {
-            strokeWeight(2);
-            stroke(this.controlPointColor);
-            noFill();
-            for (let i = 0; i < this.mesh.length; i++) {
-                if (this.mesh[i].isControlPoint) {
-                    ellipse(this.mesh[i].x, this.mesh[i].y, this.mesh[i].r);
-                    ellipse(this.mesh[i].x, this.mesh[i].y, this.mesh[i].r/2);
-                }
-            }
+    displayControlPoints() {
+        push();
+        translate(this.x, this.y);
+        strokeWeight(2);
+        stroke(this.controlPointColor);
+        noFill();
+        let pts = this.getControlPoints();
+        for (let i = 0; i < pts.length; i++) {
+            let pt = pts[i];
+            ellipse(pt.x, pt.y, pt.r);
+            ellipse(pt.x, pt.y, pt.r / 2);
         }
+        pop();
     }
+
+
 
     /**
      * This function will give you the position of the mouse in the surface's

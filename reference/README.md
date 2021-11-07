@@ -71,4 +71,10 @@ const pMapper = createProjectionMapper();
 const line = pMapper.createLineMap(-100, -100, 200, 200);
 ```
 
-* `display(color)`
+The following display methods can optionally take a color object:
+* `display([color])`
+* `displayPercent(percent, [color])`
+* `displayCenterPulse(percent, [color])`
+* `displayPercentWidth(percent, [color])`
+* `displayRainbowCycle()`
+* `displayGradientLine(color0, color1, percent, [phase])`

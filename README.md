@@ -17,3 +17,6 @@ You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. In
 The logic of this library builds upon and/or adapts:
 * [David Bouchard's (Java) Processing Keystone Library](http://keystonep5.sourceforge.net/)
 * [Jenny Louthan, projection transform algorithms](https://github.com/jlouthan/perspective-transform) 
+
+## TODOs
+* There is a bug when a surface is created; the width of the surface cuts cut by this.res... something todo with this.res -1 when creating the surface?

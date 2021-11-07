@@ -65,20 +65,10 @@ class TriMap extends CornerPinSurface {
 		vertex(this.mesh[this.BR].x, this.mesh[this.BR].y, u, v);
 		endShape(CLOSE);
 
-		// if (ProjectionMap.calibrate) {
-		this.renderControlPoints();
-		// }
-
-
 		pop();
 	}
 
-	// public void render(PGraphics g, PImage texture, int tX, int tY, int tW,
-	// 		int tH) {
-	// 	PVector [] uvPoints = {new PVector(0, h), new PVector(w/2, 0), new PVector(w, h)};
-	// 	render(texture, uvPoints);
 
-	// }
 
 	getP1() {
 		let p = createVector(this.mesh[this.TP].x, mesh[this.TP].y);
@@ -94,6 +84,14 @@ class TriMap extends CornerPinSurface {
 		let p = createVector(this.mesh[this.BR].x, mesh[this.BR].y);
 		return p;
 	}
+
+	getControlPoints() {
+        return [
+			this.mesh[this.TP], 
+			this.mesh[this.BL], 
+			this.mesh[this.BR]
+		];
+    }
 }
 
 export default TriMap;

@@ -61,17 +61,7 @@ class QuadMap extends CornerPinSurface {
         }
     }
 
-    
-    // setMeshPoints(points) {
-    //     this.mesh[this.TL].set(points[0]);
-    //     this.mesh[this.TR].set(points[1]);
-    //     this.mesh[this.BL].set(points[2]);
-    //     this.mesh[this.BR].set(points[3]);
-    // }
-
     render(tX = 0, tY = 0, tW = this.width, tH = this.height) {
-
-
         push();
         translate(this.x, this.y);
 
@@ -88,9 +78,6 @@ class QuadMap extends CornerPinSurface {
             }
         }
         endShape(CLOSE);
-        // if (ProjectionMap.calibrate)
-            this.renderControlPoints();
-
         pop();
     }
 
@@ -122,10 +109,22 @@ class QuadMap extends CornerPinSurface {
         // vertex(-1, -1, 0, 0, 0);
     }
 
+
     getVertexUV(mp, tX, tY, tW, tH) {
         let u = map(mp.u, 0, 1, tX, tX + tW);
         let v = map(mp.v, 0, 1, tY, tY + tH);
+        // let u = map(mp.u, 0, this.width, tX, tX + tW);
+		// let v = map(mp.v, 0, this.height, tY, tY + tH);
         vertex(mp.x, mp.y, u, v);
+    }
+
+    getControlPoints() {
+        return [
+			this.mesh[this.TL], 
+			this.mesh[this.TR], 
+			this.mesh[this.BR],
+            this.mesh[this.BL],
+		];
     }
 }
 
