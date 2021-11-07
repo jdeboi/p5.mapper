@@ -1,8 +1,8 @@
 {
-  "name": "demo",
+  "name": "p5.mapper",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/p5.projection.min.js",  
+  "main": "dist/p5.mapper.min.js",  
   "scripts": {
     "build": "webpack"
   },
