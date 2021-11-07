@@ -54,8 +54,8 @@ function mouseReleased() {
 
 
 
- ## Acknowledgements
+## Acknowledgements
 
- The logic of this library builds upon and/or adapts:
- * [David Bouchard's (Java) Processing Keystone Library](http://keystonep5.sourceforge.net/)
- * [Jenny Louthan, projection transform algorithms](https://github.com/jlouthan/perspective-transform) 
+The logic of this library builds upon and/or adapts:
+* [David Bouchard's (Java) Processing Keystone Library](http://keystonep5.sourceforge.net/)
+* [Jenny Louthan, projection transform algorithms](https://github.com/jlouthan/perspective-transform) 
