@@ -2,6 +2,7 @@ let p5Mapper;
 let wall;
 let img;
 let x = 0;
+let quad, tri;
 
 function preload() {
     img = loadImage("catnap.jpg");
@@ -10,20 +11,35 @@ function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
     p5Mapper = getP5Mapper();
-    wall = p5Mapper.createQuad(200, 200, 20);
+    quad = p5Mapper.createQuad(400, 400, 20, this);
+    tri = p5Mapper.createTri(300, 300, 20, this);
+    
+    // p5Mapper.load("maps");
 }
 
 function draw() {
     background(100);
-
-    wall.beginDraw();
-    wall.background(255, 0, 0);
-    wall.ellipse(200, 200, 100);
-    wall.endDraw();
+    displayQuad();
+    displayTri();
 }
 
+function displayQuad() {
+    quad.push();
+    quad.clear();
+    quad.imageMode(CENTER);
+    quad.background(255, 0, 0);
+    quad.image(img, 0, 0);
+    quad.fill(255);
+    quad.ellipse(x++%300, 100, 100);
+    quad.pop();
+}
 
-
+function displayTri() {
+    tri.push();
+    tri.clear();
+    tri.background(255, 255, 0);
+    tri.pop();
+}
 
 function keyPressed() {
     switch (key) {
@@ -35,18 +51,18 @@ function keyPressed() {
 
         case 'l':
             // loads the saved layout
-            //   projection.load();
+            p5Mapper.load("maps");
             break;
 
         case 's':
             // saves the layout
-            //   projection.save();
+            p5Mapper.save();
             break;
     }
 }
 
 function mousePressed() {
-    p5Mapper.onClick(); 
+    p5Mapper.onClick();
 }
 
 function mouseDragged() {

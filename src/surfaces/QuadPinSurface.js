@@ -4,8 +4,8 @@ import CornerPinSurface from './CornerPinSurface';
 
 class QuadPinSurface extends CornerPinSurface {
 
-    constructor(w, h, res) {
-        super(w, h, res, "QUAD");
+    constructor(id, w, h, res, pInst) {
+        super(id, w, h, res, "QUAD", pInst);
     }
 
     /**
@@ -26,7 +26,7 @@ class QuadPinSurface extends CornerPinSurface {
 
         // The float constructor is deprecated, so casting everything to double
 
-        const srcCorners = [0, 0, this.w, 0, this.w, this.h, 0, this.h];
+        const srcCorners = [0, 0, this.width, 0, this.width, this.height, 0, this.height];
         const dstCorners = [
             this.mesh[this.TL].x, this.mesh[this.TL].y,
             this.mesh[this.TR].x, this.mesh[this.TR].y,
@@ -38,8 +38,8 @@ class QuadPinSurface extends CornerPinSurface {
 
         // this.warpPerspective = new WarpPerspective(transform);
 
-        let xStep = this.w / (this.res - 1);
-        let yStep = this.h / (this.res - 1);
+        let xStep = this.width / (this.res - 1);
+        let yStep = this.height / (this.res - 1);
 
         for (let i = 0; i < this.mesh.length; i++) {
 
@@ -62,8 +62,14 @@ class QuadPinSurface extends CornerPinSurface {
     }
 
     
+    // setMeshPoints(points) {
+    //     this.mesh[this.TL].set(points[0]);
+    //     this.mesh[this.TR].set(points[1]);
+    //     this.mesh[this.BL].set(points[2]);
+    //     this.mesh[this.BR].set(points[3]);
+    // }
 
-    render(pg = this.surface, tX = 0, tY = 0, tW = this.w, tH = this.h) {
+    render(tX = 0, tY = 0, tW = this.width, tH = this.height) {
 
 
         push();
@@ -73,7 +79,7 @@ class QuadPinSurface extends CornerPinSurface {
         strokeWeight(3);
         fill(0, 255, 0);
 
-        texture(pg);
+        texture(this);
         beginShape(TRIANGLES);
 
         for (let x = 0; x < this.res - 1; x++) {
@@ -119,7 +125,6 @@ class QuadPinSurface extends CornerPinSurface {
     getVertexUV(mp, tX, tY, tW, tH) {
         let u = map(mp.u, 0, 1, tX, tX + tW);
         let v = map(mp.v, 0, 1, tY, tY + tH);
-        // console.log(mp.u, mp.v)
         vertex(mp.x, mp.y, u, v);
     }
 }

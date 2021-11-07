@@ -10,10 +10,14 @@ class MeshPoint {
          this.parent = parent;
      }
      
-     isControlPoint() {
-         return this.isControlPoint;
+
+     set(point) {
+        this.x = point.x;
+        this.y = point.y;
+        this.u = point.u;
+        this.v = point.v;
      }
-     
+
      moveTo( x,  y) {
          this.x = x - this.parent.x;
          this.y = y - this.parent.y;

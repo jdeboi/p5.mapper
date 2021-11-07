@@ -1,5 +1,6 @@
 import QuadPinSurface from './surfaces/QuadPinSurface';
 import TriPinSurface from './surfaces/TriPinSurface';
+import Surface from './surfaces/Surface';
 
 class Main {
 
@@ -8,7 +9,7 @@ class Main {
         this.dragged = null;
         this.calibrate = false;
     }
-  
+
     ////////////////////////////////////////
     // SURFACES
     ////////////////////////////////////////
@@ -20,8 +21,8 @@ class Main {
      * @param res resolution (number of tiles per axis)
      * @return
      */
-    createQuad(w, h, res) {
-        const s = new QuadPinSurface(w, h, res);
+    createQuad(w, h, res, pInst) {
+        const s = new QuadPinSurface(this.surfaces.length, w, h, res, pInst);
         this.surfaces.push(s);
         return s;
     }
@@ -34,8 +35,8 @@ class Main {
      * @param res resolution (number of tiles per axis)
      * @return
      */
-    createTri(w, h, res) {
-        const s = new TriPinSurface(w, h, res);
+    createTri(w, h, res, pInst) {
+        const s = new TriPinSurface(this.surfaces.length, w, h, res, pInst);
         this.surfaces.push(s);
         return s;
     }
@@ -57,9 +58,9 @@ class Main {
         return this.surfaces.length;
     }
 
-    clearSurfaces() {
-        this.surfaces = [];
-    }
+    // clearSurfaces() {
+    //     this.surfaces = [];
+    // }
 
     ////////////////////////////////////////
     // INTERACTION
@@ -104,61 +105,23 @@ class Main {
         this.dragged = null;
     }
 
-  
+
     ////////////////////////////////////////
     // LOADING / SAVING
     ////////////////////////////////////////
-    load() {
-        loadJSON("map.json", (json) => this.setSurfaces);
-    }
-
-    setSurfaces(json) {
-        if (!json.surfaces) {
-            console.log("no surfaces to load; is map.json corrupt?");
-            return;
-        }
-
-        for (const surface of json.surfaces) {
-            if (surface.type === "QUAD") {
-                let q = this.createQuad(surface.w, surface.h, surface.res);
-                let { points, x, y } = surface;
-                q.load(x, y, points);
-            }
-            else if (surface.type === "TRI") {
-                let t = this.createTri(surface.w, surface.h, surface.res);
-                let { points, x, y } = surface;
-                t.load(x, y, points);
-            }
+    load(dir="") {
+        console.log(`loading json calibration files in directory ${dir}/`);
+        for (const surface of this.surfaces) {
+            surface.load(dir);
         }
     }
+
 
     save() {
-        let json = { surfaces: [] }
+        console.log("saving all mapped surfaces to json...");
         for (const surface of this.surfaces) {
-            let sJson = {};
-            sJson.res = surface.getRes();
-            sJson.x = surface.x;
-            sJson.y = surface.y;
-            sJson.w = surface.w;
-            sJson.h = surface.h;
-            sJson.type = surface.type;
-            sJson.points = [];
-
-            for (let i = 0; i < surface.mesh.length; i++) {
-                if (surface.mesh[i].isControlPoint()) {
-                    let point = {};
-                    point.i = i;
-                    point.x = surface.mesh[i].x;
-                    point.y = surface.mesh[i].y;
-                    point.u = surface.mesh[i].u;
-                    point.v = surface.mesh[i].v;
-                    sJson.points.push(point);
-                }
-            }
-            json.surfaces.push(sJson);
+            surface.save();
         }
-        saveJSON(json, 'map.json');
-        console.log("mapping saved to map.json");
     }
 
     ////////////////////////////////////////
@@ -171,7 +134,7 @@ class Main {
     stopCalibration() {
         this.calibrate = false;
     }
-    
+
     toggleCalibration() {
         this.calibrate = !this.calibrate;
     }
@@ -182,6 +145,15 @@ const p5mapper = new Main();
 
 p5.prototype.getP5Mapper = function () {
     return p5mapper;
+};
+
+
+p5.prototype.isCalibratingMapper = function () {
+    return p5mapper.calibrate;
+};
+
+p5.prototype.createSurface = function (w, h, res) {
+    return new Surface(w, h, res, this);
 };
 
 p5.prototype.renderSurfaces = function () {

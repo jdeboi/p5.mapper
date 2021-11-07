@@ -21,3 +21,10 @@
  * [Jenny Louthan, projection transform algorithms](https://github.com/jlouthan/perspective-transform) 
 
 
+
+
+maybe we load by quad / tri, not "p5mapper". and only allow drawing after it exists
+
+what happens when keypressed?
+
+... ?

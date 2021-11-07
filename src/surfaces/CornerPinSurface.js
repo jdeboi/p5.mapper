@@ -1,8 +1,8 @@
 import PerspT from '../perspective/PerspT';
 import MeshPoint from './MeshPoint';
+import Surface from './Surface';
 
-
-class CornerPinSurface {
+class CornerPinSurface extends Surface {
 
     /**
      * @param w
@@ -12,23 +12,11 @@ class CornerPinSurface {
      * @param res	
      *            The surface's grid resolution
      */
-    constructor(w, h, res, type) {
-        this.w = w;
-        this.h = h;
-        this.res = Math.floor(res);
-        this.type = type;
+    constructor(id, w, h, res, type, pInst) {
+        super(id, w, h, res, type, pInst);
 
-        this.x = 0;
-        this.y = 0;
-        this.clickX = 0;
-        this.clickY = 0;
-
-        this.gridColor = color(200);
-        this.controlPointColor = color(255, 0, 255);
-
-        this.surface = createGraphics(w, h, WEBGL);
         this.perspT = null;
-       
+
         this.initMesh();
         this.calculateMesh();
     }
@@ -37,8 +25,8 @@ class CornerPinSurface {
         this.mesh = [];
         for (let y = 0; y < this.res; y++) {
             for (let x = 0; x < this.res; x++) {
-                let mx = Math.floor(map(x, 0, this.res, 0, this.w));
-                let my = Math.floor(map(y, 0, this.res, 0, this.h));
+                let mx = Math.floor(map(x, 0, this.res, 0, this.width));
+                let my = Math.floor(map(y, 0, this.res, 0, this.height));
                 let u = map(x, 0, this.res, 0, 1);
                 let v = map(y, 0, this.res, 0, 1)
                 // let x = (i % this.res) / (this.res - 1);
@@ -59,9 +47,24 @@ class CornerPinSurface {
         this.mesh[this.BR].setControlPoint(true);
     }
 
-    load(x, y, points) {
+
+    load(dir="", filename="") {
+        if (dir !== "")
+            dir += "/";
+        if (filename === "")
+            filename = `${dir}${this.type}_${this.id}.json`;
+        console.log(`loading ${filename} ...`);
+        let mainThis = this;
+        let error = (err) => console.log(`error loading ${filename}`, err);
+        loadJSON(`${filename}`, mainThis.loadPoints.bind(mainThis), error);
+    }
+
+    loadPoints(json) {
+        const { x, y, points } = json;
         this.x = x;
         this.y = y;
+        // this.setMeshPoints(points);
+
         for (const point of points) {
             let mp = this.mesh[point.i];
             mp.x = point.x;
@@ -73,6 +76,29 @@ class CornerPinSurface {
         this.calculateMesh();
     }
 
+    save() {
+        let sJson = {};
+        sJson.res = this.res;
+        sJson.x = this.x;
+        sJson.y = this.y;
+        sJson.w = this.w;
+        sJson.h = this.h;
+        sJson.type = this.type;
+        sJson.points = [];
+
+        for (let i = 0; i < this.mesh.length; i++) {
+            if (this.mesh[i].isControlPoint) {
+                let point = {};
+                point.i = i;
+                point.x = this.mesh[i].x;
+                point.y = this.mesh[i].y;
+                point.u = this.mesh[i].u;
+                point.v = this.mesh[i].v;
+                sJson.points.push(point);
+            }
+        }
+        saveJSON(sJson, `${this.type}_${this.id}.json`)
+    }
 
     // abstract render()
     // abstract isMouseOver();
@@ -80,67 +106,6 @@ class CornerPinSurface {
         // nada
     }
 
-    beginDraw() {
-        this.surface.push();
-        this.surface.clear();
-        this.surface.translate(-this.w / 2, -this.h / 2);
-
-    }
-
-    background(r, g, b) {
-        let col = this.getColor(r, g, b);
-        this.surface.fill(col);
-        this.surface.noStroke();
-        this.surface.rect(0, 0, this.w, this.h);
-    }
-
-    endDraw() {
-        this.surface.pop();
-    }
-
-    fill(r, g, b) {
-        this.surface.fill(this.getColor(r, g, b));
-    }
-
-    noFill() {
-        this.surface.noFill();
-    }
-
-    stroke(r, g, b) {
-        this.surface.stroke(this.getColor(r, g, b));
-    }
-
-
-    noStroke() {
-        this.surface.noStroke();
-    }
-
-    strokeWeight(sw) {
-        this.surface.strokeWeight(sw);
-    }
-
-    getColor(r, g, b) {
-        if (typeof r === "object")
-            return r;
-
-        if (typeof g !== 'undefined' && typeof b !== 'undefined') {
-            return color(r, g, b);
-        }
-
-        return color(r);
-    }
-
-    rect(x, y, w, h) {
-        this.surface.rect(x, y, w, h);
-    }
-
-    ellipse(x, y, w, h) {
-        this.surface.ellipse(x, y, w, h);
-    }
-
-    line(x0, y0, x1, y1) {
-        this.surface.line(x0, y0, x1, y1);
-    }
 
     /*
     returns PVector
@@ -179,28 +144,20 @@ class CornerPinSurface {
         this.mesh[corner].moveTo(this.mesh[corner].x + moveX, this.mesh[corner].y + moveY);
     }
 
-    /**
-     * @return The surface's mesh resolution, in number of "tiles"
-     */
-    getRes() {
-        // The actual resolution is the number of tiles, not the number of mesh
-        // points
-        return this.res - 1;
-    }
-
-
 
     /**
      * Draws targets around the control points
      */
     renderControlPoints() {
-        strokeWeight(2);
-        stroke(this.controlPointColor);
-        noFill();
-        for (let i = 0; i < this.mesh.length; i++) {
-            if (this.mesh[i].isControlPoint) {
-                ellipse(this.mesh[i].x, this.mesh[i].y, 30, 30);
-                ellipse(this.mesh[i].x, this.mesh[i].y, 10, 10);
+        if (isCalibratingMapper()) {
+            strokeWeight(2);
+            stroke(this.controlPointColor);
+            noFill();
+            for (let i = 0; i < this.mesh.length; i++) {
+                if (this.mesh[i].isControlPoint) {
+                    ellipse(this.mesh[i].x, this.mesh[i].y, 20, 20);
+                    ellipse(this.mesh[i].x, this.mesh[i].y, 10, 10);
+                }
             }
         }
     }
@@ -302,16 +259,15 @@ class CornerPinSurface {
     moveTo(x, y) {
         this.x = x - this.clickX;
         this.y = y - this.clickY;
-        // console.log("move", x, y, this.x, this.y);
     }
 
 
     getWidth() {
-        return this.w;
+        return this.width;
     }
 
     getHeight() {
-        return this.h;
+        return this.height;
     }
 }
 

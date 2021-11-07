@@ -3,25 +3,13 @@ import CornerPinSurface from './CornerPinSurface';
 class TriPinSurface extends CornerPinSurface {
 
 
-	constructor(w, h, res) {
-		super(w, h, res, "TRI");
+	constructor(id, w, h, res, pInst) {
+		super(id, w, h, res, "TRI", pInst);
 
 		this.setTriMesh();
 	}
 
 
-	load(x, y, points) {
-		super.load(x, y, points);
-		this.setTriMesh();
-	}
-
-	setTriMesh() {
-		this.TP = Math.floor(this.res / 2) - 1;
-		this.mesh[this.TP].setControlPoint(true);
-		this.mesh[this.TL].setControlPoint(false);
-		this.mesh[this.TR].setControlPoint(false);
-	}
-	
 	/**
 	 * Returns true if the mouse is over this surface, false otherwise.
 	 */
@@ -49,24 +37,31 @@ class TriPinSurface extends CornerPinSurface {
 		u = 1.0 - v - w;
 	}
 
-	render(img = this.surface) {
+	setTriMesh() {
+		this.TP = Math.floor(this.res / 2) - 1;
+		this.mesh[this.TP].setControlPoint(true);
+		this.mesh[this.TL].setControlPoint(false);
+		this.mesh[this.TR].setControlPoint(false);
+	}
+
+	render() {
 		push();
 		translate(this.x, this.y);
 
 		noStroke();
 		fill(0);
-		texture(img);
+		texture(this);
 		beginShape();
 		let u = 0;
-		let v = this.h;
+		let v = this.height;
 		vertex(this.mesh[this.BL].x, this.mesh[this.BL].y, u, v);
 
-		u = this.w / 2;
+		u = this.width / 2;
 		v = 0;
 		vertex(this.mesh[this.TP].x, this.mesh[this.TP].y, u, v);
 
-		u = this.w;
-		v = this.h;
+		u = this.width;
+		v = this.height;
 		vertex(this.mesh[this.BR].x, this.mesh[this.BR].y, u, v);
 		endShape(CLOSE);
 
