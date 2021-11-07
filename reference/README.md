@@ -4,6 +4,8 @@
   - [TriMap](#trimap)
   - [LineMap](#linemap)
 
+---
+
 ## ProjectionMapper
 
 ```javascript
