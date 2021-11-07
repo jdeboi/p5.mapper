@@ -10,20 +10,26 @@
 ```javascript
 const pMapper = createProjectionMapper();
 ```
-* createQuadMap(width, height, resolution, pInstance)
-* createTriMap(width, height, resolution, pInstance)
-* createLineMap(x0, y0, x1, y1)
+  
+Creating mapping surfaces:
+* `createQuadMap(width, height, resolution, pInstance)`
+* `createTriMap(width, height, resolution, pInstance)`
+* `createLineMap(x0, y0, x1, y1)`
+  
+Saving / loading:
+* `save()`
+* `load(directory)`
+  
+Calibrating:
+* `startCalibration()`
+* `stopCalibration()`
+* `toggleCalibration()`
+  
+Mouse interaction (for calibration):
+* `onClick()`
+* `onDrag()`
+* `onRelease()`
 
-* save()
-* load(directory)
-
-* onClick()
-* onDrag()
-* onRelease()
-
-* startCalibration() 
-* stopCalibration()
-* toggleCalibration()
 
 
 ### QuadMap
