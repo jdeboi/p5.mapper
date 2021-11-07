@@ -5,53 +5,11 @@ This library is designed to making projection mapping easy using the popular, ea
 * [Examples](examples/README.md)
 * [Reference](reference/README.md)
 
-
-## Overview 
-
 You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. Include the library in your `index.html` (after loading p5.js).
 
 ```html
 <script type="text/javascript" src="p5.mapper.min.js"></script>
 ```
-
-```javascript
-// sketch.js
-const pMapper;
-
-function setup() {
-    createCanvas(windowWidth, windowHeight, WEBGL);
-
-    pMapper = createProjectionMapper();
-    quad = pMapper.createQuad(400, 400, 20, this);
-}
-
-function draw() {
-    background(0);
-
-    quad.clear();
-    quad.background(255, 0, 0);
-    quad.fill(255);
-    quad.ellipse(0, 0, 100);
-}
-
-function keyPressed() {
-    if (key === 'c')
-        pMapper.toggleCalibration();
-}
-
-function mousePressed() {
-    pMapper.onClick();
-}
-
-function mouseDragged() {
-    pMapper.onDrag();
-}
-
-function mouseReleased() {
-    pMapper.onRelease();
-}
-```
-
 
 
 ## Acknowledgements
