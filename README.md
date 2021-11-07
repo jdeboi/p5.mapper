@@ -16,7 +16,7 @@
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
-    p5Mapper = getP5Mapper();
+    p5Mapper = createP5Mapper();
     
     // width, height, resolution of surfaces
     quad = p5Mapper.createQuad(400, 400, 20, this);

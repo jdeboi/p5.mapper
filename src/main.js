@@ -154,7 +154,7 @@ class Main {
 
 const p5mapper = new Main();
 
-p5.prototype.getP5Mapper = function () {
+p5.prototype.createP5Mapper = function () {
     return p5mapper;
 };
 

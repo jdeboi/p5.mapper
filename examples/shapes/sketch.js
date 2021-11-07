@@ -12,7 +12,7 @@ function preload() {
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
-    p5Mapper = getP5Mapper();
+    p5Mapper = createP5Mapper();
     quad = p5Mapper.createQuad(400, 400, 20, this);
     tri = p5Mapper.createTri(300, 300, 20, this);
     
