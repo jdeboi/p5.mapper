@@ -52,7 +52,7 @@ To load calibration `json` files from the "maps" directory (inside the project d
  p5Mapper.load("maps");
 ```
 
-To save `.json` files:
+To save `.json` files (saves one json file per mapped shape):
 
 ```javascript
  p5Mapper.save();
