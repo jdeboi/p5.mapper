@@ -7,7 +7,7 @@ function setup() {
     p5Mapper = createProjectionMapper();
 
     for (let i = 0; i < 5; i++) {
-        surfaces.push(pMapper.createQuad(100, 400, 20, this));
+        surfaces.push(pMapper.createQuadMap(100, 400, 20, this));
     }
     
     // p5Mapper will look for calibration files in "maps" directory

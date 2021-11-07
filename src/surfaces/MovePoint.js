@@ -14,7 +14,6 @@ class MovePoint {
     }
 
     moveTo( x,  y) {
-        console.log(x, y)
         this.x = x;
         this.y = y;
     }

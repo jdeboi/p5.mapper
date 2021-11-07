@@ -1,6 +1,6 @@
 import CornerPinSurface from './CornerPinSurface';
 
-class TriPinSurface extends CornerPinSurface {
+class TriMap extends CornerPinSurface {
 
 
 	constructor(id, w, h, res, pInst) {
@@ -96,4 +96,4 @@ class TriPinSurface extends CornerPinSurface {
 	}
 }
 
-export default TriPinSurface;
+export default TriMap;

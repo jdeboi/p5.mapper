@@ -1,2 +1,2 @@
 
-import main from './main';
+import ProjectionMapper from './ProjectionMapper';

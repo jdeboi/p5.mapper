@@ -5,7 +5,7 @@ function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
     pMapper = createProjectionMapper();
-    lines.push(pMapper.createLine(-200, -200, 100, 40));
+    lines.push(pMapper.createLineMap(-200, -200, 100, 40));
     // loads surface layouts in the "maps" directory
     // p5Mapper.load("maps");
 }

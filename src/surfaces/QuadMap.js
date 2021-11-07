@@ -2,7 +2,7 @@ import PerspT from '../perspective/PerspT';
 import CornerPinSurface from './CornerPinSurface';
 
 
-class QuadPinSurface extends CornerPinSurface {
+class QuadMap extends CornerPinSurface {
 
     constructor(id, w, h, res, pInst) {
         super(id, w, h, res, "QUAD", pInst);
@@ -129,4 +129,4 @@ class QuadPinSurface extends CornerPinSurface {
     }
 }
 
-export default QuadPinSurface;
+export default QuadMap;

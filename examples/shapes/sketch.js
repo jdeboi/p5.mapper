@@ -13,29 +13,23 @@ function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
     pMapper = createProjectionMapper();
-    quad = pMapper.createQuad(400, 400, 20, this);
-    tri = pMapper.createTri(300, 300, 20, this);
+    quad = pMapper.createQuadMap(400, 400, 20, this);
+    tri = pMapper.createTriMap(300, 300, 20, this);
     
     // loads surface layouts in the "maps" directory
-    p5Mapper.load("maps");
+    pMapper.load("maps");
 }
 
 function draw() {
     background(0);
-    displayQuad();
-    displayTri();
-}
-
-function displayQuad() {
+    
     quad.clear();
     quad.imageMode(CENTER);
     quad.background(255, 0, 0);
     quad.image(img, 0, 0);
     quad.fill(255);
     quad.ellipse(x++%300, 100, 100);
-}
 
-function displayTri() {
     tri.clear();
     tri.background(255, 255, 0);
 }

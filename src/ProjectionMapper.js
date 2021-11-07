@@ -1,8 +1,8 @@
-import QuadPinSurface from './surfaces/QuadPinSurface';
-import TriPinSurface from './surfaces/TriPinSurface';
+import QuadMap from './surfaces/QuadMap';
+import TriMap from './surfaces/TriMap';
 import LineMap from './lines/LineMap';
 
-class Main {
+class ProjectionMapper {
 
     constructor() {
         this.surfaces = [];
@@ -22,8 +22,8 @@ class Main {
      * @param res resolution (number of tiles per axis)
      * @return
      */
-    createQuad(w, h, res, pInst) {
-        const s = new QuadPinSurface(this.surfaces.length, w, h, res, pInst);
+    createQuadMap(w, h, res, pInst) {
+        const s = new QuadMap(this.surfaces.length, w, h, res, pInst);
         this.surfaces.push(s);
         return s;
     }
@@ -36,13 +36,13 @@ class Main {
      * @param res resolution (number of tiles per axis)
      * @return
      */
-    createTri(w, h, res, pInst) {
-        const s = new TriPinSurface(this.surfaces.length, w, h, res, pInst);
+    createTriMap(w, h, res, pInst) {
+        const s = new TriMap(this.surfaces.length, w, h, res, pInst);
         this.surfaces.push(s);
         return s;
     }
 
-    createLine(x0, y0, x1, y1) {
+    createLineMap(x0, y0, x1, y1) {
         const l = new LineMap(x0, y0, x1, y1);
         this.lines.push(l);
         return l;
@@ -61,13 +61,13 @@ class Main {
         }
     }
 
-    getSurface(i) {
-        return this.surfaces[i];
-    }
+    // getSurface(i) {
+    //     return this.surfaces[i];
+    // }
 
-    getSurfaceCount() {
-        return this.surfaces.length;
-    }
+    // getSurfaceCount() {
+    //     return this.surfaces.length;
+    // }
 
     // clearSurfaces() {
     //     this.surfaces = [];
@@ -174,25 +174,25 @@ class Main {
     }
 }
 
-const p5mapper = new Main();
+const pMapper = new ProjectionMapper();
 
 p5.prototype.createProjectionMapper = function () {
-    return p5mapper;
+    return pMapper;
 };
 
 
 p5.prototype.isCalibratingMapper = function () {
-    return p5mapper.calibrate;
+    return pMapper.calibrate;
 };
 
 
 p5.prototype.renderSurfaces = function () {
-    p5mapper.endSurfaces();
-    p5mapper.renderSurfaces();
+    pMapper.endSurfaces();
+    pMapper.renderSurfaces();
 }
 
 p5.prototype.beginSurfaces = function () {
-    p5mapper.beginSurfaces();
+    pMapper.beginSurfaces();
 }
 
 
@@ -200,4 +200,4 @@ p5.prototype.beginSurfaces = function () {
 p5.prototype.registerMethod('pre', p5.prototype.beginSurfaces);
 p5.prototype.registerMethod('post', p5.prototype.renderSurfaces);
 
-export default p5mapper;
+export default pMapper;

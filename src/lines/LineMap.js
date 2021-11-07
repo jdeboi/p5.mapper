@@ -330,7 +330,6 @@ class LineMap {
         let d2 = dist(px, py, x2, y2);
         let lineLen = dist(x1, y1, x2, y2);
         let buffer = 0.2;    // higher # = less accurate
-        // console.log("ok", d1, d2);
         if (d1 + d2 >= lineLen - buffer && d1 + d2 <= lineLen + buffer) {
             return true;
         }
