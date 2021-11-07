@@ -38,7 +38,7 @@ quad.ellipse(frameCount%300, 100, 100);
 
 ### Calibrating
 
-The following methods will start / stop / toggle calibration mode.
+The following methods will start / stop / toggle calibration mode. In calibration mode, drag calibration points, or click and drag on the surface to move the mapped shape around the canvas. Don't forget to save your calibration (see below).
 
 ```javascript
  p5Mapper.startCalibration();
