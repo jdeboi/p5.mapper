@@ -1,12 +1,14 @@
 let p5Mapper;
-let wall;
+let quad, tri;
+
 let img;
 let x = 0;
-let quad, tri;
+
 
 function preload() {
     img = loadImage("catnap.jpg");
 }
+
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
@@ -14,11 +16,12 @@ function setup() {
     quad = p5Mapper.createQuad(400, 400, 20, this);
     tri = p5Mapper.createTri(300, 300, 20, this);
     
-    // p5Mapper.load("maps");
+    // loads surface layouts in the "maps" directory
+    p5Mapper.load("maps");
 }
 
 function draw() {
-    background(100);
+    background(0);
     displayQuad();
     displayTri();
 }
@@ -50,12 +53,12 @@ function keyPressed() {
             break;
 
         case 'l':
-            // loads the saved layout
+            // loads the saved layouts in "maps" directory
             p5Mapper.load("maps");
             break;
 
         case 's':
-            // saves the layout
+            // saves the layouts
             p5Mapper.save();
             break;
     }
