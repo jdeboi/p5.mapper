@@ -21,7 +21,7 @@ function setup() {
     lineMap = pMapper.createLineMap(-200, -200, 300, 100);
 
     // loads calibration in the "maps" directory
-    // pMapper.load("maps/map.json");
+    pMapper.load("maps/map.json");
 }
 
 function draw() {
