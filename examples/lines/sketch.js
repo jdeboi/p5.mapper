@@ -1,43 +1,18 @@
 let pMapper;
-let quad, tri;
-
-let img;
-let x = 0;
-
-
-function preload() {
-    img = loadImage("catnap.jpg");
-}
+const lines = [];
 
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
     pMapper = createProjectionMapper();
-    quad = pMapper.createQuad(400, 400, 20, this);
-    tri = pMapper.createTri(300, 300, 20, this);
-    
+    lines.push(pMapper.createLine(-200, -200, 100, 40));
     // loads surface layouts in the "maps" directory
-    p5Mapper.load("maps");
+    // p5Mapper.load("maps");
 }
 
 function draw() {
     background(0);
-    displayQuad();
-    displayTri();
-}
-
-function displayQuad() {
-    quad.clear();
-    quad.imageMode(CENTER);
-    quad.background(255, 0, 0);
-    quad.image(img, 0, 0);
-    quad.fill(255);
-    quad.ellipse(x++%300, 100, 100);
-}
-
-function displayTri() {
-    tri.clear();
-    tri.background(255, 255, 0);
+   
 }
 
 function keyPressed() {
@@ -50,7 +25,7 @@ function keyPressed() {
 
         case 'l':
             // loads the saved layouts in "maps" directory
-            pMapper.load("maps");
+            // p5Mapper.load("maps");
             break;
 
         case 's':

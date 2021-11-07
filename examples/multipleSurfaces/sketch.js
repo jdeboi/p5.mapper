@@ -1,17 +1,17 @@
-let p5Mapper;
+let pMapper;
 let surfaces = [];
 
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
-    p5Mapper = createP5Mapper();
+    p5Mapper = createProjectionMapper();
 
     for (let i = 0; i < 5; i++) {
-        surfaces.push(p5Mapper.createQuad(100, 400, 20, this));
+        surfaces.push(pMapper.createQuad(100, 400, 20, this));
     }
     
     // p5Mapper will look for calibration files in "maps" directory
-    p5Mapper.load("maps");
+    pMapper.load("maps");
 }
 
 function draw() {
@@ -32,29 +32,29 @@ function keyPressed() {
         case 'c':
             // enter/leave calibration mode, where surfaces can be warped 
             // and moved
-            p5Mapper.toggleCalibration();
+            pMapper.toggleCalibration();
             break;
 
         case 'l':
             // loads the saved surface layouts in "maps directory"
-            p5Mapper.load("maps");
+            pMapper.load("maps");
             break;
 
         case 's':
             // saves the surface layouts
-            p5Mapper.save();
+            pMapper.save();
             break;
     }
 }
 
 function mousePressed() {
-    p5Mapper.onClick();
+    pMapper.onClick();
 }
 
 function mouseDragged() {
-    p5Mapper.onDrag();
+    pMapper.onDrag();
 }
 
 function mouseReleased() {
-    p5Mapper.onRelease();
+    pMapper.onRelease();
 }

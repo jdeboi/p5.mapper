@@ -163,8 +163,8 @@ class CornerPinSurface extends Surface {
             noFill();
             for (let i = 0; i < this.mesh.length; i++) {
                 if (this.mesh[i].isControlPoint) {
-                    ellipse(this.mesh[i].x, this.mesh[i].y, 20, 20);
-                    ellipse(this.mesh[i].x, this.mesh[i].y, 10, 10);
+                    ellipse(this.mesh[i].x, this.mesh[i].y, this.mesh[i].r);
+                    ellipse(this.mesh[i].x, this.mesh[i].y, this.mesh[i].r/2);
                 }
             }
         }
@@ -218,7 +218,7 @@ class CornerPinSurface extends Surface {
         x -= this.x;
         y -= this.y;
         for (let i = 0; i < this.mesh.length; i++) {
-            if (dist(this.mesh[i].x, this.mesh[i].y, x, y) < 30
+            if (dist(this.mesh[i].x, this.mesh[i].y, x, y) < this.mesh[i].r
                 && this.mesh[i].isControlPoint)
                 return this.mesh[i];
         }

@@ -1,26 +1,26 @@
- 
- 
- # p5.mapper
+# p5.mapper
 
- This library is designed to making projection mapping easy using the popular, easy-to-learn JavaScript library, [p5.js](https://p5js.org/). Checkout the [examples](examples) folder to see full working p5.js sketches.
+This library is designed to making projection mapping easy using the popular, easy-to-learn JavaScript library, [p5.js](https://p5js.org/). Checkout the [examples](examples) folder to see full working p5.js sketches.
 
- ### Installation
- You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. Include the library in your `index.html` (after loading p5.js):
+### Installation
+You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. Include the library in your `index.html` (after loading p5.js):
 
- ```html
- <script type="text/javascript" src="p5.mapper.min.js"></script>
- ```
+```html
+<script type="text/javascript" src="p5.mapper.min.js"></script>
+```
 
 ### Creating surfaces
 ```javascript
+const pMapper;
+
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
-    p5Mapper = createP5Mapper();
+    pMapper = createProjectionMapper();
     
     // width, height, resolution of surfaces
-    quad = p5Mapper.createQuad(400, 400, 20, this);
-    tri = p5Mapper.createTri(300, 300, 20, this);   
+    quad = pMapper.createQuad(400, 400, 20, this);
+    tri = pMapper.createTri(300, 300, 20, this);   
 }
 ```
 
@@ -41,21 +41,21 @@ quad.ellipse(frameCount%300, 100, 100);
 The following methods will start / stop / toggle calibration mode. In calibration mode, drag calibration points, or click and drag on the surface to move the mapped shape around the canvas. Don't forget to save your calibration (see below).
 
 ```javascript
- p5Mapper.startCalibration();
- p5Mapper.stopCalibration();
- p5Mapper.toggleCalibration();
+ pMapper.startCalibration();
+ pMapper.stopCalibration();
+ pMapper.toggleCalibration();
  ```
 
 To load calibration `json` files from the "maps" directory (inside the project directory):
 
 ```javascript
- p5Mapper.load("maps");
+ pMapper.load("maps");
 ```
 
 To save `.json` files (saves one json file per mapped shape):
 
 ```javascript
- p5Mapper.save();
+ pMapper.save();
 ```
 
 ### Mouse input
@@ -63,15 +63,15 @@ Make sure to call the following to ensure you can move the surfaces during calib
 
 ```javascript
 function mousePressed() {
-    p5Mapper.onClick();
+    pMapper.onClick();
 }
 
 function mouseDragged() {
-    p5Mapper.onDrag();
+    pMapper.onDrag();
 }
 
 function mouseReleased() {
-    p5Mapper.onRelease();
+    pMapper.onRelease();
 }
 ```
 

@@ -1,11 +1,12 @@
 import QuadPinSurface from './surfaces/QuadPinSurface';
 import TriPinSurface from './surfaces/TriPinSurface';
-import Surface from './surfaces/Surface';
+import LineMap from './lines/LineMap';
 
 class Main {
 
     constructor() {
         this.surfaces = [];
+        this.lines = [];
         this.dragged = null;
         this.calibrate = false;
     }
@@ -41,12 +42,22 @@ class Main {
         return s;
     }
 
+    createLine(x0, y0, x1, y1) {
+        const l = new LineMap(x0, y0, x1, y1);
+        this.lines.push(l);
+        return l;
+    }
+
     /**
      * Called post draw()
      */
     renderSurfaces() {
         for (const surface of this.surfaces) {
             surface.render();
+        }
+
+        for (const line of this.lines) {
+            line.display();
         }
     }
 
@@ -72,6 +83,15 @@ class Main {
 
         let top = null;
         // navigate the list backwards, as to select 
+        for (let i = this.lines.length - 1; i >= 0; i--) {
+            let s = this.lines[i];
+            this.dragged = s.select();
+            if (this.dragged != null) {
+                top = s;
+                break;
+            }
+        }
+
         for (let i = this.surfaces.length - 1; i >= 0; i--) {
             let s = this.surfaces[i];
             this.dragged = s.select();
@@ -80,6 +100,8 @@ class Main {
                 break;
             }
         }
+
+        
 
         if (top != null) {
             // TODO
@@ -154,7 +176,7 @@ class Main {
 
 const p5mapper = new Main();
 
-p5.prototype.createP5Mapper = function () {
+p5.prototype.createProjectionMapper = function () {
     return p5mapper;
 };
 
@@ -163,9 +185,6 @@ p5.prototype.isCalibratingMapper = function () {
     return p5mapper.calibrate;
 };
 
-p5.prototype.createSurface = function (w, h, res) {
-    return new Surface(w, h, res, this);
-};
 
 p5.prototype.renderSurfaces = function () {
     p5mapper.endSurfaces();
