@@ -4,7 +4,7 @@ let surfaces = [];
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
-    p5Mapper = createProjectionMapper();
+    pMapper = createProjectionMapper();
 
     for (let i = 0; i < 5; i++) {
         surfaces.push(pMapper.createQuadMap(100, 400, 20, this));

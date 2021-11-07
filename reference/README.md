@@ -12,16 +12,16 @@
 const pMapper = createProjectionMapper();
 ```
   
-Creating mapping surfaces:
+Methods to create mapping surfaces:
 * `createQuadMap(width, height, resolution, pInstance)`
 * `createTriMap(width, height, resolution, pInstance)`
 * `createLineMap(x0, y0, x1, y1)`
   
-Saving / loading:
+Saving / loading methods:
 * `save()`
 * `load(directory)`
   
-Calibrating:
+Calibrating methods:
 * `startCalibration()`
 * `stopCalibration()`
 * `toggleCalibration()`
@@ -71,4 +71,4 @@ const pMapper = createProjectionMapper();
 const line = pMapper.createLineMap(-100, -100, 200, 200);
 ```
 
-* display(color)
+* `display(color)`

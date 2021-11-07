@@ -1,11 +1,11 @@
-# p5.mapper Examples
+### Examples
 
 * Shapes
-  * [demo](shapes/index.html)
+  * [demo](http://jdeboi.com/p5.mapper/examples/shapes/index.html)
   * [code](shapes/sketch.js)
-* Multiple Surfaces
-  * [demo](multipleSurfaces/index.html)
-  * [code](multipleSurfaces/sketch.js)
+* Array of mapped shapes
+  * [demo](http://jdeboi.com/p5.mapper/examples/multiple/index.html)
+  * [code](multiple/sketch.js)
 * Lines
-  * [demo](lines/index.html)
+  * [demo](http://jdeboi.com/p5.mapper/examples/lines/index.html)
   * [code](lines/sketch.js)
