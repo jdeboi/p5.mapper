@@ -1,16 +1,17 @@
 # p5.mapper
 
 This library is designed to making projection mapping easy using the popular, easy-to-learn JavaScript library, [p5.js](https://p5js.org/). 
+
 * [Examples](examples/README.md)
 * [Reference](reference/README.md)
 
 
+## Overview 
 You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. Include the library in your `index.html` (after loading p5.js).
 
 ```html
 <script type="text/javascript" src="p5.mapper.min.js"></script>
 ```
-
 
 ```javascript
 // sketch.js
@@ -51,7 +52,6 @@ function mouseReleased() {
 ```
 
 
----
 
  ## Acknowledgements
 
