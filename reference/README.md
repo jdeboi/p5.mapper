@@ -1,11 +1,10 @@
-## Reference
 
   - [ProjectionMapper](#projectionmapper)
   - [QuadMap](#quadmap)
   - [TriMap](#trimap)
   - [LineMap](#linemap)
 
-### ProjectionMapper
+## ProjectionMapper
 
 ```javascript
 const pMapper = createProjectionMapper();
@@ -32,7 +31,7 @@ Mouse interaction (for calibration):
 
 
 
-### QuadMap
+## QuadMap
 
 The QuadMap class extends `p5.Graphics`, which means this class inherits all of the methods associated with the `p5.Graphics` object. For example:
 
@@ -47,7 +46,7 @@ quad.ellipse(100, 100, 100);
 // many more ...
 ```
 
-### TriMap
+## TriMap
 
 The TriMap class extends `p5.Graphics`, which means this class inherits all of the methods associated with the `p5.Graphics` object. For example:
 
@@ -62,7 +61,7 @@ tri.ellipse(100, 100, 100);
 // many more ...
 ```
 
-### LineMap
+## LineMap
 
 ```javascript
 const pMapper = createProjectionMapper();
