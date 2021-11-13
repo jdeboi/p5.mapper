@@ -12,8 +12,6 @@ function setup() {
 
     pMapper = createProjectionMapper();
     for (let i = 0; i < 4; i++) {
-        // arguments are unncessary if you're going to load calibration
-        // lineMaps.push(pMapper.createLineMap(-100, -100, 200, 200));
         lineMaps.push(pMapper.createLineMap());
     }
     pMapper.load("maps/map.json");

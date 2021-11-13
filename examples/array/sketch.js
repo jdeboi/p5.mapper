@@ -4,10 +4,10 @@ let surfaces = [];
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
-    pMapper = createProjectionMapper();
+    pMapper = createProjectionMapper(this);
 
     for (let i = 0; i < 5; i++) {
-        surfaces.push(pMapper.createQuadMap(100, 400, 20, this));
+        surfaces.push(pMapper.createQuadMap(100, 400));
     }
     pMapper.load("maps/map.json");
 }

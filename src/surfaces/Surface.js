@@ -10,10 +10,14 @@ class Surface {
         this.y = 0;
         this.clickX = 0;
         this.clickY = 0;
+        this.xStartDrag = this.x;
+        this.yStartDrag = this.y;
 
         this.gridColor = color(200);
         this.controlPointColor = color(255, 0, 255);
     }
+
+   
 
   
 }

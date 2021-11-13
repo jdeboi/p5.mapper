@@ -10,9 +10,14 @@ class LineMap {
 
     constructor(x0, y0, x1, y1, id) {
         this.id = id;
+        this.x = 0;
+        this.y = 0;
+        this.clickX = 0;
+        this.clickY = 0;
         this.p0 = new MovePoint(this, x0, y0, 20);
         this.p1 = new MovePoint(this, x1, y1, 20);
 
+        this.type = "LINE";
         this.lineW = 10;
         this.lastChecked = 0;
         this.lineC = color(255);

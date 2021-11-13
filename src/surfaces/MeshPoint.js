@@ -15,9 +15,8 @@ class MeshPoint extends MovePoint {
         this.v = point.v;
     }
 
-    moveTo(x, y) {
-        this.x = x - this.parent.x;
-        this.y = y - this.parent.y;
+    moveTo() {
+        super.moveTo();
         this.parent.calculateMesh();
     }
 

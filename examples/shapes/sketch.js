@@ -1,5 +1,6 @@
 let pMapper;
 let quadMap, triMap, lineMap;
+let maskMap;
 
 let myFont;
 let img;
@@ -15,10 +16,14 @@ function setup() {
 
     textFont(myFont);
 
-    pMapper = createProjectionMapper();
-    quadMap = pMapper.createQuadMap(400, 400, 20, this);
-    triMap = pMapper.createTriMap(300, 300, 20, this);
-    lineMap = pMapper.createLineMap(-200, -200, 300, 100);
+    lineMap = pMapper.createLineMap();
+    pMapper = createProjectionMapper(this);
+    triMap = pMapper.createTriMap(300, 300);
+    quadMap = pMapper.createQuadMap(400, 400);
+    
+    
+    
+    maskMap = pMapper.createMaskMap(5);
 
     // loads calibration in the "maps" directory
     pMapper.load("maps/map.json");
@@ -28,6 +33,7 @@ function draw() {
     background(0);
     displayFrameRate();
 
+    // display order from back to front is determined in setup, not draw
     quadMap.clear();
     quadMap.imageMode(CENTER);
     quadMap.background(255, 0, 0);
@@ -39,6 +45,8 @@ function draw() {
     triMap.background(255, 255, 0);
 
     lineMap.display(color(0, 255, 0));
+
+    maskMap.display();
 }
 
 function displayFrameRate() {

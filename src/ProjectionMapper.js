@@ -1,14 +1,17 @@
 import QuadMap from './surfaces/QuadMap';
 import TriMap from './surfaces/TriMap';
 import LineMap from './lines/LineMap';
+import Mask from './mask/Mask';
 
 class ProjectionMapper {
 
     constructor() {
         this.surfaces = [];
         this.lines = [];
+        this.masks = [];
         this.dragged = null;
         this.calibrate = false;
+        this.pInst = null;
     }
 
     ////////////////////////////////////////
@@ -22,8 +25,8 @@ class ProjectionMapper {
      * @param res resolution (number of tiles per axis)
      * @return
      */
-    createQuadMap(w, h, res, pInst) {
-        const s = new QuadMap(this.surfaces.length, w, h, res, pInst);
+    createQuadMap(w, h, res=20) {
+        const s = new QuadMap(this.surfaces.length, w, h, res, this.pInst);
         this.surfaces.push(s);
         return s;
     }
@@ -36,16 +39,29 @@ class ProjectionMapper {
      * @param res resolution (number of tiles per axis)
      * @return
      */
-    createTriMap(w, h, res, pInst) {
-        const s = new TriMap(this.surfaces.length, w, h, res, pInst);
+    createTriMap(w, h, res=20) {
+        const s = new TriMap(this.surfaces.length, w, h, res, this.pInst);
         this.surfaces.push(s);
         return s;
     }
 
-    createLineMap(x0=0, y0=0, x1=100, y1=100) {
+    createLineMap(x0=0, y0=0, x1=0, y1=0) {
+        if (x0 == 0 && y0 == 0 && x1 == 0 && y1==0) {
+            x1 = 200;
+            y0 = 30*this.lines.length;
+            y1 = 30*this.lines.length;
+        }
         const l = new LineMap(x0, y0, x1, y1, this.lines.length);
         this.lines.push(l);
         return l;
+    }
+
+    createMaskMap(numPoints=3) {
+        if (numPoints < 3) 
+            numPoints = 3;
+        let mask = new Mask(this.masks.length, numPoints);
+        this.masks.push(mask);
+        return mask;
     }
 
     /**
@@ -65,23 +81,33 @@ class ProjectionMapper {
         if (!this.calibrate)
             return;
 
+        // first check masks
         let top = null;
+        for (const mask of this.masks) {
+            this.dragged = mask.select();
+            if (this.dragged != null) {
+                top = mask;
+                return;
+            }
+        }
+        // Check Lines
         // navigate the list backwards, as to select 
         for (let i = this.lines.length - 1; i >= 0; i--) {
             let s = this.lines[i];
             this.dragged = s.select();
             if (this.dragged != null) {
                 top = s;
-                break;
+                return;
             }
         }
 
+        // check mapping surfaces
         for (let i = this.surfaces.length - 1; i >= 0; i--) {
             let s = this.surfaces[i];
             this.dragged = s.select();
             if (this.dragged != null) {
                 top = s;
-                break;
+                return;
             }
         }
 
@@ -101,10 +127,8 @@ class ProjectionMapper {
     }
 
     onDrag() {
-        let x = mouseX - width / 2;
-        let y = mouseY - height / 2;
         if (this.dragged != null)
-            this.dragged.moveTo(x, y);
+            this.dragged.moveTo();
     }
 
     onRelease() {
@@ -123,28 +147,73 @@ class ProjectionMapper {
     }
 
     loadedJson(json) {
+       
+        if (json.masks) this.loadMasks(json);
+
+        if (json.surfaces) this.loadSurfaces(json);
+
+        if (json.lines) this.loadLines(json);
+    }
+
+    loadMasks(json) {
+        let jMasks = json.masks;
+        if (jMasks.length !== this.masks.length) {
+            console.warn(`json calibration file has ${jMasks.length} masks but there are ${this.masks.length} masks in memory (check sketch.js for # of mask objects)`)
+        }
+        let index = 0;
+        while (index < jMasks.length && index < this.masks.length) {
+            const s = this.masks[index];
+            if (s.isEqual(this.masks[index]))
+                s.load(jMasks[index]);
+            else
+                console.warn("mismatch between calibration mask types / ids")
+
+            index++;
+        }
+    }
+
+    loadSurfaces(json) {
         let jSurfaces = json.surfaces;
         if (jSurfaces.length !== this.surfaces.length) {
             console.warn(`json calibration file has ${jSurfaces.length} surface maps but there are ${this.surfaces.length} surface maps in memory (check sketch.js for # of map objects)`)
         }
 
+        // in the future if we want to make sure only to load tris into tris, etc.
+        const jTriSurfaces = jSurfaces.filter(surf => surf.type === "TRI");
+        const jQuadSurfaces = jSurfaces.filter(surf => surf.type === "QUAD");
+        const mapTris = this.surfaces.filter(surf => surf.type === "TRI");
+        const mapQuads = this.surfaces.filter(surf => surf.type === "QUAD");
+       
+        // loading tris
         let index = 0;
-        while (index < jSurfaces.length && index < this.surfaces.length) {
-            const s = this.surfaces[index];
-            if (s.isEqual(this.surfaces[index]))
-                s.load(jSurfaces[index]);
+        while (index < jTriSurfaces.length && index < mapTris.length) {
+            const s = mapTris[index];
+            if (s.isEqual(mapTris[index]))
+                s.load(jTriSurfaces[index]);
             else
                 console.warn("mismatch between calibration surface types / ids")
-
             index++;
         }
 
+        // loading quads
+        index = 0;
+        while (index < jQuadSurfaces.length && index < mapQuads.length) {
+            const s = mapQuads[index];
+            if (s.isEqual(mapQuads[index]))
+                s.load(jQuadSurfaces[index]);
+            else
+                console.warn("mismatch between calibration surface types / ids")
+            index++;
+        }
+    }
+
+    loadLines(json) {
         let jLines = json.lines;
         if (jLines.length !== this.lines.length) {
-            console.warn(`json calibration file has ${jLines.length} line maps but there are only ${this.lines.length} line maps in memory`)
+            console.warn(`json calibration file has ${jLines.length} line maps but there are ${this.lines.length} line maps in memory`)
         }
 
-        index = 0;
+        let index = 0;
         while (index < jLines.length && index < this.lines.length) {
             this.lines[index].load(jLines[index]);
             index++;
@@ -154,7 +223,12 @@ class ProjectionMapper {
 
     save(filename = "map.json") {
         console.log("saving all mapped surfaces to json...");
-        let json = { surfaces: [], lines: [] }
+        let json = { surfaces: [], lines: [], masks: [] }
+        
+        for (const mask of this.masks) {
+            json.masks.push(mask.getJson());
+        }
+
         for (const surface of this.surfaces) {
             json.surfaces.push(surface.getJson());
         }
@@ -198,6 +272,9 @@ class ProjectionMapper {
 
     displayControlPoints() {
         if (this.calibrate) {
+            for (const mask of this.masks) {
+                mask.displayControlPoints();
+            }
             for (const surface of this.surfaces) {
                 surface.displayControlPoints();
             }
@@ -211,7 +288,8 @@ class ProjectionMapper {
 
 const pMapper = new ProjectionMapper();
 
-p5.prototype.createProjectionMapper = function () {
+p5.prototype.createProjectionMapper = function (pInst) {
+    pMapper.pInst = this;
     return pMapper;
 };
 

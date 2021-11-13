@@ -16,9 +16,25 @@ Inside the `sketch.js`:
 const pMapper = createProjectionMapper();
 
 // quad, triangle, lines:
-const quadMap = pMapper.createQuadMap(400, 400, 20, this);
-const triMap = pMapper.createTriMap(300, 300, 20, this);
-const lineMap = pMapper.createLineMap(-200, -200, 300, 100);
+const quadMap = pMapper.createQuadMap(400, 400);
+const triMap = pMapper.createTriMap(300, 300);
+const lineMap = pMapper.createLineMap();
+
+// mask with 6 moveable points
+const maskMap = pMapper.createMaskMap(6);
+
+// draw()
+quadMap.clear();
+quadMap.background(255, 0, 0);
+quadMap.fill(255);
+quadMap.ellipse(100, 100, 100);
+
+triMap.clear();
+triMap.background(255, 255, 0);
+
+lineMap.display(color(0, 255, 0));
+
+maskMap.display();
 ```
 
 ## Acknowledgements

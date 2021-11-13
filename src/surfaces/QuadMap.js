@@ -14,6 +14,7 @@ class QuadMap extends CornerPinSurface {
     isMouseOver() {
         let x = mouseX - width / 2;
         let y = mouseY - height / 2;
+     
         if (this.isPointInTriangle(x - this.x, y - this.y, this.mesh[this.TL],
             this.mesh[this.TR], this.mesh[this.BL])
             || this.isPointInTriangle(x - this.x, y - this.y,
@@ -118,14 +119,6 @@ class QuadMap extends CornerPinSurface {
         vertex(mp.x, mp.y, u, v);
     }
 
-    getControlPoints() {
-        return [
-			this.mesh[this.TL], 
-			this.mesh[this.TR], 
-			this.mesh[this.BR],
-            this.mesh[this.BL],
-		];
-    }
 }
 
 export default QuadMap;

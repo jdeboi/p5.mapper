@@ -42,7 +42,11 @@ class TriMap extends CornerPinSurface {
 		this.mesh[this.TP].setControlPoint(true);
 		this.mesh[this.TL].setControlPoint(false);
 		this.mesh[this.TR].setControlPoint(false);
+
+		this.controlPoints = [];
+		this.controlPoints.push(this.mesh[this.TP], this.mesh[this.BL], this.mesh[this.BR]);
 	}
+	
 
 	render() {
 		push();
@@ -85,13 +89,6 @@ class TriMap extends CornerPinSurface {
 		return p;
 	}
 
-	getControlPoints() {
-        return [
-			this.mesh[this.TP], 
-			this.mesh[this.BL], 
-			this.mesh[this.BR]
-		];
-    }
 }
 
 export default TriMap;
