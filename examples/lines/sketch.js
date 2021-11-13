@@ -10,7 +10,7 @@ function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
     textFont(myFont);
 
-    pMapper = createProjectionMapper();
+    pMapper = createProjectionMapper(this);
     for (let i = 0; i < 4; i++) {
         lineMaps.push(pMapper.createLineMap());
     }

@@ -15,12 +15,11 @@ function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
     textFont(myFont);
-
-    lineMap = pMapper.createLineMap();
+    
     pMapper = createProjectionMapper(this);
     triMap = pMapper.createTriMap(300, 300);
     quadMap = pMapper.createQuadMap(400, 400);
-    
+    lineMap = pMapper.createLineMap();
     
     
     maskMap = pMapper.createMaskMap(5);
