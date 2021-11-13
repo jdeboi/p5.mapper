@@ -13,7 +13,7 @@ You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. In
 
 Inside the `sketch.js`:
 ```javascript
-const pMapper = createProjectionMapper();
+const pMapper = createProjectionMapper(this);
 
 // quad, triangle, lines:
 const quadMap = pMapper.createQuadMap(400, 400);
