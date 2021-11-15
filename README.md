@@ -2,7 +2,7 @@
 
 ![logo](images/p5mapper.jpg)
 
-**p5.mapper** is a projection mapping library for [p5.js](https://p5js.org/). This library makes it easy to code and keystone interactive, algorithmic sketches. Created by [Jenna deBoisblanc](https://jdeboi.com/).
+p5.mapper is a projection mapping library for [p5.js](https://p5js.org/). This library makes it easy to code and keystone interactive, algorithmic sketches. Created by [Jenna deBoisblanc](https://jdeboi.com/).
 
 * [Examples](examples)
 * [Reference](reference/README.md)
