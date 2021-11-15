@@ -17,6 +17,11 @@ Methods to create mapping surfaces:
 * `createQuadMap(width, height, [resolution])`
 * `createTriMap(width, height, [resolution])`
 * `createLineMap([x0, y0, x1, y1])`
+* `createMaskMap(numPoints)`
+
+Get the value of an oscillator (useful for LineMap animations):
+* `getOscillator(seconds, [offset])`
+  * (bascially a sine wave helper- returns a number 0-1 that oscillates with a `seconds`-long period and an optional phase, `offset`
   
 Saving / loading methods:
 * `save([filename.json])`
