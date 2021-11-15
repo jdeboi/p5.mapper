@@ -91,10 +91,13 @@ class QuadMap extends CornerPinSurface {
 
         fill(red(this.controlPointColor), green(this.controlPointColor), blue(this.controlPointColor), 50);
         beginShape();
-        vertex(this.mesh[this.TL].x, this.mesh[this.TL].y);
-        vertex(this.mesh[this.TR].x, this.mesh[this.TR].y);
-        vertex(this.mesh[this.BR].x, this.mesh[this.BR].y);
-        vertex(this.mesh[this.BL].x, this.mesh[this.BL].y);
+        for (const cp of this.controlPoints) {
+            vertex(cp.x, cp.y);
+        }
+        // vertex(this.mesh[this.TL].x, this.mesh[this.TL].y);
+        // vertex(this.mesh[this.TR].x, this.mesh[this.TR].y);
+        // vertex(this.mesh[this.BR].x, this.mesh[this.BR].y);
+        // vertex(this.mesh[this.BL].x, this.mesh[this.BL].y);
         endShape(CLOSE);
     }
 

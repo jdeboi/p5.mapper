@@ -61,14 +61,23 @@ class MovePoint {
     }
 
     display(col = this.col) {
-        stroke(col);
+        let c = col;
+        if (this.isMouseOver() && isDragging(this)) {
+            c = color(255);
+        }
+        push();
+        translate(0, 0, 5);
+        stroke(c);
         strokeWeight(2);
         noFill();
 
         ellipse(this.x, this.y, this.r);
-        fill(col);
+        fill(c);
         ellipse(this.x, this.y, this.r / 2);
+        pop();
     }
+
+
 }
 
 export default MovePoint;

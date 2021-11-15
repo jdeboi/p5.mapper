@@ -69,7 +69,8 @@ class LineMap {
     }
 
     displayCenterPulse(per, col = this.lineC) {
-        per = constrain(per, 0, 1.0);
+        // per = constrain(per, 0, 1.0);
+        // let per = this. getPercentWave(speed);
         let midX = (this.p0.x + this.p1.x) / 2;
         let midY = (this.p0.y + this.p1.y) / 2;
         let x0 = map(per, 0, 1.0, midX, this.p0.x);
@@ -83,9 +84,7 @@ class LineMap {
     }
 
     displayPercent(per, col = this.lineC) {
-        per = constrain(per, 0, 1);
-        per *= 2;
-        let p = constrain(per, 0, 1.0);
+        let p = per
         let p0 = createVector(this.p0.x, this.p0.y);
         let p1 = createVector(this.p1.x, this.p1.y);
         let pTemp = p5.Vector.lerp(p0, p1, p);
@@ -101,7 +100,7 @@ class LineMap {
         strokeWeight(sw);
         stroke(col);
         line(this.p0.x, this.p0.y, this.p1.x, this.p1.y);
-        this.drawEndCaps(p0, p1, col, col);
+        this.drawEndCaps(this.p0, this.p1, col, col, sw);
     }
 
     displayNone() {
@@ -139,13 +138,13 @@ class LineMap {
         this.p1.display(this.controlPointColor);
     }
 
-    drawEndCaps(p0, p1, col0 = this.lineC, col1 = this.lineC) {
+    drawEndCaps(p0, p1, col0 = this.lineC, col1 = this.lineC, w=this.lineW) {
         noStroke();
         if (dist(p0.x, p0.y, p1.x, p1.y) > 1) {
             fill(col0);
-            ellipse(p0.x, p0.y, this.lineW, this.lineW);
+            ellipse(p0.x, p0.y, w, w);
             fill(col1);
-            ellipse(p1.x, p1.y, this.lineW, this.lineW);
+            ellipse(p1.x, p1.y, w, w);
         }
     }
 

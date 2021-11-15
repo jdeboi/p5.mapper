@@ -41,7 +41,7 @@ function draw() {
     quadMap.ellipse(x++ % 300, 100, 100);
 
     triMap.clear();
-    triMap.background(255, 255, 0);
+    // triMap.background(255, 255, 0);
 
     lineMap.display(color(0, 255, 0));
 
@@ -52,6 +52,10 @@ function displayFrameRate() {
     fill(255);
     noStroke();
     text(round(frameRate()), -width / 2 + 20, -height / 2 + 20);
+}
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
 }
 
 function keyPressed() {

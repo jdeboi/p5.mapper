@@ -60,14 +60,14 @@ class CornerPinSurface extends Surface {
         // make the corners control points
         this.mesh[this.TL].setControlPoint(true);
         this.mesh[this.TR].setControlPoint(true);
-        this.mesh[this.BL].setControlPoint(true);
         this.mesh[this.BR].setControlPoint(true);
-
+        this.mesh[this.BL].setControlPoint(true);
+        
         this.controlPoints = [];
         this.controlPoints.push(this.mesh[this.TL]);
         this.controlPoints.push(this.mesh[this.TR]);
-        this.controlPoints.push(this.mesh[this.BL]);
         this.controlPoints.push(this.mesh[this.BR]);
+        this.controlPoints.push(this.mesh[this.BL]);
     }
 
 
@@ -240,6 +240,18 @@ class CornerPinSurface extends Surface {
         for (const p of this.controlPoints)
             p.display(this.controlPointColor);
         pop();
+    }
+
+    displayOutline() {
+        strokeWeight(3);
+        stroke(this.controlPointColor);
+
+        fill(red(this.controlPointColor), green(this.controlPointColor), blue(this.controlPointColor), 50);
+        beginShape();
+        for (const cp of this.controlPoints) {
+            vertex(cp.x, cp.y);
+        }
+        endShape(CLOSE);
     }
 
     beginDrawing() {

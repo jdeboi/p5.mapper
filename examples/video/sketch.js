@@ -72,3 +72,7 @@ function mouseDragged() {
 function mouseReleased() {
     pMapper.onRelease();
 }
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+}

@@ -3,6 +3,8 @@ import TriMap from './surfaces/TriMap';
 import LineMap from './lines/LineMap';
 import Mask from './mask/Mask';
 
+import { getPercent, getPercentWave } from './helpers/helpers';
+
 class ProjectionMapper {
 
     constructor() {
@@ -25,7 +27,7 @@ class ProjectionMapper {
      * @param res resolution (number of tiles per axis)
      * @return
      */
-    createQuadMap(w, h, res=20) {
+    createQuadMap(w, h, res = 20) {
         const s = new QuadMap(this.surfaces.length, w, h, res, this.pInst);
         this.surfaces.push(s);
         return s;
@@ -39,25 +41,25 @@ class ProjectionMapper {
      * @param res resolution (number of tiles per axis)
      * @return
      */
-    createTriMap(w, h, res=20) {
+    createTriMap(w, h, res = 20) {
         const s = new TriMap(this.surfaces.length, w, h, res, this.pInst);
         this.surfaces.push(s);
         return s;
     }
 
-    createLineMap(x0=0, y0=0, x1=0, y1=0) {
-        if (x0 == 0 && y0 == 0 && x1 == 0 && y1==0) {
+    createLineMap(x0 = 0, y0 = 0, x1 = 0, y1 = 0) {
+        if (x0 == 0 && y0 == 0 && x1 == 0 && y1 == 0) {
             x1 = 200;
-            y0 = 30*this.lines.length;
-            y1 = 30*this.lines.length;
+            y0 = 30 * this.lines.length;
+            y1 = 30 * this.lines.length;
         }
         const l = new LineMap(x0, y0, x1, y1, this.lines.length);
         this.lines.push(l);
         return l;
     }
 
-    createMaskMap(numPoints=3) {
-        if (numPoints < 3) 
+    createMaskMap(numPoints = 3) {
+        if (numPoints < 3)
             numPoints = 3;
         let mask = new Mask(this.masks.length, numPoints);
         this.masks.push(mask);
@@ -135,6 +137,12 @@ class ProjectionMapper {
         this.dragged = null;
     }
 
+    isDragging(surface) {
+        if (this.dragged === null)
+            return true;
+        return this.dragged === surface;
+    }
+
 
     ////////////////////////////////////////
     // LOADING / SAVING
@@ -147,7 +155,7 @@ class ProjectionMapper {
     }
 
     loadedJson(json) {
-       
+
         if (json.masks) this.loadMasks(json);
 
         if (json.surfaces) this.loadSurfaces(json);
@@ -183,7 +191,7 @@ class ProjectionMapper {
         const jQuadSurfaces = jSurfaces.filter(surf => surf.type === "QUAD");
         const mapTris = this.surfaces.filter(surf => surf.type === "TRI");
         const mapQuads = this.surfaces.filter(surf => surf.type === "QUAD");
-       
+
         // loading tris
         let index = 0;
         while (index < jTriSurfaces.length && index < mapTris.length) {
@@ -224,7 +232,7 @@ class ProjectionMapper {
     save(filename = "map.json") {
         console.log("saving all mapped surfaces to json...");
         let json = { surfaces: [], lines: [], masks: [] }
-        
+
         for (const mask of this.masks) {
             json.masks.push(mask.getJson());
         }
@@ -254,7 +262,7 @@ class ProjectionMapper {
         this.calibrate = !this.calibrate;
     }
 
-     ////////////////////////////////////////
+    ////////////////////////////////////////
     // RENDERING
     ////////////////////////////////////////
     beginSurfaces() {
@@ -282,7 +290,11 @@ class ProjectionMapper {
                 lineMap.displayControlPoints();
             }
         }
-        
+
+    }
+
+    getOscillator(seconds, offset=0) {
+        return getPercentWave(seconds, offset);
     }
 }
 
@@ -298,6 +310,9 @@ p5.prototype.isCalibratingMapper = function () {
     return pMapper.calibrate;
 };
 
+p5.prototype.isDragging = function (surface) {
+    return pMapper.isDragging(surface);
+};
 
 p5.prototype.beginSurfaces = function () {
     pMapper.beginSurfaces();

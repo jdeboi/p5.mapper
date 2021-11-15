@@ -46,7 +46,7 @@ class TriMap extends CornerPinSurface {
 		this.controlPoints = [];
 		this.controlPoints.push(this.mesh[this.TP], this.mesh[this.BL], this.mesh[this.BR]);
 	}
-	
+
 
 	render() {
 		push();
@@ -69,25 +69,14 @@ class TriMap extends CornerPinSurface {
 		vertex(this.mesh[this.BR].x, this.mesh[this.BR].y, u, v);
 		endShape(CLOSE);
 
+		if (isCalibratingMapper()) {
+			// translate(0, 0, 1);
+			this.displayOutline();
+		}
+
 		pop();
 	}
 
-
-
-	getP1() {
-		let p = createVector(this.mesh[this.TP].x, mesh[this.TP].y);
-		return p;
-	}
-
-	getP2() {
-		let p = createVector(this.mesh[this.BL].x, mesh[this.BL].y);
-		return p;
-	}
-
-	getP3() {
-		let p = createVector(this.mesh[this.BR].x, mesh[this.BR].y);
-		return p;
-	}
 
 }
 
