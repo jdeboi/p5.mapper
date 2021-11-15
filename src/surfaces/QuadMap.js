@@ -66,38 +66,40 @@ class QuadMap extends CornerPinSurface {
         push();
         translate(this.x, this.y);
 
-        texture(this);
-        beginShape(TRIANGLES);
+        // texture(this);
+        // beginShape(TRIANGLES);
 
-        for (let x = 0; x < this.res - 1; x++) {
-            for (let y = 0; y < this.res - 1; y++) {
-                this.getQuadTriangles(x, y, tX, tY, tW, tH);
-            }
-        }
-        endShape(CLOSE);
+        // for (let x = 0; x < this.res - 1; x++) {
+        //     for (let y = 0; y < this.res - 1; y++) {
+        //         this.getQuadTriangles(x, y, tX, tY, tW, tH);
+        //     }
+        // }
+        // endShape(CLOSE);
 
         if (isCalibratingMapper()) {
             translate(0, 0, 3);
-            this.displayOutline();
+            // this.displayOutline();
+            this.displayGrid();
         }
         pop();
 
 
     }
 
-    displayOutline() {
-        strokeWeight(3);
+    displayGrid() {
+        strokeWeight(2);
         stroke(this.controlPointColor);
-
         fill(red(this.controlPointColor), green(this.controlPointColor), blue(this.controlPointColor), 50);
-        beginShape();
-        for (const cp of this.controlPoints) {
-            vertex(cp.x, cp.y);
+        
+        stroke(200);
+        noFill();
+        beginShape(TRIANGLES);
+
+        for (let x = 0; x < this.res - 1; x++) {
+            for (let y = 0; y < this.res - 1; y++) {
+                this.getQuadTrianglesOutline(x, y);
+            }
         }
-        // vertex(this.mesh[this.TL].x, this.mesh[this.TL].y);
-        // vertex(this.mesh[this.TR].x, this.mesh[this.TR].y);
-        // vertex(this.mesh[this.BR].x, this.mesh[this.BR].y);
-        // vertex(this.mesh[this.BL].x, this.mesh[this.BL].y);
         endShape(CLOSE);
     }
 
@@ -127,6 +129,27 @@ class QuadMap extends CornerPinSurface {
         mp = this.mesh[(x) + (y) * this.res];
         this.getVertexUV(mp, tX, tY, tW, tH);
         // vertex(-1, -1, 0, 0, 0);
+    }
+
+    getQuadTrianglesOutline(x, y) {
+        let mp = this.mesh[(x) + (y) * this.res];
+        vertex(mp.x, mp.y);
+
+        mp = this.mesh[(x + 1) + (y) * this.res];
+        vertex(mp.x, mp.y);
+
+
+        mp = this.mesh[(x + 1) + (y + 1) * this.res];
+        vertex(mp.x, mp.y);
+
+        vertex(mp.x, mp.y);
+
+        mp = this.mesh[(x) + (y + 1) * this.res];
+        vertex(mp.x, mp.y);
+
+
+        mp = this.mesh[(x) + (y) * this.res];
+        vertex(mp.x, mp.y);
     }
 
 

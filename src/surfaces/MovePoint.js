@@ -65,6 +65,7 @@ class MovePoint {
         if (this.isMouseOver() && isDragging(this)) {
             c = color(255);
         }
+        c = color(255);
         push();
         translate(0, 0, 5);
         stroke(c);
