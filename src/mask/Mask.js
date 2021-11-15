@@ -1,6 +1,6 @@
 import MovePoint from "../surfaces/MovePoint";
 
-import { inside } from '../helpers/helpers';
+import { inside, getRandomizedColor } from '../helpers/helpers';
 
 class Mask {
 
@@ -13,6 +13,7 @@ class Mask {
         this.xStartDrag = this.x;
         this.yStartDrag = this.y;
         this.type = "MASK";
+        this.controlPointColor = getRandomizedColor(this.id, this.type);
 
         this.points = [];
         for (let i = 0; i < numPoints; i++) {
@@ -43,9 +44,9 @@ class Mask {
 
     displayControlPoints() {
         push();
-        translate(this.x, this.y);
+        translate(this.x, this.y, 2);
         for (const p of this.points) {
-            p.display(color(255, 255, 0));
+            p.display(this.controlPointColor);
         }
         pop();
     }

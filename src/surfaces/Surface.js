@@ -1,7 +1,10 @@
 class Surface {
 
     constructor(id, w, h, res, type, pInst) {
-        p5.Graphics.call(this, w, h, WEBGL, pInst);
+        // https://github.com/processing/p5.js/issues/3736
+        let g = p5.Graphics.call(this, w, h, WEBGL, pInst);
+        // g.drawingContext.disable(g.drawingContext.DEPTH_TEST);
+    
         this.id = id;
         this.res = Math.floor(res);
         this.type = type;

@@ -22,7 +22,7 @@ function draw() {
     displayFrameRate();
 
     for (const lineMap of lineMaps) {
-        let per = frameCount/200.0%1;
+        let per = frameCount / 200.0 % 1;
         // lineMap.display();
         lineMap.display(color(255, 0, 255));
         // lineMap.displayPercent(per);
@@ -36,7 +36,7 @@ function draw() {
 function displayFrameRate() {
     fill(255);
     noStroke();
-    text(round(frameRate()), -width/2 + 20, -height/2 + 20);
+    text(round(frameRate()), -width / 2 + 20, -height / 2 + 20);
 }
 
 function keyPressed() {
@@ -44,7 +44,11 @@ function keyPressed() {
         case 'c':
             pMapper.toggleCalibration();
             break;
-
+        case 'f':
+            let fs = fullscreen();
+            document.getElementById("header").style.display = "none";
+            fullscreen(!fs);
+            break;
         case 'l':
             pMapper.load("maps/map.json");
             break;

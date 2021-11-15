@@ -1,6 +1,6 @@
 class MovePoint {
 
-    constructor(parent, x, y, r = 30) {
+    constructor(parent, x, y, r = 20) {
         this.x = x;
         this.y = y;
         this.r = r;
@@ -11,7 +11,11 @@ class MovePoint {
         this.yStartDrag = this.y;
         this.clickX = 0;
         this.clickY = 0;
+
+        this.col = color(0, 255, 255);
     }
+
+ 
 
     isMouseOver() {
         let mx = mouseX - width / 2;
@@ -56,12 +60,13 @@ class MovePoint {
         this.y = start.y + (end.y - start.y) * f;
     }
 
-    display(col) {
+    display(col = this.col) {
         stroke(col);
         strokeWeight(2);
         noFill();
 
         ellipse(this.x, this.y, this.r);
+        fill(col);
         ellipse(this.x, this.y, this.r / 2);
     }
 }

@@ -1,4 +1,5 @@
 import MovePoint from "../surfaces/MovePoint";
+import { getRandomizedColor } from '../helpers/helpers';
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -14,16 +15,22 @@ class LineMap {
         this.y = 0;
         this.clickX = 0;
         this.clickY = 0;
-        this.p0 = new MovePoint(this, x0, y0, 20);
-        this.p1 = new MovePoint(this, x1, y1, 20);
+
 
         this.type = "LINE";
         this.lineW = 10;
         this.lastChecked = 0;
         this.lineC = color(255);
         this.highlightColor = color(0, 255, 0);
+        this.controlPointColor = getRandomizedColor(this.id, this.type)
+
+        this.p0 = new MovePoint(this, x0, y0, 20);
+        this.p1 = new MovePoint(this, x1, y1, 20);
+
+        this.controlCol = getRandomizedColor();
 
         this.leftToRight();
+
         this.ang = atan2(this.p0.y - this.p1.y, this.p0.x - this.p1.x);
         if (this.ang > PI / 2)
             this.ang -= 2 * PI;
@@ -50,7 +57,7 @@ class LineMap {
         return json;
     }
 
-   
+
     //////////////////////////////////////////////
     // DISPLAY METHODS
     //////////////////////////////////////////////
@@ -128,17 +135,8 @@ class LineMap {
     // DISPLAY HELPERS
     //////////////////////////////////////////////
     displayControlPoints() {
-        push();
-        noFill();
-
-        strokeWeight(2);
-        translate(0, 0, .5);
-        this.getPointHighlight(this.p0);
-        ellipse(this.p0.x, this.p0.y, 20);
-
-        this.getPointHighlight(this.p1);
-        ellipse(this.p1.x, this.p1.y, 20);
-        pop();
+        this.p0.display(this.controlPointColor);
+        this.p1.display(this.controlPointColor);
     }
 
     drawEndCaps(p0, p1, col0 = this.lineC, col1 = this.lineC) {

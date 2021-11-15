@@ -15,8 +15,8 @@ function setup() {
 
     textFont(myFont);
 
-    pMapper = createProjectionMapper();
-    quadMap = pMapper.createQuadMap(video.width, video.height, 20, this);
+    pMapper = createProjectionMapper(this);
+    quadMap = pMapper.createQuadMap(video.width, video.height);
     pMapper.load("maps/map.json");
 }
 
@@ -44,7 +44,11 @@ function keyPressed() {
         case 'c':
             pMapper.toggleCalibration();
             break;
-
+        case 'f':
+            let fs = fullscreen();
+            document.getElementById("header").style.display = "none";
+            fullscreen(!fs);
+            break;
         case 'l':
             pMapper.load("maps/map.json");
             break;

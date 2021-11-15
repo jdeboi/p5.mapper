@@ -3,7 +3,7 @@ import MovePoint from './MovePoint';
 class MeshPoint extends MovePoint {
 
     constructor(parent, x, y, u, v) {
-        super(parent, x, y, 30);
+        super(parent, x, y);
         this.u = u;
         this.v = v;
     }

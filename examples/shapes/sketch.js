@@ -15,13 +15,13 @@ function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
     textFont(myFont);
-    
+
     pMapper = createProjectionMapper(this);
     triMap = pMapper.createTriMap(300, 300);
     quadMap = pMapper.createQuadMap(400, 400);
     lineMap = pMapper.createLineMap();
-    
-    
+
+
     maskMap = pMapper.createMaskMap(5);
 
     // loads calibration in the "maps" directory
@@ -38,7 +38,7 @@ function draw() {
     quadMap.background(255, 0, 0);
     quadMap.image(img, 0, 0);
     quadMap.fill(255);
-    quadMap.ellipse(x++%300, 100, 100);
+    quadMap.ellipse(x++ % 300, 100, 100);
 
     triMap.clear();
     triMap.background(255, 255, 0);
@@ -51,7 +51,7 @@ function draw() {
 function displayFrameRate() {
     fill(255);
     noStroke();
-    text(round(frameRate()), -width/2 + 20, -height/2 + 20);
+    text(round(frameRate()), -width / 2 + 20, -height / 2 + 20);
 }
 
 function keyPressed() {
@@ -61,7 +61,11 @@ function keyPressed() {
             // and moved
             pMapper.toggleCalibration();
             break;
-
+        case 'f':
+            let fs = fullscreen();
+            document.getElementById("header").style.display = "none";
+            fullscreen(!fs);
+            break;
         case 'l':
             pMapper.load("maps/map.json");
             break;

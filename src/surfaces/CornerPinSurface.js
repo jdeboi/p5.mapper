@@ -1,5 +1,6 @@
 import MeshPoint from './MeshPoint';
 import Surface from './Surface';
+import { getRandomizedColor } from '../helpers/helpers';
 
 class CornerPinSurface extends Surface {
 
@@ -22,6 +23,8 @@ class CornerPinSurface extends Surface {
         this.perspT = null;
         this.initMesh();
         this.calculateMesh();
+
+        this.controlPointColor = getRandomizedColor(this.id, this.type);
     }
 
 
@@ -246,9 +249,9 @@ class CornerPinSurface extends Surface {
     endDrawing() {
         this.pop();
     }
-    
-    
-    
+
+
+
     /**
         * This function will give you the position of the mouse in the surface's
         * coordinate system.

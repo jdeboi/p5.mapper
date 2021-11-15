@@ -14,13 +14,13 @@ function setup() {
 
 function draw() {
     background(0);
-    
+
     let index = 0;
     for (const surface of surfaces) {
         let bg = map(index++, 0, surfaces.length, 0, 255);
         surface.push();
         surface.clear();
-        surface.background((bg+frameCount)%255);
+        surface.background((bg + frameCount) % 255);
         surface.pop();
     }
 }
@@ -30,7 +30,11 @@ function keyPressed() {
         case 'c':
             pMapper.toggleCalibration();
             break;
-
+        case 'f':
+            let fs = fullscreen();
+            document.getElementById("header").style.display = "none";
+            fullscreen(!fs);
+            break;
         case 'l':
             pMapper.load("maps/map.json");
             break;
