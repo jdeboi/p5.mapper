@@ -66,19 +66,19 @@ class QuadMap extends CornerPinSurface {
         push();
         translate(this.x, this.y);
 
-        // texture(this);
-        // beginShape(TRIANGLES);
+        texture(this);
+        beginShape(TRIANGLES);
 
-        // for (let x = 0; x < this.res - 1; x++) {
-        //     for (let y = 0; y < this.res - 1; y++) {
-        //         this.getQuadTriangles(x, y, tX, tY, tW, tH);
-        //     }
-        // }
-        // endShape(CLOSE);
+        for (let x = 0; x < this.res - 1; x++) {
+            for (let y = 0; y < this.res - 1; y++) {
+                this.getQuadTriangles(x, y, tX, tY, tW, tH);
+            }
+        }
+        endShape(CLOSE);
 
         if (isCalibratingMapper()) {
             translate(0, 0, 3);
-            // this.displayOutline();
+            this.displayOutline();
             this.displayGrid();
         }
         pop();
@@ -91,8 +91,8 @@ class QuadMap extends CornerPinSurface {
         stroke(this.controlPointColor);
         fill(red(this.controlPointColor), green(this.controlPointColor), blue(this.controlPointColor), 50);
         
-        stroke(200);
-        noFill();
+        // stroke(200);
+        // noFill();
         beginShape(TRIANGLES);
 
         for (let x = 0; x < this.res - 1; x++) {

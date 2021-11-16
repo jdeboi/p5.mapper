@@ -8,6 +8,8 @@ p5.mapper is a projection mapping library for [p5.js](https://p5js.org/). This l
 * [Examples](examples)
 * [Reference](reference/README.md)
 
+![projection mapped example](images/mapped_surfaces.png)
+
 You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. Include the library in your `index.html` (after loading p5.js).
 
 ```html

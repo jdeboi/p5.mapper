@@ -1,8 +1,9 @@
 let lineMode = 0;
 const CENTER_PULSE = 0;
-const WIDTH_PULSE = 1;
+const DISPLAY = 1;
 const LEFT_PULSE = 2;
-const NUM_MODES = LEFT_PULSE+1;
+const NUM_MODES = LEFT_PULSE + 1;
+const WIDTH_PULSE = 3;
 
 let pMapper;
 const lineMaps = [];
@@ -20,29 +21,36 @@ function setup() {
 
     pMapper = createProjectionMapper(this);
     for (let i = 0; i < 9; i++) {
-        lineMaps.push(pMapper.createLineMap());
+        let LM = pMapper.createLineMap();
+        lineMaps.push(LM);
+        LM.lineW = map(i, 0, 9, 20, 70);
     }
 
     colorMode(HSB, 100);
     setStartColors();
-    // pMapper.load("maps/map.json");
+    pMapper.load("maps/map.json");
 }
 
 function draw() {
     background(0);
     displayFrameRate();
 
-    cycleColors(.1);
+    if (frameCount % 300 === 0) {
+        setStartColors();
+    }
+    // cycleColors(.1); 
     cycleLineMode(500);
 
     let index = 0;
     for (const lineMap of lineMaps) {
+        colorMode(RGB, 255);
         let c = lerpColor(startC, endC, index / 9);
         getLineMode(lineMap, index++, c);
     }
 }
 
 function setStartColors() {
+    colorMode(HSB, 100);
     startC = color(random(100), 100, 100);
     let endHue = (hue(startC) + random(25, 75)) % 100;
     endC = color(endHue, 100, 100);
@@ -70,12 +78,16 @@ function getLineMode(l, index, c) {
         case CENTER_PULSE:
             l.displayCenterPulse(percent, c);
             break;
+        case DISPLAY:
+            l.display(c);
+            break;
         case WIDTH_PULSE:
             l.displayPercentWidth(percent, c);
             break;
         default:
             l.display(c);
     }
+    l.display(c);
 }
 
 
@@ -95,6 +107,7 @@ function keyPressed() {
             let fs = fullscreen();
             document.getElementById("header").style.display = "none";
             fullscreen(!fs);
+            console.log("go")
             break;
         case 'l':
             pMapper.load("maps/map.json");
