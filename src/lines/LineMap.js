@@ -108,12 +108,16 @@ class LineMap {
     }
 
     displayRainbowCycle() {
+        // TODO - is this how we should handle color modes?
+        // shouldn't we set to what it was before call? Can't presume RBG
         colorMode(HSB, 255);
         let col = color(frameCount % 255, 255, 255);
         this.display(col);
         colorMode(RGB, 255);
     }
 
+    // TODO
+    // way too expensive
     displayGradientLine(c1, c2, per, phase = 1, flip = false) {
         per += phase;
         per %= 1;
@@ -123,16 +127,17 @@ class LineMap {
             let grad = (i / 2 + per) % 1;
             let col = this.get2CycleColor(c1, c2, grad);
             this.displaySegment(i, spacing, col);
-            // if (flip)
-            //     this.displayFlipSegment(i, spacing, col);
-            // else
-            //     this.displaySegment(i, spacing, col);
         }
     }
 
     //////////////////////////////////////////////
     // DISPLAY HELPERS
     //////////////////////////////////////////////
+    displayCalibration() {
+        let col = color(0, 255, 0);
+        this.display(col);
+    }
+
     displayControlPoints() {
         this.p0.display(this.controlPointColor);
         this.p1.display(this.controlPointColor);

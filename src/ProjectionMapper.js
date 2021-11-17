@@ -285,8 +285,10 @@ class ProjectionMapper {
             }
             for (const surface of this.surfaces) {
                 surface.displayControlPoints();
-            }
+            }   
+
             for (const lineMap of this.lines) {
+                lineMap.displayCalibration();
                 lineMap.displayControlPoints();
             }
         }
