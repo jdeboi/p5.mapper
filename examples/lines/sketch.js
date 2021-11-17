@@ -1,72 +1,60 @@
+/*
+* p5.mapper
+* projection mapping with lines for staircase
+* 
+* Jenna deBoisblanc
+* jdeboi.com
+* 11/16/2021
+* 
+*/
+
+// projection mapping objects
+let pMapper;
+const lineMaps = [];
+
+// line modes
 let lineMode = 0;
 const CENTER_PULSE = 0;
 const DISPLAY = 1;
 const LEFT_PULSE = 2;
 const NUM_MODES = LEFT_PULSE + 1;
-const WIDTH_PULSE = 3;
 
-let pMapper;
-const lineMaps = [];
-
-let myFont;
-let startC, endC, nextStartC;
-
-function preload() {
-    myFont = loadFont('assets/Roboto.ttf');
-}
+// colors
+let startC, endC;
 
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
-    textFont(myFont);
 
+    // initialize mapper
     pMapper = createProjectionMapper(this);
     for (let i = 0; i < 9; i++) {
-        let LM = pMapper.createLineMap();
-        lineMaps.push(LM);
-        LM.lineW = map(i, 0, 9, 20, 70);
+        // initialize empty lines
+        let lineMap = pMapper.createLineMap();
+        lineMaps.push(lineMap);
+        // decrease line width for higher stairs (farther away)
+        lineMap.lineW = map(i, 0, 9, 20, 70);
     }
-
-    colorMode(HSB, 100);
-    setStartColors();
+    // load saved calibration
     pMapper.load("maps/map.json");
+
+    // initialize gradient colors
+    setStartColors();
 }
 
 function draw() {
     background(0);
-    displayFrameRate();
 
-    if (frameCount % 300 === 0) {
-        setStartColors();
-    }
-    // cycleColors(.1); 
+    cycleColors(300);
     cycleLineMode(500);
 
+    // display gradient lines
     let index = 0;
     for (const lineMap of lineMaps) {
-        colorMode(RGB, 255);
         let c = lerpColor(startC, endC, index / 9);
         getLineMode(lineMap, index++, c);
     }
 }
 
-function setStartColors() {
-    colorMode(HSB, 100);
-    startC = color(random(100), 100, 100);
-    let endHue = (hue(startC) + random(25, 75)) % 100;
-    endC = color(endHue, 100, 100);
-}
-
-function cycleColors(dC) {
-    startC = color((hue(startC) + dC) % 100, 100, 100);
-    endC = color((hue(endC) + dC) % 100, 100, 100);
-}
-
-function cycleLineMode(framesPerCycle) {
-    if (frameCount % framesPerCycle === 0) {
-        lineMode++;
-        lineMode %= NUM_MODES;
-    }
-}
 
 function getLineMode(l, index, c) {
     let offset = index / 9 * 2 * PI;
@@ -87,15 +75,27 @@ function getLineMode(l, index, c) {
         default:
             l.display(c);
     }
-    l.display(c);
 }
 
+function setStartColors() {
+    colorMode(HSB, 100);
+    startC = color(random(100), 100, 100);
+    let endHue = (hue(startC) + random(25, 75)) % 100;
+    endC = color(endHue, 100, 100);
+    colorMode(RGB, 255);
+}
 
+function cycleColors(framesPerCycle) {
+    if (frameCount % framesPerCycle === 0) {
+        setStartColors();
+    }
+}
 
-function displayFrameRate() {
-    fill(255);
-    noStroke();
-    text(round(frameRate()), -width / 2 + 20, -height / 2 + 20);
+function cycleLineMode(framesPerCycle) {
+    if (frameCount % framesPerCycle === 0) {
+        lineMode++;
+        lineMode %= NUM_MODES;
+    }
 }
 
 function keyPressed() {
@@ -134,3 +134,4 @@ function mouseReleased() {
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
+

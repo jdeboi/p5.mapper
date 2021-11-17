@@ -1,30 +1,35 @@
+/*
+* p5.mapper
+* projection mapping indigenous plants from New Orleans
+* part of Plant Dat project
+* https://jdeboi.com/projects/2019/plantdat.html
+*
+* Jenna deBoisblanc
+* jdeboi.com
+* 11/16/2021
+* 
+*/
+
 let pMapper;
 let surfaces = [];
 
 let flowers = [];
 
-let flyingTerr = 0;
 let windAngle = 0;
+let windOffset = 0;
 
-let myFont;
-
-function preload() {
-    myFont = loadFont('assets/Roboto.ttf');
-}
 
 function setup() {
-    // createCanvas(windowWidth, windowHeight, WEBGL);
-    let renderer = createCanvas(windowWidth, windowHeight, WEBGL);
-    renderer.drawingContext.disable(renderer.drawingContext.DEPTH_TEST);
+    createCanvas(windowWidth, windowHeight, WEBGL);
 
-    textFont(myFont);
-
+    // initialize mapping surfaces
     pMapper = createProjectionMapper(this);
     for (let i = 0; i < 7; i++) {
-        surfaces.push(pMapper.createQuadMap(500, height - 100));
+        surfaces.push(pMapper.createQuadMap(300, 400));
     }
     pMapper.load("maps/map.json");
 
+    // initialize flower objects
     let gf = 1.4;
     flowers.push(new Blueeye(surfaces[0].height, gf));
     flowers.push(new Obedient(surfaces[1].height, gf));
@@ -33,26 +38,24 @@ function setup() {
     flowers.push(new Stokes(surfaces[4].height, gf));
     flowers.push(new Sleeping(surfaces[5].height, gf));
     flowers.push(new Clasping(surfaces[6].height, gf));
-
-    drawingContext.disable(drawingContext.DEPTH_TEST);
-
 }
 
 function draw() {
     background(0);
-    displayFrameRate();
 
+    // draw mapped surfaces
     let index = 0;
     for (const surface of surfaces) {
         surface.clear();
-        // surface.background(index * 20, index * 20, 0);
         flowers[index++].display(surface);
     }
 
-
-    for (const flower of flowers)
+    // grow flowers
+    for (const flower of flowers) {
         flower.grow();
-
+    }
+        
+    // the elements
     wind();
 }
 
@@ -93,12 +96,6 @@ function windowResized() {
 }
 
 function wind() {
-    let windForce = map(noise(0, flyingTerr), 0, 1, -PI / 15, PI / 15);
-    windAngle = windForce + windForce / 4 * sin(map(noise(0, flyingTerr += .01), 0, 1, 0, width) / 1000.0);
-}
-
-function displayFrameRate() {
-    fill(255);
-    noStroke();
-    text(round(frameRate()), -width / 2 + 20, -height / 2 + 20);
+    let windForce = map(noise(0, windOffset), 0, 1, -PI / 15, PI / 15);
+    windAngle = windForce + windForce / 4 * sin(map(noise(0, windOffset += .01), 0, 1, 0, width) / 1000.0);
 }

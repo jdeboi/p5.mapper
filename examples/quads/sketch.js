@@ -1,7 +1,6 @@
 /*
 * p5.mapper
-* Video on quad surface
-* Click to start video
+* Display rainbow array of quad maps
 * 
 * Jenna deBoisblanc
 * jdeboi.com
@@ -10,50 +9,45 @@
 */
 
 let pMapper;
-let quadMap;
+let surfaces = [];
 
-let video;
-let isPlaying = false;
-
-let myFont;
-
-
-function preload() {
-    myFont = loadFont('assets/Roboto.ttf');
-    video = createVideo(['assets/fingers.mov', 'assets/fingers.webm']);
-    video.hide();
-}
 
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
-    textFont(myFont);
-
+    // initialize map surfaces
     pMapper = createProjectionMapper(this);
-    quadMap = pMapper.createQuadMap(video.width, video.height);
+    for (let i = 0; i < 10; i++) {
+        surfaces.push(pMapper.createQuadMap(50, 300, 4));
+    }
+    // load maps
     pMapper.load("maps/map.json");
+
+    // HSB color for rainbow effect
+    colorMode(HSB, 255);
 }
 
 function draw() {
     background(0);
 
-    displayFrameRate();
-
-    quadMap.clear();
-    quadMap.translate(-quadMap.width / 2, -quadMap.height / 2);
-    if (isPlaying)
-        quadMap.image(video, 0, 0);
-    quadMap.noFill();
-    quadMap.stroke(0, 255, 0);
-    quadMap.rect(5, 5, quadMap.width - 25, quadMap.height - 20);
+    // draw on quad surfaces
+    let index = 0;
+    for (const surface of surfaces) {
+        let col = color((frameCount + index++ * 20) % 255, 255, 255);
+        surface.clear();
+        surface.background(col);
+    }
 }
+
 
 function keyPressed() {
     switch (key) {
         case 'c':
+            // toggle calibration
             pMapper.toggleCalibration();
             break;
         case 'f':
+            // toggle fullscreen
             let fs = fullscreen();
             document.getElementById("header").style.display = "none";
             fullscreen(!fs);
@@ -69,8 +63,6 @@ function keyPressed() {
 }
 
 function mousePressed() {
-    isPlaying = true;
-    video.loop();
     pMapper.onClick();
 }
 
@@ -84,10 +76,4 @@ function mouseReleased() {
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
-}
-
-function displayFrameRate() {
-    fill(255);
-    noStroke();
-    text(round(frameRate()), -width / 2 + 20, -height / 2 + 20);
 }

@@ -4,3 +4,5 @@ examples/__test
 *.DS_Store
 .vscode
 *logo_maker
+*sketchpalette.js
+

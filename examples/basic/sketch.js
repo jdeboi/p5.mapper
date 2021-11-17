@@ -1,6 +1,15 @@
+/*
+* p5.mapper
+* create mapped surfaces (quad, tri, line, masks)
+* 
+* Jenna deBoisblanc
+* jdeboi.com
+* 11/16/2021
+* 
+*/
+
 let pMapper;
-let quadMap, triMap, lineMap;
-let maskMap;
+let quadMap, triMap, lineMap, maskMap;
 
 let myFont;
 let img;
@@ -16,12 +25,14 @@ function setup() {
 
     textFont(myFont);
 
+    // create mapper object
     pMapper = createProjectionMapper(this);
+    // create mapping surfaces (width / height)
     triMap = pMapper.createTriMap(300, 300);
     quadMap = pMapper.createQuadMap(400, 400);
     lineMap = pMapper.createLineMap();
 
-
+    // creates a black mask with 5 moveable points
     maskMap = pMapper.createMaskMap(5);
 
     // loads calibration in the "maps" directory
@@ -30,6 +41,7 @@ function setup() {
 
 function draw() {
     background(0);
+
     displayFrameRate();
 
     // display order from back to front is determined in setup, not draw
@@ -41,21 +53,11 @@ function draw() {
     quadMap.ellipse(x++ % 300, 100, 100);
 
     triMap.clear();
-    // triMap.background(255, 255, 0);
+    triMap.background(255, 255, 0);
 
     lineMap.display(color(0, 255, 0));
 
     maskMap.display();
-}
-
-function displayFrameRate() {
-    fill(255);
-    noStroke();
-    text(round(frameRate()), -width / 2 + 20, -height / 2 + 20);
-}
-
-function windowResized() {
-    resizeCanvas(windowWidth, windowHeight);
 }
 
 function keyPressed() {
@@ -66,16 +68,19 @@ function keyPressed() {
             pMapper.toggleCalibration();
             break;
         case 'f':
+            // enter/ exit fullscreen mode
             let fs = fullscreen();
             document.getElementById("header").style.display = "none";
             fullscreen(!fs);
             break;
         case 'l':
+            // load calibration file
             pMapper.load("maps/map.json");
             break;
 
         case 's':
             // saves the calibration to map.json
+            // change browser download location as needed
             pMapper.save("map.json");
             break;
     }
@@ -91,4 +96,14 @@ function mouseDragged() {
 
 function mouseReleased() {
     pMapper.onRelease();
+}
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+}
+
+function displayFrameRate() {
+    fill(255);
+    noStroke();
+    text(round(frameRate()), -width / 2 + 20, -height / 2 + 20);
 }
