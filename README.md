@@ -19,28 +19,67 @@ You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. In
 
 Inside the `sketch.js`:
 ```javascript
-const pMapper = createProjectionMapper(this);
+let pMapper;
+let quadMap, triMap, lineMap, maskMap;
 
-// quad, triangle, lines:
-const quadMap = pMapper.createQuadMap(400, 400);
-const triMap = pMapper.createTriMap(300, 300);
-const lineMap = pMapper.createLineMap();
+function setup() {
+    createCanvas(windowWidth, windowHeight, WEBGL);
 
-// mask with 6 moveable points
-const maskMap = pMapper.createMaskMap(6);
+    // create mapper object
+    pMapper = createProjectionMapper(this);
 
-// draw()
-quadMap.clear();
-quadMap.background(255, 0, 0);
-quadMap.fill(255);
-quadMap.ellipse(100, 100, 100);
+    // create mapping surfaces
+    triMap = pMapper.createTriMap(300, 300);
+    quadMap = pMapper.createQuadMap(400, 400);
+    lineMap = pMapper.createLineMap();
 
-triMap.clear();
-triMap.background(255, 255, 0);
+    // creates a black mask with 5 moveable points
+    maskMap = pMapper.createMaskMap(5);
+}
 
-lineMap.display(color(0, 255, 0));
+function draw() {
+    background(0);
 
-maskMap.display();
+    // display order from back to front is determined in setup, not draw
+    quadMap.clear();
+    quadMap.background(255, 0, 0);
+
+    triMap.clear();
+    triMap.background(255, 255, 0);
+
+    lineMap.display(color(0, 255, 0));
+
+    maskMap.display();
+}
+
+function keyPressed() {
+    switch (key) {
+        case 'c':
+            // enter/leave calibration mode
+            pMapper.toggleCalibration();
+            break;
+        case 'l':
+            // load calibration file
+            pMapper.load("maps/map.json");
+            break;
+        case 's':
+            // saves the calibration to map.json
+            pMapper.save("map.json");
+            break;
+    }
+}
+
+function mousePressed() {
+    pMapper.onClick();
+}
+
+function mouseDragged() {
+    pMapper.onDrag();
+}
+
+function mouseReleased() {
+    pMapper.onRelease();
+}
 ```
 
 ## Acknowledgements
