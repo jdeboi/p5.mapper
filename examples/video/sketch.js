@@ -71,15 +71,6 @@ function keyPressed() {
 function mousePressed() {
     isPlaying = true;
     video.loop();
-    pMapper.onClick();
-}
-
-function mouseDragged() {
-    pMapper.onDrag();
-}
-
-function mouseReleased() {
-    pMapper.onRelease();
 }
 
 function windowResized() {

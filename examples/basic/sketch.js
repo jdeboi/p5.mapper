@@ -86,18 +86,6 @@ function keyPressed() {
     }
 }
 
-function mousePressed() {
-    pMapper.onClick();
-}
-
-function mouseDragged() {
-    pMapper.onDrag();
-}
-
-function mouseReleased() {
-    pMapper.onRelease();
-}
-
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }

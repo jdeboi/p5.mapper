@@ -68,18 +68,6 @@ function keyPressed() {
             break;
     }
 }
-
-function mousePressed() {
-    pMapper.onClick();
-}
-
-function mouseDragged() {
-    pMapper.onDrag();
-}
-
-function mouseReleased() {
-    pMapper.onRelease();
-}
 ```
 
 ## Acknowledgements

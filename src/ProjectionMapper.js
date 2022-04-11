@@ -14,6 +14,7 @@ class ProjectionMapper {
         this.dragged = null;
         this.calibrate = false;
         this.pInst = null;
+        this.pMousePressed = false;
     }
 
     ////////////////////////////////////////
@@ -67,14 +68,6 @@ class ProjectionMapper {
         return mask;
     }
 
-    /**
-     * Called post draw()
-     */
-    renderSurfaces() {
-        for (const surface of this.surfaces) {
-            surface.render();
-        }
-    }
 
     ////////////////////////////////////////
     // INTERACTION
@@ -139,11 +132,30 @@ class ProjectionMapper {
     }
 
     isDragging(surface) {
+        // TODO - ??? why return true?
         if (this.dragged === null)
             return true;
         return this.dragged === surface;
     }
 
+
+
+    updateEvents() {
+        if (mouseIsPressed) {
+            if (!this.pMousePressed) {
+                this.onClick();
+            }
+            else {
+                this.onDrag();
+            }
+        }
+        else {
+            if (this.pMousePressed) {
+                this.onRelease();
+            }
+        }
+        this.pMousePressed = mouseIsPressed;
+    }
 
     ////////////////////////////////////////
     // LOADING / SAVING
@@ -278,6 +290,17 @@ class ProjectionMapper {
         }
     }
 
+    renderSurfaces() {
+        this.endSurfaces();
+        for (const surface of this.surfaces) {
+            surface.render();
+        }
+    }
+
+    display() {
+        this.renderSurfaces();
+        this.displayControlPoints();
+    }
 
     displayControlPoints() {
         if (this.calibrate) {
@@ -286,7 +309,7 @@ class ProjectionMapper {
             }
             for (const surface of this.surfaces) {
                 surface.displayControlPoints();
-            }   
+            }
 
             for (const lineMap of this.lines) {
                 lineMap.displayCalibration();
@@ -296,7 +319,7 @@ class ProjectionMapper {
 
     }
 
-    getOscillator(seconds, offset=0) {
+    getOscillator(seconds, offset = 0) {
         return getPercentWave(seconds, offset);
     }
 }
@@ -317,19 +340,12 @@ p5.prototype.isDragging = function (surface) {
     return pMapper.isDragging(surface);
 };
 
-p5.prototype.beginSurfaces = function () {
-    pMapper.beginSurfaces();
-}
-
-p5.prototype.renderSurfaces = function () {
-    pMapper.endSurfaces();
-    pMapper.renderSurfaces();
-    pMapper.displayControlPoints();
-}
 
 
 
-p5.prototype.registerMethod('pre', p5.prototype.beginSurfaces);
-p5.prototype.registerMethod('post', p5.prototype.renderSurfaces);
+
+p5.prototype.registerMethod('pre', () => pMapper.beginSurfaces());
+p5.prototype.registerMethod('post', () => pMapper.display());
+p5.prototype.registerMethod('post', () => pMapper.updateEvents());
 
 export default pMapper;

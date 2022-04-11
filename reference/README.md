@@ -32,7 +32,7 @@ Calibrating methods:
 * `stopCalibration()`
 * `toggleCalibration()`
   
-Mouse interaction (for calibration):
+`DEPRECATED` (no longer need to call explicitly) — mouse interaction (for calibration):
 * `onClick()`
 * `onDrag()`
 * `onRelease()`
