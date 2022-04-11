@@ -1,6 +1,6 @@
 import MovePoint from "../surfaces/MovePoint";
 
-import { inside, getRandomizedColor } from '../helpers/helpers';
+import { inside, getRandomizedColor, isWEBGL } from '../helpers/helpers';
 
 class Mask {
 
@@ -16,10 +16,15 @@ class Mask {
         this.controlPointColor = getRandomizedColor(this.id, this.type);
 
         this.points = [];
+
         for (let i = 0; i < numPoints; i++) {
             let r = 200;
             let x = r * cos(i / numPoints * 2 * PI);
             let y = r * sin(i / numPoints * 2 * PI);
+            if (!isWEBGL()) {
+                x += width/2;
+                y += height/2;
+            }
             let cp = new MovePoint(this, x, y);
             cp.isControlPoint = true;
             this.points.push(cp);
@@ -52,9 +57,10 @@ class Mask {
     }
 
     isMouseOver() {
-        let p = {
-            x: mouseX - width / 2,
-            y: mouseY - height / 2
+        let p = { x: mouseX, y: mouseY};
+        if (isWEBGL()) {
+            p.x -= width / 2;
+            p.y -= height / 2
         };
         let ins = inside(p, this.points, { x: this.x, y: this.y });
         return ins;

@@ -1,3 +1,4 @@
+import { isWEBGL } from '../helpers/helpers';
 class MovePoint {
 
     constructor(parent, x, y, r = 20) {
@@ -15,11 +16,15 @@ class MovePoint {
         this.col = color(0, 255, 255);
     }
 
- 
+
 
     isMouseOver() {
-        let mx = mouseX - width / 2;
-        let my = mouseY - height / 2;
+        let mx = mouseX;
+        let my = mouseY;
+        if (isWEBGL()) {
+            mx -= width / 2;
+            my -= height / 2;
+        }
         let d = dist(mx, my, this.x + this.parent.x, this.y + this.parent.y);
         return (d < this.r);
     }

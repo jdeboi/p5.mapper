@@ -61,6 +61,7 @@ class ProjectionMapper {
     createMaskMap(numPoints = 3) {
         if (numPoints < 3)
             numPoints = 3;
+
         let mask = new Mask(this.masks.length, numPoints);
         this.masks.push(mask);
         return mask;

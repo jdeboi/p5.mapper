@@ -32,14 +32,18 @@ export function getRandomizedColor(id, type) {
 export function getPercent(seconds = 1) {
     seconds = constrain(seconds, .1, 100);
     // 60 frames / second
-    let per = frameCount / (60*seconds) % 1;
+    let per = frameCount / (60 * seconds) % 1;
     // console.log(frameCount / (60*seconds), per)
     return per;
 }
 
 
-export function getPercentWave(seconds=1, offset=0) {
+export function getPercentWave(seconds = 1, offset = 0) {
     seconds = constrain(seconds, .01, 100);
-    let per = .5 + .5*sin(frameCount/(60*seconds)*2*PI + offset);
+    let per = .5 + .5 * sin(frameCount / (60 * seconds) * 2 * PI + offset);
     return per;
+}
+
+export function isWEBGL() {
+    return (drawingContext instanceof WebGLRenderingContext);
 }
