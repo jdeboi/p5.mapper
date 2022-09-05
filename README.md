@@ -16,7 +16,13 @@ You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. In
 ```html
 <script type="text/javascript" src="p5.mapper.min.js"></script>
 ```
-
+  
+Alternatively, you can get the library through jsDelivr:  
+  
+```html
+<script src="https://cdn.jsdelivr.net/gh/jdeboi/p5.mapper/dist/p5.mapper.min.js"></script>
+```
+  
 Inside the `sketch.js`:
 ```javascript
 let pMapper;
