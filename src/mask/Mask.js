@@ -31,14 +31,26 @@ class Mask {
         }
     }
 
-    display() {
+    setPoints(pts) {
+        this.points = [];
+        for (const p of pts) {
+            let cp = new MovePoint(this, p.x, p.y);
+            cp.isControlPoint = true;
+            this.points.push(cp);
+        }
+    }
+    
+
+    display(col=color(0)) {
         push();
         translate(this.x, this.y, 1);
-        if (isCalibratingMapper())
-            fill(100);
-        else
-            fill(0);
         noStroke();
+        if (isCalibratingMapper())
+            fill(this.controlPointColor);
+        else {
+            fill(col);
+            stroke(col);
+        }
         beginShape();
         for (const point of this.points) {
             vertex(point.x, point.y);
