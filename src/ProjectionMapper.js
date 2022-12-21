@@ -3,7 +3,7 @@ import TriMap from './surfaces/TriMap';
 import LineMap from './lines/LineMap';
 import Mask from './mask/Mask';
 
-import { getPercent, getPercentWave } from './helpers/helpers';
+import { getPercentWave } from './helpers/helpers';
 
 class ProjectionMapper {
 
@@ -141,7 +141,7 @@ class ProjectionMapper {
 
 
     updateEvents() {
-        if (mouseIsPressed) {
+        if (this.pInst.mouseIsPressed) {
             if (!this.pMousePressed) {
                 this.onClick();
             }
@@ -154,7 +154,7 @@ class ProjectionMapper {
                 this.onRelease();
             }
         }
-        this.pMousePressed = mouseIsPressed;
+        this.pMousePressed = this.pInst.mouseIsPressed;
     }
 
     ////////////////////////////////////////
@@ -164,7 +164,7 @@ class ProjectionMapper {
         console.log(`loading json file: ${filepath}`);
         let mainThis = this;
         let error = (err) => console.log(`error loading ${filepath}`, err);
-        loadJSON(`${filepath}`, mainThis.loadedJson.bind(mainThis), error);
+        this.pInst.loadJSON(`${filepath}`, mainThis.loadedJson.bind(mainThis), error);
     }
 
     loadedJson(json) {
@@ -257,7 +257,7 @@ class ProjectionMapper {
         for (const line of this.lines) {
             json.lines.push(line.getJson());
         }
-        saveJSON(json, `${filename}`)
+        this.pInst.saveJSON(json, `${filename}`)
     }
 
     ////////////////////////////////////////
@@ -327,7 +327,7 @@ class ProjectionMapper {
 const pMapper = new ProjectionMapper();
 
 p5.prototype.createProjectionMapper = function (pInst) {
-    pMapper.pInst = this;
+    pMapper.pInst = pInst;
     return pMapper;
 };
 
