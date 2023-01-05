@@ -2,12 +2,14 @@ import QuadMap from './surfaces/QuadMap';
 import TriMap from './surfaces/TriMap';
 import LineMap from './lines/LineMap';
 import Mask from './mask/Mask';
+import BezierMap from './surfaces/Bezier/BezierMap';
 
 import { getPercentWave } from './helpers/helpers';
 
 class ProjectionMapper {
 
     constructor() {
+        this.buffer;
         this.surfaces = [];
         this.lines = [];
         this.masks = [];
@@ -29,7 +31,7 @@ class ProjectionMapper {
      * @return
      */
     createQuadMap(w, h, res = 20) {
-        const s = new QuadMap(this.surfaces.length, w, h, res, this.pInst);
+        const s = new QuadMap(this.surfaces.length, w, h, res, this.buffer);
         this.surfaces.push(s);
         return s;
     }
@@ -43,7 +45,7 @@ class ProjectionMapper {
      * @return
      */
     createTriMap(w, h, res = 20) {
-        const s = new TriMap(this.surfaces.length, w, h, res, this.pInst);
+        const s = new TriMap(this.surfaces.length, w, h, res, this.buffer);
         this.surfaces.push(s);
         return s;
     }
@@ -68,6 +70,10 @@ class ProjectionMapper {
         return mask;
     }
 
+    createBezierMap() {
+        let bez = new BezierMap(this.buffer);
+        return bez;
+    }
 
     ////////////////////////////////////////
     // INTERACTION
@@ -133,6 +139,7 @@ class ProjectionMapper {
 
     isDragging(surface) {
         // TODO - ??? why return true?
+        // need to remember what I was doing here
         if (this.dragged === null)
             return true;
         return this.dragged === surface;
@@ -278,28 +285,40 @@ class ProjectionMapper {
     ////////////////////////////////////////
     // RENDERING
     ////////////////////////////////////////
+    /**
+     * begins drawing surfaces
+     *
+     * @deprecated since v0.0.1
+    */
     beginSurfaces() {
-        for (const surface of this.surfaces) {
-            surface.beginDrawing();
-        }
+        console.warn("beginSurfaces() is a deprecated method");
     }
 
+    /**
+     * ends drawing surfaces
+     *
+     * @deprecated since v0.0.1
+    */
     endSurfaces() {
-        for (const surface of this.surfaces) {
-            surface.endDrawing();
-        }
+        console.warn("endSurfaces() is a deprecated method");
     }
 
+    /**
+     * renders surfaces
+     *
+     * @deprecated since v0.0.1
+    */
     renderSurfaces() {
-        this.endSurfaces();
-        for (const surface of this.surfaces) {
-            surface.render();
-        }
+        console.warn("renderSurfaces() is a deprecated method");
     }
 
+    /**
+     * displays surfaces
+     *
+     * @deprecated since v0.0.1
+    */
     display() {
-        this.renderSurfaces();
-        this.displayControlPoints();
+        console.warn("display() is a deprecated method");
     }
 
     displayControlPoints() {
@@ -326,8 +345,18 @@ class ProjectionMapper {
 
 const pMapper = new ProjectionMapper();
 
-p5.prototype.createProjectionMapper = function (pInst) {
+/**
+ * Initializes the projection mapper object
+ *
+ * @param {p5} pInst is the p5 object - useful for instance mode (??)
+ * @param {number} w is the width of the buffer graphics object used to draw textures on mapped surfaces
+ * @param {number} h is the height of the buffer graphics object...
+ */
+p5.prototype.createProjectionMapper = function (pInst, w, h) {
+    if (!w) w = pInst.width;
+    if (!h) h = pInst.height;
     pMapper.pInst = pInst;
+    pMapper.buffer = pInst.createGraphics(w, h, pInst.WEBGL);
     return pMapper;
 };
 
@@ -344,8 +373,8 @@ p5.prototype.isDragging = function (surface) {
 
 
 
-p5.prototype.registerMethod('pre', () => pMapper.beginSurfaces());
-p5.prototype.registerMethod('post', () => pMapper.display());
+// p5.prototype.registerMethod('pre', () => pMapper.beginSurfaces());
+p5.prototype.registerMethod('post', () => pMapper.displayControlPoints());
 p5.prototype.registerMethod('post', () => pMapper.updateEvents());
 
 export default pMapper;

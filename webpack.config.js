@@ -4,7 +4,7 @@ module.exports = {
   entry: path.resolve(__dirname, "src/index.js"),
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "p5.mapper.min.js",
+    filename: "p5.mapper.js",
     library: "p5.mapper",
     libraryTarget: "umd",
   },
@@ -17,6 +17,8 @@ module.exports = {
       },
     ],
   },
-  
+  optimization: {
+    minimize: false
+  },
   mode: "production"
 }

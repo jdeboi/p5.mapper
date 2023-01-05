@@ -9,7 +9,7 @@
 */
 
 let pMapper;
-let quadMap, triMap, lineMap, maskMap;
+let bez, quadMap0, quadMap1, quadMap2, triMap, lineMap, maskMap;
 
 let myFont;
 let img;
@@ -28,15 +28,20 @@ function setup() {
     // create mapper object
     pMapper = createProjectionMapper(this);
     // create mapping surfaces (width / height)
-    triMap = pMapper.createTriMap(300, 300);
-    quadMap = pMapper.createQuadMap(400, 400);
-    lineMap = pMapper.createLineMap();
+    // triMap = pMapper.createTriMap(300, 300);
+    
+    // quadMap0 = pMapper.createQuadMap(400, 400);
+    // quadMap1 = pMapper.createQuadMap(400, 400);
+    // quadMap2 = pMapper.createQuadMap(400, 400);
+    bez = pMapper.createBezierMap();
+    
+    // lineMap = pMapper.createLineMap();
 
     // creates a black mask with 5 moveable points
-    maskMap = pMapper.createMaskMap(5);
+    // maskMap = pMapper.createMaskMap(5);
 
     // loads calibration in the "maps" directory
-    pMapper.load("maps/map.json");
+    // pMapper.load("maps/map.json");
 }
 
 function draw() {
@@ -45,19 +50,32 @@ function draw() {
     displayFrameRate();
 
     // display order from back to front is determined in setup, not draw
-    quadMap.clear();
-    quadMap.imageMode(CENTER);
-    quadMap.background(255, 0, 0);
-    quadMap.image(img, 0, 0);
-    quadMap.fill(255);
-    quadMap.ellipse(x++ % 300, 100, 100);
+    // quadMap0.displaySolid(color('red'));
+    // quadMap1.displaySketch(drawLines);
+    // quadMap2.displayTexture(img);
 
-    triMap.clear();
-    triMap.background(255, 255, 0);
+    // bez.displaySolid(color('red'));
+    bez.displayTexture(img);
+    // image(bez.buffer, 0, 0);
 
-    lineMap.display(color(0, 255, 0));
+    // triMap.clear();
+    // triMap.background(255, 255, 0);
 
-    maskMap.display();
+    // lineMap.display(color(0, 255, 0));
+
+    // maskMap.display();
+}
+
+function drawLines(pg) {
+    pg.clear();
+    pg.push();
+    pg.background(0, 255, 0);
+    pg.fill(255);
+    pg.rect(-quadMap1.width/2, 0, quadMap1.width/2, 30);
+    for (let i = 0; i < 300; i+= 20) {
+        // pg.rect(i*60, 30, 30);
+    }
+    pg.pop();
 }
 
 function keyPressed() {

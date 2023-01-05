@@ -4,8 +4,8 @@ import CornerPinSurface from './CornerPinSurface';
 
 class QuadMap extends CornerPinSurface {
 
-    constructor(id, w, h, res, pInst) {
-        super(id, w, h, res, "QUAD", pInst);
+    constructor(id, w, h, res, buffer) {
+        super(id, w, h, res, "QUAD", buffer);
     }
 
     /**
@@ -62,13 +62,11 @@ class QuadMap extends CornerPinSurface {
         }
     }
 
-    render(tX = 0, tY = 0, tW = this.width, tH = this.height) {
-        push();
-        translate(this.x, this.y);
+   
+   
 
-        texture(this);
+    display(tX = 0, tY = 0, tW = this.width, tH = this.height) {
         beginShape(TRIANGLES);
-
         for (let x = 0; x < this.res - 1; x++) {
             for (let y = 0; y < this.res - 1; y++) {
                 this.getQuadTriangles(x, y, tX, tY, tW, tH);
@@ -81,16 +79,30 @@ class QuadMap extends CornerPinSurface {
             this.displayOutline();
             this.displayGrid();
         }
-        pop();
-
-
     }
+
+    // render(tX = 0, tY = 0, tW = this.width, tH = this.height) {
+    //     push();
+    //     translate(this.x, this.y);
+
+    //     texture(this);
+    //     this.displayTriangles(tX, tY, tW, tH);
+
+    //     if (isCalibratingMapper()) {
+    //         translate(0, 0, 3);
+    //         this.displayOutline();
+    //         this.displayGrid();
+    //     }
+    //     pop();
+
+
+    // }
 
     displayGrid() {
         strokeWeight(2);
         stroke(this.controlPointColor);
         fill(red(this.controlPointColor), green(this.controlPointColor), blue(this.controlPointColor), 50);
-        
+
         // stroke(200);
         // noFill();
         beginShape(TRIANGLES);

@@ -3,8 +3,8 @@ import CornerPinSurface from './CornerPinSurface';
 class TriMap extends CornerPinSurface {
 
 
-	constructor(id, w, h, res, pInst) {
-		super(id, w, h, res, "TRI", pInst);
+	constructor(id, w, h, res, buffer) {
+		super(id, w, h, res, "TRI", buffer);
 
 		this.setTriMesh();
 	}
@@ -48,13 +48,9 @@ class TriMap extends CornerPinSurface {
 	}
 
 
-	render() {
-		push();
-		translate(this.x, this.y);
 
-		noStroke();
-		fill(0);
-		texture(this);
+
+	display() {
 		beginShape();
 		let u = 0;
 		let v = this.height;
@@ -73,8 +69,6 @@ class TriMap extends CornerPinSurface {
 			// translate(0, 0, 1);
 			this.displayOutline();
 		}
-
-		pop();
 	}
 
 

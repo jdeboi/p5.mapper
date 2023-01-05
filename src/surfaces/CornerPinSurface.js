@@ -18,8 +18,8 @@ class CornerPinSurface extends Surface {
      * @param pInst
      *            p5 sketch instance
      */
-    constructor(id, w, h, res, type, pInst) {
-        super(id, w, h, res, type, pInst);
+    constructor(id, w, h, res, type, buffer) {
+        super(id, w, h, res, type, buffer);
         this.perspT = null;
         this.initMesh();
         this.calculateMesh();
