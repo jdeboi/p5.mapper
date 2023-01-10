@@ -1,11 +1,11 @@
 import { isWEBGL } from '../helpers/helpers';
 class MovePoint {
 
-    constructor(parent, x, y, r = 5) {
+    constructor(parent, x, y) {
         this.x = x;
         this.type = "CPOINT";
         this.y = y;
-        this.r = r;
+        this.r = 8;
         this.isControlPoint = false;
         this.parent = parent;
 

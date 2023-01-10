@@ -7,13 +7,14 @@ import Surface from '../Surface';
 class BezierMap extends Surface {
 
 
-    constructor(pInst, pMapper, w = 1000, h = 1000) {
-        super(0, w, h, 0, "BEZ", pInst.buffer);
+    constructor(id, pInst, pMapper) {
+        super(id, 0, 0, 0, "BEZ", pInst.buffer);
         this.pInst = pInst;
         this.pMapper = pMapper;
         this.bufferSpace = 10;
         this.initEmpty();
-
+        this.mode = "FREE";
+        this.r = 8;
         // let filePath = "../../src/surfaces/Bezier/shader."
         // this.theShader = loadShader(filePath + "vert", filePath + "frag")
 
@@ -32,7 +33,6 @@ class BezierMap extends Surface {
         this.closed = false;
         this.auto = false;
         this.toggleClosed();
-        this.mode = "FREE";
     }
 
     setAlignedMode() {
@@ -63,14 +63,33 @@ class BezierMap extends Surface {
 
     load(json) {
         this.points = [];
+        this.x = json.x;
+        this.y = json.y;
+        this.closed = json.closed;
+        this.auto = json.auto;
         for (const p of json.points) {
             this.points.push(new BezierPoint(p.x, p.y, this));
         }
-        this.closed = json.closed;
-        this.auto = json.auto;
-
         this.setDimensions();
     }
+
+
+    getJson() {
+        return {
+            id: this.id,
+            type: this.type,
+            x: this.x,
+            y: this.y,
+            points: this.points.map(p => { return { x: p.pos.x, y: p.pos.y } }),
+            closed: this.closed,
+            auto: this.auto
+        }
+    }
+
+    serialize() {
+        return JSON.stringify(this.getJson());
+    }
+
 
     selectSurface() {
         if (this.isMouseOver()) {
@@ -102,18 +121,6 @@ class BezierMap extends Surface {
     }
 
 
-    getJson() {
-        return {
-            points: this.points.map(p => { return { x: p.pos.x - width / 2, y: p.pos.y - height / 2 } }),
-            closed: this.closed,
-            auto: this.auto
-        }
-    }
-
-    serialize() {
-        return JSON.stringify(this.getJson());
-    }
-
     loopIndex(i) {
         return (i + this.points.length) % this.points.length;
     }
@@ -138,11 +145,13 @@ class BezierMap extends Surface {
 
         this.setDimensions();
     }
-
     setDimensions() {
         const { w, h } = this.getBounds();
         this.width = w + this.bufferSpace * 2;
         this.height = h + this.bufferSpace * 2;
+
+        let bezBuffer = this.pMapper.bezBuffer;
+        this.displayBezierPG(bezBuffer);
     }
 
     numSegments() {
@@ -222,17 +231,51 @@ class BezierMap extends Surface {
         this.autoSetEdgePoints(controlSpacing);
     }
 
+
+    display(col = color('black')) {
+        if (isCalibratingMapper()) {
+            strokeWeight(3);
+            stroke(this.controlPointColor);
+            fill(this.getMutedControlColor());
+        }
+        else {
+            noStroke();
+            fill(col);
+        }
+        this.displayBezier();
+    }
+
+
+    displayTexture(img, x = 0, y = 0) {
+        if (isCalibratingMapper()) {
+            this.display();
+            return;
+        }
+
+        if (!this.isReady()) {
+            return;
+        }
+        let buffer = this.pMapper.buffer;
+        this.drawImage(img, buffer, x, y);
+        this.displayGraphicsTexture(buffer);
+    }
+
     displaySketch(sketch, x = 0, y = 0) {
+        if (isCalibratingMapper()) {
+            this.display();
+            return;
+        }
+
         let buffer = this.pMapper.buffer;
         buffer.push();
 
         // TODO
+        // WEBGL origin or 2D origin ...
         // Does this make sense? 
         // draw the sketch from top left corner
-        buffer.translate(-buffer.width / 2, -buffer.height / 2);
+        // buffer.translate(-buffer.width / 2, -buffer.height / 2);
 
         // could also put graphics buffer 
-        // (which is in WEBGL mode and center = origin)
         // at center of bezier
 
         // const {w, h} = this.getBounds();
@@ -243,21 +286,13 @@ class BezierMap extends Surface {
         this.displayGraphicsTexture(buffer);
     }
 
-    displayTexture(img, x = 0, y = 0) {
-        if (!this.isReady()) {
-            return;
-        }
-        let buffer = this.pMapper.buffer;
-        this.drawImage(img, buffer, x, y);
-        this.displayGraphicsTexture(buffer);
-    }
 
     displayGraphicsTexture(pg) {
-        // 1 - create white bezier mask on the bezBuffer 
-        let bezBuffer = this.pMapper.bezBuffer;
-        this.displayBezierPG(bezBuffer);
+        // 1 - white bezier mask should be recreated every time 
+        // shape changes (this.setDimensions())
 
         // 2 - convert PGraphics into img for masking
+        let bezBuffer = this.pMapper.bezBuffer;
         let img = pg.get();
 
         // 3 - mask it with step 1
@@ -270,6 +305,8 @@ class BezierMap extends Surface {
         image(img, 0, 0);
         pop();
     }
+
+
 
     // In the future when we can apply texture UVs to bezier vertices:
     // https://github.com/processing/p5.js/issues/5699
@@ -305,25 +342,12 @@ class BezierMap extends Surface {
         if (img && pg) {
             pg.push();
             pg.clear();
-            pg.translate(-pg.width / 2, -pg.height / 2);
+            // useful for WEBGL mode...
+            // pg.translate(-pg.width / 2, -pg.height / 2);
             pg.translate(x, y);
             pg.image(img, 0, 0);
             pg.pop();
         }
-    }
-
-
-    displaySolid(col) {
-        noStroke();
-        fill(col);
-        if (this.isMouseOver()) {
-            strokeWeight(1);
-            stroke('white');
-        }
-        else {
-            noStroke();
-        }
-        this.displayBezier();
     }
 
     displayBezierPG(pg) {
@@ -372,21 +396,20 @@ class BezierMap extends Surface {
 
     displayControlPoints() {
         if (isMovingPoints()) {
-            let lineC = color(255);
-            // this.render(color(0, 255, 0), lineC);
+            let lineC = this.controlPointColor;
 
             push();
             translate(this.x, this.y);
-            this.displayControlCircles(lineC);
             if (!this.auto) {
                 this.displayControlLines(lineC);
             }
+            this.displayControlCircles(lineC);
             pop();
         }
     }
 
     displayControlLines(strokeC) {
-
+        strokeWeight(2);
         for (let i = 0; i < this.numSegments(); i++) {
             const seg = this.getSegment(i);
             stroke(strokeC);

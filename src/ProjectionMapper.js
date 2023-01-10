@@ -27,8 +27,11 @@ class ProjectionMapper {
 
     init(w, h) {
         if (this.bezBuffer == null) {
-            this.buffer = this.pInst.createGraphics(w, h, this.pInst.WEBGL);
-            this.bezBuffer = this.pInst.createGraphics(w, h, this.pInst.WEBGL);
+            // TODO
+            // should these be WEBGL??
+            this.buffer = this.pInst.createGraphics(w, h);
+            this.bezBuffer = this.pInst.createGraphics(w, h);
+
             // console.log("creating pGraphics");
 
             // let filePath = "../../src/surfaces/Bezier/shader"
@@ -88,7 +91,7 @@ class ProjectionMapper {
     }
 
     createBezierMap() {
-        let bez = new BezierMap(this.pInst, this);
+        let bez = new BezierMap(this.surfaces.length, this.pInst, this);
         this.surfaces.push(bez);
         return bez;
     }
@@ -182,6 +185,7 @@ class ProjectionMapper {
             }
         }
 
+        // TODO - check bez control points before anchors
         // check mapping surfaces
         for (let i = this.surfaces.length - 1; i >= 0; i--) {
             let s = this.surfaces[i];
@@ -285,11 +289,14 @@ class ProjectionMapper {
             console.warn(`json calibration file has ${jSurfaces.length} surface maps but there are ${this.surfaces.length} surface maps in memory (check sketch.js for # of map objects)`)
         }
 
+        // TODO - don't remember what I was doing here...
         // in the future if we want to make sure only to load tris into tris, etc.
         const jTriSurfaces = jSurfaces.filter(surf => surf.type === "TRI");
         const jQuadSurfaces = jSurfaces.filter(surf => surf.type === "QUAD");
+        const jBezSurfaces = jSurfaces.filter(surf => surf.type === "BEZ");
         const mapTris = this.surfaces.filter(surf => surf.type === "TRI");
         const mapQuads = this.surfaces.filter(surf => surf.type === "QUAD");
+        const mapBez = this.surfaces.filter(surf => surf.type === "BEZ");
 
         // loading tris
         let index = 0;
@@ -310,6 +317,19 @@ class ProjectionMapper {
                 s.load(jQuadSurfaces[index]);
             else
                 console.warn("mismatch between calibration surface types / ids")
+            index++;
+        }
+
+        // loading bez
+        index = 0;
+        while (index < jBezSurfaces.length && index < mapBez.length) {
+            const s = mapBez[index];
+
+            if (s.isEqual(mapBez[index])) {
+                s.load(jBezSurfaces[index]);
+            }
+            else
+                console.warn("mismatch between calibration bez surface types / ids")
             index++;
         }
     }

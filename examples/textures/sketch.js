@@ -9,7 +9,7 @@
 */
 
 let pMapper;
-let quadMap, triMap, lineMap, bezMap, maskMap;
+let quadMap, triMap, lineMap, maskMap;
 
 let myFont;
 let img;
@@ -32,12 +32,12 @@ function setup() {
     triMap = pMapper.createTriMap(300, 300);
     quadMap = pMapper.createQuadMap(400, 400);
     lineMap = pMapper.createLineMap();
-    bezMap = pMapper.createBezierMap();
+
     // creates a black mask with 5 moveable points
     maskMap = pMapper.createMaskMap(5);
 
     // loads calibration in the "maps" directory
-    pMapper.load("maps/map.json");
+    // pMapper.load("maps/map.json");
 }
 
 function draw() {
@@ -46,12 +46,30 @@ function draw() {
     displayFrameRate();
 
     // display order from back to front is determined in setup, not draw
-    quadMap.display(color('red'));
-    triMap.display(color('blue'));
-    lineMap.display(color('lime'));
-    bezMap.display(color('orange'));
-    maskMap.display(color('black'));
+    quadMap0.displaySolid(color('red'));
+    quadMap1.displaySketch(drawLines);
+    quadMap2.displayTexture(img);
+
+    // triMap.displaySolidColor('blue');
+
+    lineMap.display(color(0, 255, 0));
+
+    maskMap.display();
 }
+
+function drawLines(pg) {
+    pg.clear();
+    pg.push();
+    pg.background(0, 255, 0);
+    pg.fill(255);
+    pg.rect(-quadMap1.width / 2, 0, quadMap1.width / 2, 30);
+    for (let i = 0; i < 300; i += 20) {
+        // pg.rect(i*60, 30, 30);
+    }
+    pg.pop();
+}
+
+
 
 function keyPressed() {
     switch (key) {

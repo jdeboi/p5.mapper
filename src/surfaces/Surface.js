@@ -21,13 +21,17 @@ class Surface {
         this.xStartDrag = this.x;
         this.yStartDrag = this.y;
 
-        this.gridColor = color(200);
+        // this.gridColor = color(200);
         this.controlPointColor = color(255, 0, 255);
 
         this.buffer = buffer;
     }
 
-    displaySolid(col) {
+    getMutedControlColor(col = this.controlPointColor) {
+        return color(red(col), green(col), blue(col), 50);
+    }
+
+    display(col=color('black')) {
         this.buffer.background(col);
         this.displayTexture(this.buffer);
     }
@@ -50,7 +54,7 @@ class Surface {
         push();
         translate(this.x, this.y);
         texture(tex);
-        this.display(tX, tY, tW, tH);
+        this.displaySurface(tX, tY, tW, tH);
         pop();
     }
 
@@ -65,6 +69,11 @@ class Surface {
         this.x = this.xStartDrag + mouseX - this.clickX;
         this.y = this.yStartDrag + mouseY - this.clickY;
     }
+
+    isEqual(json) {
+        return json.id === this.id && json.type === this.type;
+    }
+
 
 }
 

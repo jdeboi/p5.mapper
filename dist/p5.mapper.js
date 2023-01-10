@@ -475,14 +475,12 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 var MovePoint = /*#__PURE__*/function () {
   function MovePoint(parent, x, y) {
-    var r = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 5;
-
     _classCallCheck(this, MovePoint);
 
     this.x = x;
     this.type = "CPOINT";
     this.y = y;
-    this.r = r;
+    this.r = 8;
     this.isControlPoint = false;
     this.parent = parent;
     this.xStartDrag = this.x;
@@ -682,15 +680,22 @@ var Surface = /*#__PURE__*/function () {
     this.clickX = 0;
     this.clickY = 0;
     this.xStartDrag = this.x;
-    this.yStartDrag = this.y;
-    this.gridColor = color(200);
+    this.yStartDrag = this.y; // this.gridColor = color(200);
+
     this.controlPointColor = color(255, 0, 255);
     this.buffer = buffer;
   }
 
   Surface_createClass(Surface, [{
-    key: "displaySolid",
-    value: function displaySolid(col) {
+    key: "getMutedControlColor",
+    value: function getMutedControlColor() {
+      var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.controlPointColor;
+      return color(red(col), green(col), blue(col), 50);
+    }
+  }, {
+    key: "display",
+    value: function display() {
+      var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : color('black');
       this.buffer.background(col);
       this.displayTexture(this.buffer);
     }
@@ -717,7 +722,7 @@ var Surface = /*#__PURE__*/function () {
       push();
       translate(this.x, this.y);
       texture(tex);
-      this.display(tX, tY, tW, tH);
+      this.displaySurface(tX, tY, tW, tH);
       pop();
     }
   }, {
@@ -733,6 +738,11 @@ var Surface = /*#__PURE__*/function () {
     value: function moveTo() {
       this.x = this.xStartDrag + mouseX - this.clickX;
       this.y = this.yStartDrag + mouseY - this.clickY;
+    }
+  }, {
+    key: "isEqual",
+    value: function isEqual(json) {
+      return json.id === this.id && json.type === this.type;
     }
   }]);
 
@@ -845,7 +855,11 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
       this.controlPoints.push(this.mesh[this.TR]);
       this.controlPoints.push(this.mesh[this.BR]);
       this.controlPoints.push(this.mesh[this.BL]);
-    }
+    } // abstract
+
+  }, {
+    key: "calculateMesh",
+    value: function calculateMesh() {}
   }, {
     key: "load",
     value: function load(json) {
@@ -903,11 +917,6 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
 
 
       return sJson;
-    }
-  }, {
-    key: "isEqual",
-    value: function isEqual(json) {
-      return json.id === this.id && json.type === this.type;
     }
   }, {
     key: "getControlPoints",
@@ -1042,7 +1051,7 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
       var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.controlPointColor;
       strokeWeight(3);
       stroke(col);
-      fill(red(col), green(col), blue(col), 50);
+      fill(this.getMutedControlColor());
       beginShape();
 
       var _iterator4 = _createForOfIteratorHelper(this.controlPoints),
@@ -1200,8 +1209,8 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       }
     }
   }, {
-    key: "display",
-    value: function display() {
+    key: "displaySurface",
+    value: function displaySurface() {
       var tX = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
       var tY = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
       var tW = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.width;
@@ -1219,6 +1228,7 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       if (isCalibratingMapper()) {
         // TODO -
         // why translate??
+        // to do with the way lines overlap in z dimension?
         // translate(0, 0, 3); 
         this.displayOutline();
         this.displayGrid();
@@ -1230,7 +1240,7 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.controlPointColor;
       strokeWeight(2);
       stroke(col);
-      fill(red(col), green(col), blue(col), 50); // stroke(200);
+      fill(this.getMutedControlColor(col)); // stroke(200);
       // noFill();
 
       beginShape(TRIANGLES);
@@ -1376,8 +1386,8 @@ var TriMap = /*#__PURE__*/function (_CornerPinSurface) {
       this.controlPoints.push(this.mesh[this.TP], this.mesh[this.BL], this.mesh[this.BR]);
     }
   }, {
-    key: "display",
-    value: function display() {
+    key: "displaySurface",
+    value: function displaySurface() {
       beginShape();
       var u = 0;
       var v = this.height;
@@ -1429,8 +1439,8 @@ var LineMap = /*#__PURE__*/function () {
     this.lineC = color(255);
     this.highlightColor = color(0, 255, 0);
     this.controlPointColor = getRandomizedColor(this.id, this.type);
-    this.p0 = new surfaces_MovePoint(this, x0, y0, 20);
-    this.p1 = new surfaces_MovePoint(this, x1, y1, 20);
+    this.p0 = new surfaces_MovePoint(this, x0, y0);
+    this.p1 = new surfaces_MovePoint(this, x1, y1);
     this.controlCol = getRandomizedColor();
     this.leftToRight();
     this.ang = atan2(this.p0.y - this.p1.y, this.p0.x - this.p1.x);
@@ -1966,6 +1976,7 @@ var ControlPoint = /*#__PURE__*/function () {
     this.pos = createVector(x, y);
     this.parentPath = parentPath;
     this.type = "CPOINT";
+    this.r = 8;
   }
 
   BezierPoint_createClass(ControlPoint, [{
@@ -2002,6 +2013,7 @@ var ControlPoint = /*#__PURE__*/function () {
       var i = path.points.indexOf(this);
 
       if (i % 3 == 0) {
+        // anchor (red) points
         var dx = x - this.pos.x;
         var dy = y - this.pos.y;
         this.pos.set(x, y);
@@ -2016,6 +2028,7 @@ var ControlPoint = /*#__PURE__*/function () {
 
         if (path.mode == "AUTOMATIC") path.autoSetAllControlPoints();
       } else if (path.mode != "AUTOMATIC") {
+        // control (white) points
         this.pos.set(x, y);
         var anchorI = i % 3 == 1 ? i - 1 : i + 1;
         var otherI = i % 3 == 1 ? i - 2 : i + 2;
@@ -2039,19 +2052,35 @@ var ControlPoint = /*#__PURE__*/function () {
       path.setDimensions();
     }
   }, {
+    key: "isAnchor",
+    value: function isAnchor() {
+      var i = this.parentPath.points.indexOf(this);
+      return i % 3 == 0;
+    }
+  }, {
     key: "displayControlCircle",
     value: function displayControlCircle(strokeC) {
       var i = this.parentPath.points.indexOf(this);
       stroke(strokeC);
-      strokeWeight(1);
+      strokeWeight(2);
 
       if (i % 3 == 0) {
-        fill(255, 0, 0);
-        circle(this.pos.x, this.pos.y, 10);
+        // anchor
+        this.displayCircle(color(255, 0, 0), this.r);
       } else if (!this.parentPath.auto) {
-        fill(255);
-        circle(this.pos.x, this.pos.y, 8);
+        var col = this.parentPath.controlPointColor;
+        this.displayCircle(col, this.r - 2);
       }
+    }
+  }, {
+    key: "displayCircle",
+    value: function displayCircle(fillC, r) {
+      noFill();
+      stroke(fillC);
+      ellipse(this.pos.x, this.pos.y, r * 2);
+      noStroke();
+      fill(fillC);
+      ellipse(this.pos.x, this.pos.y, r);
     }
   }]);
 
@@ -2106,22 +2135,21 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
 
   var _super = BezierMap_createSuper(BezierMap);
 
-  function BezierMap(pInst, pMapper) {
+  function BezierMap(id, pInst, pMapper) {
     var _this;
-
-    var w = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1000;
-    var h = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 1000;
 
     BezierMap_classCallCheck(this, BezierMap);
 
-    _this = _super.call(this, 0, w, h, 0, "BEZ", pInst.buffer);
+    _this = _super.call(this, id, 0, 0, 0, "BEZ", pInst.buffer);
     _this.pInst = pInst;
     _this.pMapper = pMapper;
     _this.bufferSpace = 10;
 
-    _this.initEmpty(); // let filePath = "../../src/surfaces/Bezier/shader."
-    // this.theShader = loadShader(filePath + "vert", filePath + "frag")
+    _this.initEmpty();
 
+    _this.mode = "FREE";
+    _this.r = 8; // let filePath = "../../src/surfaces/Bezier/shader."
+    // this.theShader = loadShader(filePath + "vert", filePath + "frag")
 
     return _this;
   }
@@ -2141,7 +2169,6 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       this.closed = false;
       this.auto = false;
       this.toggleClosed();
-      this.mode = "FREE";
     }
   }, {
     key: "setAlignedMode",
@@ -2179,6 +2206,10 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
     key: "load",
     value: function load(json) {
       this.points = [];
+      this.x = json.x;
+      this.y = json.y;
+      this.closed = json.closed;
+      this.auto = json.auto;
 
       var _iterator = BezierMap_createForOfIteratorHelper(json.points),
           _step;
@@ -2194,9 +2225,30 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
         _iterator.f();
       }
 
-      this.closed = json.closed;
-      this.auto = json.auto;
       this.setDimensions();
+    }
+  }, {
+    key: "getJson",
+    value: function getJson() {
+      return {
+        id: this.id,
+        type: this.type,
+        x: this.x,
+        y: this.y,
+        points: this.points.map(function (p) {
+          return {
+            x: p.pos.x,
+            y: p.pos.y
+          };
+        }),
+        closed: this.closed,
+        auto: this.auto
+      };
+    }
+  }, {
+    key: "serialize",
+    value: function serialize() {
+      return JSON.stringify(this.getJson());
     }
   }, {
     key: "selectSurface",
@@ -2255,25 +2307,6 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       };
     }
   }, {
-    key: "getJson",
-    value: function getJson() {
-      return {
-        points: this.points.map(function (p) {
-          return {
-            x: p.pos.x - width / 2,
-            y: p.pos.y - height / 2
-          };
-        }),
-        closed: this.closed,
-        auto: this.auto
-      };
-    }
-  }, {
-    key: "serialize",
-    value: function serialize() {
-      return JSON.stringify(this.getJson());
-    }
-  }, {
     key: "loopIndex",
     value: function loopIndex(i) {
       return (i + this.points.length) % this.points.length;
@@ -2309,6 +2342,8 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
 
       this.width = w + this.bufferSpace * 2;
       this.height = h + this.bufferSpace * 2;
+      var bezBuffer = this.pMapper.bezBuffer;
+      this.displayBezierPG(bezBuffer);
     }
   }, {
     key: "numSegments",
@@ -2382,31 +2417,31 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       this.autoSetEdgePoints(controlSpacing);
     }
   }, {
-    key: "displaySketch",
-    value: function displaySketch(sketch) {
-      var x = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-      var y = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
-      var buffer = this.pMapper.buffer;
-      buffer.push(); // TODO
-      // Does this make sense? 
-      // draw the sketch from top left corner
+    key: "display",
+    value: function display() {
+      var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : color('black');
 
-      buffer.translate(-buffer.width / 2, -buffer.height / 2); // could also put graphics buffer 
-      // (which is in WEBGL mode and center = origin)
-      // at center of bezier
-      // const {w, h} = this.getBounds();
-      // buffer.translate(w/2, h/2);
+      if (isCalibratingMapper()) {
+        strokeWeight(3);
+        stroke(this.controlPointColor);
+        fill(this.getMutedControlColor());
+      } else {
+        noStroke();
+        fill(col);
+      }
 
-      buffer.translate(x, y);
-      sketch(buffer);
-      buffer.pop();
-      this.displayGraphicsTexture(buffer);
+      this.displayBezier();
     }
   }, {
     key: "displayTexture",
     value: function displayTexture(img) {
       var x = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
       var y = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+
+      if (isCalibratingMapper()) {
+        this.display();
+        return;
+      }
 
       if (!this.isReady()) {
         return;
@@ -2417,12 +2452,39 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       this.displayGraphicsTexture(buffer);
     }
   }, {
+    key: "displaySketch",
+    value: function displaySketch(sketch) {
+      var x = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+      var y = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+
+      if (isCalibratingMapper()) {
+        this.display();
+        return;
+      }
+
+      var buffer = this.pMapper.buffer;
+      buffer.push(); // TODO
+      // WEBGL origin or 2D origin ...
+      // Does this make sense? 
+      // draw the sketch from top left corner
+      // buffer.translate(-buffer.width / 2, -buffer.height / 2);
+      // could also put graphics buffer 
+      // at center of bezier
+      // const {w, h} = this.getBounds();
+      // buffer.translate(w/2, h/2);
+
+      buffer.translate(x, y);
+      sketch(buffer);
+      buffer.pop();
+      this.displayGraphicsTexture(buffer);
+    }
+  }, {
     key: "displayGraphicsTexture",
     value: function displayGraphicsTexture(pg) {
-      // 1 - create white bezier mask on the bezBuffer 
+      // 1 - white bezier mask should be recreated every time 
+      // shape changes (this.setDimensions())
+      // 2 - convert PGraphics into img for masking
       var bezBuffer = this.pMapper.bezBuffer;
-      this.displayBezierPG(bezBuffer); // 2 - convert PGraphics into img for masking
-
       var img = pg.get(); // 3 - mask it with step 1
 
       img.mask(bezBuffer);
@@ -2467,27 +2529,13 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
 
       if (img && pg) {
         pg.push();
-        pg.clear();
-        pg.translate(-pg.width / 2, -pg.height / 2);
+        pg.clear(); // useful for WEBGL mode...
+        // pg.translate(-pg.width / 2, -pg.height / 2);
+
         pg.translate(x, y);
         pg.image(img, 0, 0);
         pg.pop();
       }
-    }
-  }, {
-    key: "displaySolid",
-    value: function displaySolid(col) {
-      noStroke();
-      fill(col);
-
-      if (this.isMouseOver()) {
-        strokeWeight(1);
-        stroke('white');
-      } else {
-        noStroke();
-      }
-
-      this.displayBezier();
     }
   }, {
     key: "displayBezierPG",
@@ -2539,22 +2587,23 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
     key: "displayControlPoints",
     value: function displayControlPoints() {
       if (isMovingPoints()) {
-        var lineC = color(255); // this.render(color(0, 255, 0), lineC);
-
+        var lineC = this.controlPointColor;
         push();
         translate(this.x, this.y);
-        this.displayControlCircles(lineC);
 
         if (!this.auto) {
           this.displayControlLines(lineC);
         }
 
+        this.displayControlCircles(lineC);
         pop();
       }
     }
   }, {
     key: "displayControlLines",
     value: function displayControlLines(strokeC) {
+      strokeWeight(2);
+
       for (var i = 0; i < this.numSegments(); i++) {
         var seg = this.getSegment(i);
         stroke(strokeC);
@@ -2676,8 +2725,10 @@ var ProjectionMapper = /*#__PURE__*/function () {
     key: "init",
     value: function init(w, h) {
       if (this.bezBuffer == null) {
-        this.buffer = this.pInst.createGraphics(w, h, this.pInst.WEBGL);
-        this.bezBuffer = this.pInst.createGraphics(w, h, this.pInst.WEBGL); // console.log("creating pGraphics");
+        // TODO
+        // should these be WEBGL??
+        this.buffer = this.pInst.createGraphics(w, h);
+        this.bezBuffer = this.pInst.createGraphics(w, h); // console.log("creating pGraphics");
         // let filePath = "../../src/surfaces/Bezier/shader"
         // this.bezShader = this.pInst.loadShader(filePath + ".vert", filePath + ".frag", () => this.bezierShaderLoaded = true);
       }
@@ -2749,7 +2800,7 @@ var ProjectionMapper = /*#__PURE__*/function () {
   }, {
     key: "createBezierMap",
     value: function createBezierMap() {
-      var bez = new Bezier_BezierMap(this.pInst, this);
+      var bez = new Bezier_BezierMap(this.surfaces.length, this.pInst, this);
       this.surfaces.push(bez);
       return bez;
     } ////////////////////////////////////////
@@ -2872,7 +2923,8 @@ var ProjectionMapper = /*#__PURE__*/function () {
         if (this.dragged != null) {
           return true;
         }
-      } // check mapping surfaces
+      } // TODO - check bez control points before anchors
+      // check mapping surfaces
 
 
       for (var _i2 = this.surfaces.length - 1; _i2 >= 0; _i2--) {
@@ -2982,7 +3034,8 @@ var ProjectionMapper = /*#__PURE__*/function () {
 
       if (jSurfaces.length !== this.surfaces.length) {
         console.warn("json calibration file has ".concat(jSurfaces.length, " surface maps but there are ").concat(this.surfaces.length, " surface maps in memory (check sketch.js for # of map objects)"));
-      } // in the future if we want to make sure only to load tris into tris, etc.
+      } // TODO - don't remember what I was doing here...
+      // in the future if we want to make sure only to load tris into tris, etc.
 
 
       var jTriSurfaces = jSurfaces.filter(function (surf) {
@@ -2991,11 +3044,17 @@ var ProjectionMapper = /*#__PURE__*/function () {
       var jQuadSurfaces = jSurfaces.filter(function (surf) {
         return surf.type === "QUAD";
       });
+      var jBezSurfaces = jSurfaces.filter(function (surf) {
+        return surf.type === "BEZ";
+      });
       var mapTris = this.surfaces.filter(function (surf) {
         return surf.type === "TRI";
       });
       var mapQuads = this.surfaces.filter(function (surf) {
         return surf.type === "QUAD";
+      });
+      var mapBez = this.surfaces.filter(function (surf) {
+        return surf.type === "BEZ";
       }); // loading tris
 
       var index = 0;
@@ -3012,6 +3071,19 @@ var ProjectionMapper = /*#__PURE__*/function () {
       while (index < jQuadSurfaces.length && index < mapQuads.length) {
         var _s3 = mapQuads[index];
         if (_s3.isEqual(mapQuads[index])) _s3.load(jQuadSurfaces[index]);else console.warn("mismatch between calibration surface types / ids");
+        index++;
+      } // loading bez
+
+
+      index = 0;
+
+      while (index < jBezSurfaces.length && index < mapBez.length) {
+        var _s4 = mapBez[index];
+
+        if (_s4.isEqual(mapBez[index])) {
+          _s4.load(jBezSurfaces[index]);
+        } else console.warn("mismatch between calibration bez surface types / ids");
+
         index++;
       }
     }

@@ -22,8 +22,8 @@ class LineMap {
         this.highlightColor = color(0, 255, 0);
         this.controlPointColor = getRandomizedColor(this.id, this.type)
 
-        this.p0 = new MovePoint(this, x0, y0, 20);
-        this.p1 = new MovePoint(this, x1, y1, 20);
+        this.p0 = new MovePoint(this, x0, y0);
+        this.p1 = new MovePoint(this, x1, y1);
 
         this.controlCol = getRandomizedColor();
 

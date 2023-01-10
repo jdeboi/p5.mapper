@@ -8,6 +8,7 @@ class ControlPoint {
         this.pos = createVector(x, y);
         this.parentPath = parentPath;
         this.type = "CPOINT";
+        this.r = 8;
     }
 
     add(x, y) {
@@ -32,12 +33,13 @@ class ControlPoint {
     moveTo() {
         const x = mouseX - width / 2 - this.parentPath.x;
         const y = mouseY - height / 2 - this.parentPath.y;
-        
+
         const closed = true;
         const path = this.parentPath;
         const i = path.points.indexOf(this);
-        
+
         if (i % 3 == 0) {
+            // anchor (red) points
             const dx = x - (this.pos.x);
             const dy = y - (this.pos.y);
             this.pos.set(x, y);
@@ -49,6 +51,7 @@ class ControlPoint {
             }
             if (path.mode == "AUTOMATIC") path.autoSetAllControlPoints();
         } else if (path.mode != "AUTOMATIC") {
+            // control (white) points
             this.pos.set(x, y);
             const anchorI = (i % 3 == 1) ? i - 1 : i + 1;
             const otherI = (i % 3 == 1) ? i - 2 : i + 2;
@@ -68,17 +71,31 @@ class ControlPoint {
         path.setDimensions();
     }
 
+    isAnchor() {
+        const i = this.parentPath.points.indexOf(this);
+        return i % 3 == 0;
+    }
+
     displayControlCircle(strokeC) {
         const i = this.parentPath.points.indexOf(this);
         stroke(strokeC);
-        strokeWeight(1);
+        strokeWeight(2);
         if (i % 3 == 0) {
-            fill(255, 0, 0);
-            circle(this.pos.x, this.pos.y, 10);
+            // anchor
+            this.displayCircle(color(255, 0, 0), this.r);
         } else if (!this.parentPath.auto) {
-            fill(255);
-            circle(this.pos.x, this.pos.y, 8);
+            let col = this.parentPath.controlPointColor;
+            this.displayCircle(col, this.r-2);
         }
+    }
+
+    displayCircle(fillC, r) {
+        noFill();
+        stroke(fillC);
+        ellipse(this.pos.x, this.pos.y, r * 2);
+        noStroke();
+        fill(fillC);
+        ellipse(this.pos.x, this.pos.y, r);
     }
 }
 

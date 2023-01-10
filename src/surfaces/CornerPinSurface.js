@@ -27,6 +27,8 @@ class CornerPinSurface extends Surface {
         this.controlPointColor = getRandomizedColor(this.id, this.type);
     }
 
+    
+
 
     initMesh() {
         this.mesh = [];
@@ -65,6 +67,8 @@ class CornerPinSurface extends Surface {
     }
 
 
+    // abstract
+    calculateMesh() {}
 
     load(json) {
         const { x, y, points } = json;
@@ -110,10 +114,7 @@ class CornerPinSurface extends Surface {
         return sJson;
     }
 
-    isEqual(json) {
-        return json.id === this.id && json.type === this.type;
-    }
-
+   
     getControlPoints() {
         return this.controlPoints;
     }
@@ -232,7 +233,7 @@ class CornerPinSurface extends Surface {
         strokeWeight(3);
         stroke(col);
 
-        fill(red(col), green(col), blue(col), 50);
+        fill(this.getMutedControlColor());
         beginShape();
         for (const cp of this.controlPoints) {
             vertex(cp.x, cp.y);

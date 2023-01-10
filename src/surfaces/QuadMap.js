@@ -80,7 +80,7 @@ class QuadMap extends CornerPinSurface {
     }
    
 
-    display(tX = 0, tY = 0, tW = this.width, tH = this.height) {
+    displaySurface(tX = 0, tY = 0, tW = this.width, tH = this.height) {
         beginShape(TRIANGLES);
         for (let x = 0; x < this.res - 1; x++) {
             for (let y = 0; y < this.res - 1; y++) {
@@ -92,6 +92,7 @@ class QuadMap extends CornerPinSurface {
         if (isCalibratingMapper()) {
             // TODO -
             // why translate??
+            // to do with the way lines overlap in z dimension?
             // translate(0, 0, 3); 
             this.displayOutline();
             this.displayGrid();
@@ -102,7 +103,7 @@ class QuadMap extends CornerPinSurface {
     displayGrid(col=this.controlPointColor) {
         strokeWeight(2);
         stroke(col);
-        fill(red(col), green(col), blue(col), 50);
+        fill(this.getMutedControlColor(col));
 
         // stroke(200);
         // noFill();

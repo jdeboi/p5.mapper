@@ -50,7 +50,7 @@ class TriMap extends CornerPinSurface {
 
 
 
-	display() {
+	displaySurface() {
 		beginShape();
 		let u = 0;
 		let v = this.height;
