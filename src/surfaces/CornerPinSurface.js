@@ -28,12 +28,6 @@ class CornerPinSurface extends Surface {
     }
 
 
-    // ABSTRACT / OVERRIDDEN METHODS
-    render() { }
-    isMouseOver() { }
-    calculateMesh() { }
-
-
     initMesh() {
         this.mesh = [];
         for (let y = 0; y < this.res; y++) {
@@ -170,15 +164,8 @@ class CornerPinSurface extends Surface {
 
 
 
-    select() {
-        // check if control points are selected
-        let cp = this.isMouseOverControlPoints();
-        if (cp) {
-            cp.startDrag();
-            return cp;
-        }
-
-        // then, see if the surface itself is selected
+    selectSurface() {
+        // if the surface itself is selected
         if (this.isMouseOver()) {
             this.startDrag();
             return this;
@@ -186,17 +173,16 @@ class CornerPinSurface extends Surface {
         return null;
     }
 
-    startDrag() {
-        this.xStartDrag = this.x;
-        this.yStartDrag = this.y;
-        this.clickX = mouseX;
-        this.clickY = mouseY;
+    selectPoints() {
+        // check if control points are selected
+        let cp = this.isMouseOverControlPoints();
+        if (cp) {
+            cp.startDrag();
+            return cp;
+        }
     }
 
-    moveTo() {
-        this.x = this.xStartDrag + mouseX - this.clickX;
-        this.y = this.yStartDrag + mouseY - this.clickY;
-    }
+   
 
     isMouseOverControlPoints() {
         for (const cp of this.controlPoints) {
@@ -242,11 +228,11 @@ class CornerPinSurface extends Surface {
         pop();
     }
 
-    displayOutline() {
+    displayOutline(col=this.controlPointColor) {
         strokeWeight(3);
-        stroke(this.controlPointColor);
+        stroke(col);
 
-        fill(red(this.controlPointColor), green(this.controlPointColor), blue(this.controlPointColor), 50);
+        fill(red(col), green(col), blue(col), 50);
         beginShape();
         for (const cp of this.controlPoints) {
             vertex(cp.x, cp.y);

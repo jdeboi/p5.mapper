@@ -1,7 +1,7 @@
 import QuadMap from './surfaces/QuadMap';
 import TriMap from './surfaces/TriMap';
 import LineMap from './lines/LineMap';
-import Mask from './mask/Mask';
+import Mask from './surfaces/Mask';
 import BezierMap from './surfaces/Bezier/BezierMap';
 
 import { getPercentWave } from './helpers/helpers';
@@ -14,9 +14,26 @@ class ProjectionMapper {
         this.lines = [];
         this.masks = [];
         this.dragged = null;
+        this.selected = null;
         this.calibrate = false;
         this.pInst = null;
         this.pMousePressed = false;
+        this.moveMode = "ALL";
+
+        // this.bezShader = null;
+        this.bezBuffer = null;
+        // this.bezierShaderLoaded = false;
+    }
+
+    init(w, h) {
+        if (this.bezBuffer == null) {
+            this.buffer = this.pInst.createGraphics(w, h, this.pInst.WEBGL);
+            this.bezBuffer = this.pInst.createGraphics(w, h, this.pInst.WEBGL);
+            // console.log("creating pGraphics");
+
+            // let filePath = "../../src/surfaces/Bezier/shader"
+            // this.bezShader = this.pInst.loadShader(filePath + ".vert", filePath + ".frag", () => this.bezierShaderLoaded = true);
+        }
     }
 
     ////////////////////////////////////////
@@ -71,7 +88,8 @@ class ProjectionMapper {
     }
 
     createBezierMap() {
-        let bez = new BezierMap(this.buffer);
+        let bez = new BezierMap(this.pInst, this);
+        this.surfaces.push(bez);
         return bez;
     }
 
@@ -83,13 +101,43 @@ class ProjectionMapper {
         if (!this.calibrate)
             return;
 
+        if (this.moveMode == "SURFACES") {
+            this.checkSurfacesClick();
+        }
+        else if (this.moveMode == "POINTS") {
+            this.checkPointsClick();
+        }
+        else {
+            if (!this.checkPointsClick()) {
+                this.checkSurfacesClick();
+            }
+        }
+
+    }
+
+    moveSurfaces() {
+        this.moveMode = "SURFACES";
+    }
+
+    moveControlPoints() {
+        this.moveMode = "POINTS";
+    }
+
+    moveAll() {
+        this.moveMode = "ALL";
+    }
+
+    isMovingPoints() {
+        return this.moveMode == "ALL" || this.moveMode == "POINTS";
+    }
+
+    checkSurfacesClick() {
         // first check masks
-        let top = null;
         for (const mask of this.masks) {
-            this.dragged = mask.select();
+            this.dragged = mask.selectSurface();
             if (this.dragged != null) {
-                top = mask;
-                return;
+                this.selected = mask;
+                return true;
             }
         }
         // Check Lines
@@ -98,34 +146,64 @@ class ProjectionMapper {
             let s = this.lines[i];
             this.dragged = s.select();
             if (this.dragged != null) {
-                top = s;
-                return;
+                return true;
             }
         }
 
         // check mapping surfaces
         for (let i = this.surfaces.length - 1; i >= 0; i--) {
             let s = this.surfaces[i];
+            this.dragged = s.selectSurface();
+            if (this.dragged != null) {
+                this.selected = s;
+                return true;
+            }
+        }
+        this.selected = null;
+        return false;
+    }
+
+    checkPointsClick() {
+        // first check masks
+        for (const mask of this.masks) {
+            this.dragged = mask.selectPoints();
+            if (this.dragged != null) {
+                this.selected = mask;
+                return true;
+            }
+        }
+        // Check Lines
+        // navigate the list backwards, as to select 
+        for (let i = this.lines.length - 1; i >= 0; i--) {
+            let s = this.lines[i];
             this.dragged = s.select();
             if (this.dragged != null) {
-                top = s;
-                return;
+                return true;
             }
         }
 
-
-
-        if (top != null) {
-            // TODO
-            // moved the dragged surface to the beginning of the list
-            // this actually breaks the load/save order.
-            // in the new version, add IDs to surfaces so we can just 
-            // re-load in the right order (or create a separate list 
-            // for selection/rendering)
-            //let i = surfaces.indexOf(top);
-            //surfaces.remove(i);
-            //surfaces.add(0, top);
+        // check mapping surfaces
+        for (let i = this.surfaces.length - 1; i >= 0; i--) {
+            let s = this.surfaces[i];
+            this.dragged = s.selectPoints();
+            if (this.dragged != null) {
+                this.selected = s;
+                return true;
+            }
         }
+        this.selected = null;
+        return false;
+    }
+
+    checkSelectedClick() {
+        // first check masks
+        if (this.selected) {
+            this.dragged = this.selected.selectPoints();
+            if (this.dragged)
+                return true;
+            return false;
+        }
+        return false;
     }
 
     onDrag() {
@@ -140,6 +218,7 @@ class ProjectionMapper {
     isDragging(surface) {
         // TODO - ??? why return true?
         // need to remember what I was doing here
+        
         if (this.dragged === null)
             return true;
         return this.dragged === surface;
@@ -318,6 +397,9 @@ class ProjectionMapper {
      * @deprecated since v0.0.1
     */
     display() {
+        // if (this.selected) {
+        //     this.selected.displaySelected();
+        // }
         console.warn("display() is a deprecated method");
     }
 
@@ -356,13 +438,17 @@ p5.prototype.createProjectionMapper = function (pInst, w, h) {
     if (!w) w = pInst.width;
     if (!h) h = pInst.height;
     pMapper.pInst = pInst;
-    pMapper.buffer = pInst.createGraphics(w, h, pInst.WEBGL);
+    pMapper.init(w, h);
     return pMapper;
 };
 
 
 p5.prototype.isCalibratingMapper = function () {
     return pMapper.calibrate;
+};
+
+p5.prototype.isMovingPoints = function () {
+    return pMapper.isMovingPoints();
 };
 
 p5.prototype.isDragging = function (surface) {

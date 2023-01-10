@@ -54,6 +54,17 @@ class Surface {
         pop();
     }
 
+    startDrag() {
+        this.xStartDrag = this.x;
+        this.yStartDrag = this.y;
+        this.clickX = mouseX;
+        this.clickY = mouseY;
+    }
+
+    moveTo() {
+        this.x = this.xStartDrag + mouseX - this.clickX;
+        this.y = this.yStartDrag + mouseY - this.clickY;
+    }
 
 }
 

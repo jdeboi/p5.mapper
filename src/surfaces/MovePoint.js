@@ -1,8 +1,9 @@
 import { isWEBGL } from '../helpers/helpers';
 class MovePoint {
 
-    constructor(parent, x, y, r = 20) {
+    constructor(parent, x, y, r = 5) {
         this.x = x;
+        this.type = "CPOINT";
         this.y = y;
         this.r = r;
         this.isControlPoint = false;
@@ -66,21 +67,24 @@ class MovePoint {
     }
 
     display(col = this.col) {
-        let c = col;
-        if (this.isMouseOver() && isDragging(this)) {
-            c = color(255);
-        }
-        // c = color(255);
-        push();
-        translate(0, 0, 5);
-        stroke(c);
-        strokeWeight(2);
-        noFill();
+        if (isMovingPoints()) {
+            let c = col;
+            if (this.isMouseOver()) {
+                c = color(255);
+            }
+            // c = color(255);
+            push();
+            translate(0, 0, 5);
+            stroke(c);
+            strokeWeight(2);
+            noFill();
 
-        ellipse(this.x, this.y, this.r);
-        fill(c);
-        ellipse(this.x, this.y, this.r / 2);
-        pop();
+            ellipse(this.x, this.y, this.r * 2);
+            fill(c);
+            ellipse(this.x, this.y, this.r);
+            pop();
+        }
+
     }
 
 

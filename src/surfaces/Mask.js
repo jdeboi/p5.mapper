@@ -1,5 +1,6 @@
-import MovePoint from "../surfaces/MovePoint";
-
+import MovePoint from "./MovePoint";
+// TODO - this can totally reuse Surface etc.
+// inside method could be reused in bezier
 import { inside, getRandomizedColor, isWEBGL } from '../helpers/helpers';
 
 class Mask {
@@ -22,8 +23,8 @@ class Mask {
             let x = r * cos(i / numPoints * 2 * PI);
             let y = r * sin(i / numPoints * 2 * PI);
             if (!isWEBGL()) {
-                x += width/2;
-                y += height/2;
+                x += width / 2;
+                y += height / 2;
             }
             let cp = new MovePoint(this, x, y);
             cp.isControlPoint = true;
@@ -39,9 +40,13 @@ class Mask {
             this.points.push(cp);
         }
     }
-    
 
-    display(col=color(0)) {
+
+    displaySelected() {
+        this.display("pink");
+    }
+
+    display(col = color(0)) {
         push();
         translate(this.x, this.y, 1);
         noStroke();
@@ -69,7 +74,7 @@ class Mask {
     }
 
     isMouseOver() {
-        let p = { x: mouseX, y: mouseY};
+        let p = { x: mouseX, y: mouseY };
         if (isWEBGL()) {
             p.x -= width / 2;
             p.y -= height / 2
@@ -113,18 +118,22 @@ class Mask {
         return json.type === this.type && json.id === this.id;
     }
 
-    select() {
+    selectSurface() {
+        // then, see if the mask itself is selected
+        if (this.isMouseOver()) {
+            this.startDrag();
+            return this;
+        }
+        return null;
+    }
+
+    selectPoints() {
         // check control points
         for (const p of this.points) {
             if (p.isMouseOver()) {
                 p.startDrag();
                 return p;
             }
-        }
-        // then, see if the mask itself is selected
-        if (this.isMouseOver()) {
-            this.startDrag();
-            return this;
         }
         return null;
     }

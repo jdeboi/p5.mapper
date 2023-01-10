@@ -475,11 +475,12 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 var MovePoint = /*#__PURE__*/function () {
   function MovePoint(parent, x, y) {
-    var r = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 20;
+    var r = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 5;
 
     _classCallCheck(this, MovePoint);
 
     this.x = x;
+    this.type = "CPOINT";
     this.y = y;
     this.r = r;
     this.isControlPoint = false;
@@ -550,22 +551,25 @@ var MovePoint = /*#__PURE__*/function () {
     key: "display",
     value: function display() {
       var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.col;
-      var c = col;
 
-      if (this.isMouseOver() && isDragging(this)) {
-        c = color(255);
-      } // c = color(255);
+      if (isMovingPoints()) {
+        var c = col;
+
+        if (this.isMouseOver()) {
+          c = color(255);
+        } // c = color(255);
 
 
-      push();
-      translate(0, 0, 5);
-      stroke(c);
-      strokeWeight(2);
-      noFill();
-      ellipse(this.x, this.y, this.r);
-      fill(c);
-      ellipse(this.x, this.y, this.r / 2);
-      pop();
+        push();
+        translate(0, 0, 5);
+        stroke(c);
+        strokeWeight(2);
+        noFill();
+        ellipse(this.x, this.y, this.r * 2);
+        fill(c);
+        ellipse(this.x, this.y, this.r);
+        pop();
+      }
     }
   }]);
 
@@ -716,6 +720,20 @@ var Surface = /*#__PURE__*/function () {
       this.display(tX, tY, tW, tH);
       pop();
     }
+  }, {
+    key: "startDrag",
+    value: function startDrag() {
+      this.xStartDrag = this.x;
+      this.yStartDrag = this.y;
+      this.clickX = mouseX;
+      this.clickY = mouseY;
+    }
+  }, {
+    key: "moveTo",
+    value: function moveTo() {
+      this.x = this.xStartDrag + mouseX - this.clickX;
+      this.y = this.yStartDrag + mouseY - this.clickY;
+    }
   }]);
 
   return Surface;
@@ -790,19 +808,9 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
 
     _this.controlPointColor = getRandomizedColor(_this.id, _this.type);
     return _this;
-  } // ABSTRACT / OVERRIDDEN METHODS
-
+  }
 
   CornerPinSurface_createClass(CornerPinSurface, [{
-    key: "render",
-    value: function render() {}
-  }, {
-    key: "isMouseOver",
-    value: function isMouseOver() {}
-  }, {
-    key: "calculateMesh",
-    value: function calculateMesh() {}
-  }, {
     key: "initMesh",
     value: function initMesh() {
       this.mesh = [];
@@ -940,17 +948,9 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
     // }
 
   }, {
-    key: "select",
-    value: function select() {
-      // check if control points are selected
-      var cp = this.isMouseOverControlPoints();
-
-      if (cp) {
-        cp.startDrag();
-        return cp;
-      } // then, see if the surface itself is selected
-
-
+    key: "selectSurface",
+    value: function selectSurface() {
+      // if the surface itself is selected
       if (this.isMouseOver()) {
         this.startDrag();
         return this;
@@ -959,18 +959,15 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
       return null;
     }
   }, {
-    key: "startDrag",
-    value: function startDrag() {
-      this.xStartDrag = this.x;
-      this.yStartDrag = this.y;
-      this.clickX = mouseX;
-      this.clickY = mouseY;
-    }
-  }, {
-    key: "moveTo",
-    value: function moveTo() {
-      this.x = this.xStartDrag + mouseX - this.clickX;
-      this.y = this.yStartDrag + mouseY - this.clickY;
+    key: "selectPoints",
+    value: function selectPoints() {
+      // check if control points are selected
+      var cp = this.isMouseOverControlPoints();
+
+      if (cp) {
+        cp.startDrag();
+        return cp;
+      }
     }
   }, {
     key: "isMouseOverControlPoints",
@@ -1042,9 +1039,10 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
   }, {
     key: "displayOutline",
     value: function displayOutline() {
+      var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.controlPointColor;
       strokeWeight(3);
-      stroke(this.controlPointColor);
-      fill(red(this.controlPointColor), green(this.controlPointColor), blue(this.controlPointColor), 50);
+      stroke(col);
+      fill(red(col), green(col), blue(col), 50);
       beginShape();
 
       var _iterator4 = _createForOfIteratorHelper(this.controlPoints),
@@ -1178,6 +1176,30 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       }
     }
   }, {
+    key: "displaySelected",
+    value: function displaySelected() {
+      var tX = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+      var tY = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+      var tW = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.width;
+      var tH = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : this.height;
+      beginShape(TRIANGLES);
+
+      for (var x = 0; x < this.res - 1; x++) {
+        for (var y = 0; y < this.res - 1; y++) {
+          this.getQuadTriangles(x, y, tX, tY, tW, tH);
+        }
+      }
+
+      endShape(CLOSE);
+
+      if (isCalibratingMapper()) {
+        // TODO
+        // translate(0, 0, 3);
+        this.displayOutline(color("pink"));
+        this.displayGrid(color("pink"));
+      }
+    }
+  }, {
     key: "display",
     value: function display() {
       var tX = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
@@ -1195,29 +1217,20 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       endShape(CLOSE);
 
       if (isCalibratingMapper()) {
-        translate(0, 0, 3);
+        // TODO -
+        // why translate??
+        // translate(0, 0, 3); 
         this.displayOutline();
         this.displayGrid();
       }
-    } // render(tX = 0, tY = 0, tW = this.width, tH = this.height) {
-    //     push();
-    //     translate(this.x, this.y);
-    //     texture(this);
-    //     this.displayTriangles(tX, tY, tW, tH);
-    //     if (isCalibratingMapper()) {
-    //         translate(0, 0, 3);
-    //         this.displayOutline();
-    //         this.displayGrid();
-    //     }
-    //     pop();
-    // }
-
+    }
   }, {
     key: "displayGrid",
     value: function displayGrid() {
+      var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.controlPointColor;
       strokeWeight(2);
-      stroke(this.controlPointColor);
-      fill(red(this.controlPointColor), green(this.controlPointColor), blue(this.controlPointColor), 50); // stroke(200);
+      stroke(col);
+      fill(red(col), green(col), blue(col), 50); // stroke(200);
       // noFill();
 
       beginShape(TRIANGLES);
@@ -1684,7 +1697,7 @@ var LineMap = /*#__PURE__*/function () {
 }();
 
 /* harmony default export */ const lines_LineMap = (LineMap);
-;// CONCATENATED MODULE: ./src/mask/Mask.js
+;// CONCATENATED MODULE: ./src/surfaces/Mask.js
 function Mask_createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = Mask_unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
 
 function Mask_unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return Mask_arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return Mask_arrayLikeToArray(o, minLen); }
@@ -1697,6 +1710,8 @@ function Mask_defineProperties(target, props) { for (var i = 0; i < props.length
 
 function Mask_createClass(Constructor, protoProps, staticProps) { if (protoProps) Mask_defineProperties(Constructor.prototype, protoProps); if (staticProps) Mask_defineProperties(Constructor, staticProps); return Constructor; }
 
+ // TODO - this can totally reuse Surface etc.
+// inside method could be reused in bezier
 
 
 
@@ -1751,6 +1766,11 @@ var Mask = /*#__PURE__*/function () {
       } finally {
         _iterator.f();
       }
+    }
+  }, {
+    key: "displaySelected",
+    value: function displaySelected() {
+      this.display("pink");
     }
   }, {
     key: "display",
@@ -1875,8 +1895,19 @@ var Mask = /*#__PURE__*/function () {
       return json.type === this.type && json.id === this.id;
     }
   }, {
-    key: "select",
-    value: function select() {
+    key: "selectSurface",
+    value: function selectSurface() {
+      // then, see if the mask itself is selected
+      if (this.isMouseOver()) {
+        this.startDrag();
+        return this;
+      }
+
+      return null;
+    }
+  }, {
+    key: "selectPoints",
+    value: function selectPoints() {
       // check control points
       var _iterator5 = Mask_createForOfIteratorHelper(this.points),
           _step5;
@@ -1889,17 +1920,11 @@ var Mask = /*#__PURE__*/function () {
             p.startDrag();
             return p;
           }
-        } // then, see if the mask itself is selected
-
+        }
       } catch (err) {
         _iterator5.e(err);
       } finally {
         _iterator5.f();
-      }
-
-      if (this.isMouseOver()) {
-        this.startDrag();
-        return this;
       }
 
       return null;
@@ -1923,8 +1948,120 @@ var Mask = /*#__PURE__*/function () {
   return Mask;
 }();
 
-/* harmony default export */ const mask_Mask = (Mask);
+/* harmony default export */ const surfaces_Mask = (Mask);
+;// CONCATENATED MODULE: ./src/surfaces/Bezier/BezierPoint.js
+function BezierPoint_classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function BezierPoint_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function BezierPoint_createClass(Constructor, protoProps, staticProps) { if (protoProps) BezierPoint_defineProperties(Constructor.prototype, protoProps); if (staticProps) BezierPoint_defineProperties(Constructor, staticProps); return Constructor; }
+
+// Credit:
+// https://geeksoutofthebox.com/2020/11/23/simons-bezier-editor-in-p5-js/
+var ControlPoint = /*#__PURE__*/function () {
+  function ControlPoint(x, y, parentPath) {
+    BezierPoint_classCallCheck(this, ControlPoint);
+
+    // this.id = parentPath.points.length;
+    this.pos = createVector(x, y);
+    this.parentPath = parentPath;
+    this.type = "CPOINT";
+  }
+
+  BezierPoint_createClass(ControlPoint, [{
+    key: "add",
+    value: function add(x, y) {
+      this.pos.add(x, y);
+    }
+  }, {
+    key: "set",
+    value: function set(x, y) {
+      this.pos.set(x, y);
+    }
+  }, {
+    key: "select",
+    value: function select() {
+      var px = this.pos.x + this.parentPath.x;
+      var py = this.pos.y + this.parentPath.y;
+      var mx = mouseX - width / 2;
+      var my = mouseY - height / 2;
+
+      if (dist(px, py, mx, my) < 5) {
+        return true;
+      }
+
+      return false;
+    }
+  }, {
+    key: "moveTo",
+    value: function moveTo() {
+      var x = mouseX - width / 2 - this.parentPath.x;
+      var y = mouseY - height / 2 - this.parentPath.y;
+      var closed = true;
+      var path = this.parentPath;
+      var i = path.points.indexOf(this);
+
+      if (i % 3 == 0) {
+        var dx = x - this.pos.x;
+        var dy = y - this.pos.y;
+        this.pos.set(x, y);
+
+        if (i - 1 >= 0 || closed) {
+          path.points[path.loopIndex(i - 1)].add(dx, dy);
+        }
+
+        if (i + 1 < path.points.length || closed) {
+          path.points[path.loopIndex(i + 1)].add(dx, dy);
+        }
+
+        if (path.mode == "AUTOMATIC") path.autoSetAllControlPoints();
+      } else if (path.mode != "AUTOMATIC") {
+        this.pos.set(x, y);
+        var anchorI = i % 3 == 1 ? i - 1 : i + 1;
+        var otherI = i % 3 == 1 ? i - 2 : i + 2;
+
+        if (otherI >= 0 && otherI < path.points.length || closed) {
+          var anchor = path.points[path.loopIndex(anchorI)].pos;
+          var other = path.points[path.loopIndex(otherI)].pos;
+
+          if (path.mode == "ALIGNED") {
+            var _dist = p5.Vector.dist(anchor, other);
+
+            var disp = p5.Vector.sub(anchor, this.pos);
+            disp.setMag(_dist);
+            other.set(p5.Vector.add(anchor, disp));
+          } else if (path.mode == "MIRRORED") {
+            other.set(p5.Vector.lerp(anchor, this.pos, -1));
+          }
+        }
+      }
+
+      path.setDimensions();
+    }
+  }, {
+    key: "displayControlCircle",
+    value: function displayControlCircle(strokeC) {
+      var i = this.parentPath.points.indexOf(this);
+      stroke(strokeC);
+      strokeWeight(1);
+
+      if (i % 3 == 0) {
+        fill(255, 0, 0);
+        circle(this.pos.x, this.pos.y, 10);
+      } else if (!this.parentPath.auto) {
+        fill(255);
+        circle(this.pos.x, this.pos.y, 8);
+      }
+    }
+  }]);
+
+  return ControlPoint;
+}();
+
+/* harmony default export */ const BezierPoint = (ControlPoint);
 ;// CONCATENATED MODULE: ./src/surfaces/Bezier/BezierMap.js
+function BezierMap_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { BezierMap_typeof = function _typeof(obj) { return typeof obj; }; } else { BezierMap_typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return BezierMap_typeof(obj); }
+
 function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || BezierMap_unsupportedIterableToArray(arr) || _nonIterableSpread(); }
 
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
@@ -1945,35 +2082,98 @@ function BezierMap_defineProperties(target, props) { for (var i = 0; i < props.l
 
 function BezierMap_createClass(Constructor, protoProps, staticProps) { if (protoProps) BezierMap_defineProperties(Constructor.prototype, protoProps); if (staticProps) BezierMap_defineProperties(Constructor, staticProps); return Constructor; }
 
-var BezierMap = /*#__PURE__*/function () {
-  // constructor(json = null) {
-  //     if (json) {
-  //         this.load(json);
-  //     }
-  //     else {
-  //         this.initEmpty();
-  //     }
-  //     // let filePath = "../../src/surfaces/Bezier/shader."
-  //     // this.theShader = loadShader(filePath + "vert", filePath + "frag")
-  // }
-  function BezierMap(buffer) {
+function BezierMap_inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) BezierMap_setPrototypeOf(subClass, superClass); }
+
+function BezierMap_setPrototypeOf(o, p) { BezierMap_setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return BezierMap_setPrototypeOf(o, p); }
+
+function BezierMap_createSuper(Derived) { var hasNativeReflectConstruct = BezierMap_isNativeReflectConstruct(); return function _createSuperInternal() { var Super = BezierMap_getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = BezierMap_getPrototypeOf(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return BezierMap_possibleConstructorReturn(this, result); }; }
+
+function BezierMap_possibleConstructorReturn(self, call) { if (call && (BezierMap_typeof(call) === "object" || typeof call === "function")) { return call; } else if (call !== void 0) { throw new TypeError("Derived constructors may only return object or undefined"); } return BezierMap_assertThisInitialized(self); }
+
+function BezierMap_assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function BezierMap_isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); return true; } catch (e) { return false; } }
+
+function BezierMap_getPrototypeOf(o) { BezierMap_getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return BezierMap_getPrototypeOf(o); }
+
+// Credit:
+// https://geeksoutofthebox.com/2020/11/23/simons-bezier-editor-in-p5-js/
+
+
+
+var BezierMap = /*#__PURE__*/function (_Surface) {
+  BezierMap_inherits(BezierMap, _Surface);
+
+  var _super = BezierMap_createSuper(BezierMap);
+
+  function BezierMap(pInst, pMapper) {
+    var _this;
+
+    var w = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1000;
+    var h = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 1000;
+
     BezierMap_classCallCheck(this, BezierMap);
 
-    this.buffer = buffer;
-    this.initEmpty();
+    _this = _super.call(this, 0, w, h, 0, "BEZ", pInst.buffer);
+    _this.pInst = pInst;
+    _this.pMapper = pMapper;
+    _this.bufferSpace = 10;
+
+    _this.initEmpty(); // let filePath = "../../src/surfaces/Bezier/shader."
+    // this.theShader = loadShader(filePath + "vert", filePath + "frag")
+
+
+    return _this;
   }
 
   BezierMap_createClass(BezierMap, [{
     key: "initEmpty",
     value: function initEmpty() {
       this.points = [];
-      this.points.push(createVector(-100, 0));
-      this.points.push(createVector(-50, -50));
-      this.points.push(createVector(50, 50));
-      this.points.push(createVector(100, 0));
+      this.x = 100;
+      this.y = 100;
+      this.width = 100;
+      this.height = 100;
+      this.points.push(new BezierPoint(0, 0, this));
+      this.points.push(new BezierPoint(this.width, 0, this));
+      this.points.push(new BezierPoint(this.width, this.height, this));
+      this.points.push(new BezierPoint(0, this.height, this));
       this.closed = false;
       this.auto = false;
       this.toggleClosed();
+      this.mode = "FREE";
+    }
+  }, {
+    key: "setAlignedMode",
+    value: function setAlignedMode() {
+      this.mode = "ALIGNED";
+    }
+  }, {
+    key: "setMirroredMode",
+    value: function setMirroredMode() {
+      this.mode = "MIRRORED";
+    }
+  }, {
+    key: "setFreeMode",
+    value: function setFreeMode() {
+      this.mode = "FREE";
+    }
+  }, {
+    key: "setAutomaticMode",
+    value: function setAutomaticMode() {
+      this.mode = "AUTOMATIC";
+    }
+  }, {
+    key: "setBezierDetail",
+    value: function setBezierDetail() {
+      var num = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 20;
+      this.pMapper.bezBuffer.bezierDetail(num);
+      this.pMapper.buffer.bezierDetail(num);
+    }
+  }, {
+    key: "isReady",
+    value: function isReady() {
+      return this.pMapper.bezBuffer; // return this.pMapper.bezBuffer && this.pMapper.bezierShaderLoaded;
     }
   }, {
     key: "load",
@@ -1986,7 +2186,7 @@ var BezierMap = /*#__PURE__*/function () {
       try {
         for (_iterator.s(); !(_step = _iterator.n()).done;) {
           var p = _step.value;
-          this.points.push(createVector(p.x, p.y));
+          this.points.push(new BezierPoint(p.x, p.y, this));
         }
       } catch (err) {
         _iterator.e(err);
@@ -1996,6 +2196,63 @@ var BezierMap = /*#__PURE__*/function () {
 
       this.closed = json.closed;
       this.auto = json.auto;
+      this.setDimensions();
+    }
+  }, {
+    key: "selectSurface",
+    value: function selectSurface() {
+      if (this.isMouseOver()) {
+        this.startDrag();
+        return this;
+      }
+
+      return null;
+    }
+  }, {
+    key: "selectPoints",
+    value: function selectPoints() {
+      // check if control points are selected
+      var _iterator2 = BezierMap_createForOfIteratorHelper(this.points),
+          _step2;
+
+      try {
+        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+          var p = _step2.value;
+
+          if (p.select()) {
+            return p;
+          }
+        }
+      } catch (err) {
+        _iterator2.e(err);
+      } finally {
+        _iterator2.f();
+      }
+
+      return null;
+    }
+  }, {
+    key: "getBounds",
+    value: function getBounds() {
+      var polyline = this.getPolyline();
+      var minX = Math.min.apply(Math, _toConsumableArray(polyline.map(function (pt) {
+        return pt.x;
+      })));
+      var minY = Math.min.apply(Math, _toConsumableArray(polyline.map(function (pt) {
+        return pt.y;
+      })));
+      var maxX = Math.max.apply(Math, _toConsumableArray(polyline.map(function (pt) {
+        return pt.x;
+      })));
+      var maxY = Math.max.apply(Math, _toConsumableArray(polyline.map(function (pt) {
+        return pt.y;
+      })));
+      return {
+        x: minX,
+        y: minY,
+        w: maxX - minX,
+        h: maxY - minY
+      };
     }
   }, {
     key: "getJson",
@@ -2003,8 +2260,8 @@ var BezierMap = /*#__PURE__*/function () {
       return {
         points: this.points.map(function (p) {
           return {
-            x: p.x - width / 2,
-            y: p.y - height / 2
+            x: p.pos.x - width / 2,
+            y: p.pos.y - height / 2
           };
         }),
         closed: this.closed,
@@ -2030,14 +2287,28 @@ var BezierMap = /*#__PURE__*/function () {
         this.points.pop();
       } else {
         this.closed = true;
-        var anchor1 = this.points[this.points.length - 1];
-        var control1 = this.points[this.points.length - 2];
-        var anchor2 = this.points[0];
-        var control2 = this.points[1];
+        var anchor1 = this.points[this.points.length - 1].pos;
+        var control1 = this.points[this.points.length - 2].pos;
+        var anchor2 = this.points[0].pos;
+        var control2 = this.points[1].pos;
         var newControl1 = p5.Vector.lerp(anchor1, control1, -1);
+        var cp1 = new BezierPoint(newControl1.x, newControl1.y, this);
         var newControl2 = p5.Vector.lerp(anchor2, control2, -1);
-        this.points.push(newControl1, newControl2);
+        var cp2 = new BezierPoint(newControl2.x, newControl2.y, this);
+        this.points.push(cp1, cp2);
       }
+
+      this.setDimensions();
+    }
+  }, {
+    key: "setDimensions",
+    value: function setDimensions() {
+      var _this$getBounds = this.getBounds(),
+          w = _this$getBounds.w,
+          h = _this$getBounds.h;
+
+      this.width = w + this.bufferSpace * 2;
+      this.height = h + this.bufferSpace * 2;
     }
   }, {
     key: "numSegments",
@@ -2052,51 +2323,25 @@ var BezierMap = /*#__PURE__*/function () {
   }, {
     key: "addSegment",
     value: function addSegment(x, y) {
-      var prevAnchor = this.points[this.points.length - 2];
-      var prevControl = this.points[this.points.length - 1];
-      var anchor = createVector(x, y);
-      var control1 = p5.Vector.lerp(prevControl, prevAnchor, -1);
-      var control2 = p5.Vector.lerp(control1, anchor, 0.5);
-      this.points.push(control1, control2, anchor);
-    }
-  }, {
-    key: "movePoint",
-    value: function movePoint(point, x, y, mode) {
-      var i = this.points.indexOf(point);
-
-      if (i % 3 == 0) {
-        var dx = x - point.x;
-        var dy = y - point.y;
-        point.set(x, y);
-
-        if (i - 1 >= 0 || this.closed) {
-          this.points[this.loopIndex(i - 1)].add(dx, dy);
-        }
-
-        if (i + 1 < this.points.length || this.closed) {
-          this.points[this.loopIndex(i + 1)].add(dx, dy);
-        }
-
-        if (mode == AUTOMATIC) this.autoSetAllControlPoints();
-      } else if (mode != AUTOMATIC) {
-        point.set(x, y);
-        var anchorI = i % 3 == 1 ? i - 1 : i + 1;
-        var otherI = i % 3 == 1 ? i - 2 : i + 2;
-
-        if (otherI >= 0 && otherI < this.points.length || this.closed) {
-          var anchor = this.points[this.loopIndex(anchorI)];
-          var other = this.points[this.loopIndex(otherI)];
-
-          if (mode == ALIGNED) {
-            var dist = p5.Vector.dist(anchor, other);
-            var disp = p5.Vector.sub(anchor, point);
-            disp.setMag(dist);
-            other.set(p5.Vector.add(anchor, disp));
-          } else if (mode == MIRRORED) {
-            other.set(p5.Vector.lerp(anchor, point, -1));
-          }
-        }
+      if (!x) {
+        x = mouseX - width / 2 - this.x;
       }
+
+      if (!y) {
+        y = mouseY - height / 2 - this.y;
+      }
+
+      this.toggleClosed();
+      var prevAnchor = this.points[this.points.length - 2].pos;
+      var prevControl = this.points[this.points.length - 1].pos;
+      var anchor = createVector(x, y);
+      var aP = new BezierPoint(anchor.x, anchor.y, this);
+      var control1 = p5.Vector.lerp(prevControl, prevAnchor, -1);
+      var cp1 = new BezierPoint(control1.x, control1.y, this);
+      var control2 = p5.Vector.lerp(control1, anchor, 0.5);
+      var cp2 = new BezierPoint(control2.x, control2.y, this);
+      this.points.push(cp1, cp2, aP);
+      this.toggleClosed();
     }
   }, {
     key: "autoSetControlPoint",
@@ -2124,8 +2369,8 @@ var BezierMap = /*#__PURE__*/function () {
     key: "autoSetEdgePoints",
     value: function autoSetEdgePoints(controlSpacing) {
       if (this.closed) return;
-      this.points[1].set(p5.Vector.lerp(this.points[0], this.points[2], controlSpacing));
-      this.points[this.points.length - 2].set(p5.Vector.lerp(this.points[this.points.length - 1], this.points[this.points.length - 3], controlSpacing));
+      this.points[1].set(p5.Vector.lerp(this.points[0].pos, this.points[2].pos, controlSpacing));
+      this.points[this.points.length - 2].set(p5.Vector.lerp(this.points[this.points.length - 1].pos, this.points[this.points.length - 3].pos, controlSpacing));
     }
   }, {
     key: "autoSetAllControlPoints",
@@ -2135,95 +2380,176 @@ var BezierMap = /*#__PURE__*/function () {
       }
 
       this.autoSetEdgePoints(controlSpacing);
-    } // render(fillC, strokeC) {
-    //     stroke(strokeC);
-    //     beginShape();
-    //     vertex(this.points[0].x, this.points[0].y)
-    //     for (let i = 0; i < this.numSegments(); i++) {
-    //         const seg = this.getSegment(i);
-    //         bezierVertex(seg[1].x, seg[1].y, seg[2].x, seg[2].y, seg[3].x, seg[3].y);
+    }
+  }, {
+    key: "displaySketch",
+    value: function displaySketch(sketch) {
+      var x = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+      var y = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+      var buffer = this.pMapper.buffer;
+      buffer.push(); // TODO
+      // Does this make sense? 
+      // draw the sketch from top left corner
+
+      buffer.translate(-buffer.width / 2, -buffer.height / 2); // could also put graphics buffer 
+      // (which is in WEBGL mode and center = origin)
+      // at center of bezier
+      // const {w, h} = this.getBounds();
+      // buffer.translate(w/2, h/2);
+
+      buffer.translate(x, y);
+      sketch(buffer);
+      buffer.pop();
+      this.displayGraphicsTexture(buffer);
+    }
+  }, {
+    key: "displayTexture",
+    value: function displayTexture(img) {
+      var x = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+      var y = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+
+      if (!this.isReady()) {
+        return;
+      }
+
+      var buffer = this.pMapper.buffer;
+      this.drawImage(img, buffer, x, y);
+      this.displayGraphicsTexture(buffer);
+    }
+  }, {
+    key: "displayGraphicsTexture",
+    value: function displayGraphicsTexture(pg) {
+      // 1 - create white bezier mask on the bezBuffer 
+      var bezBuffer = this.pMapper.bezBuffer;
+      this.displayBezierPG(bezBuffer); // 2 - convert PGraphics into img for masking
+
+      var img = pg.get(); // 3 - mask it with step 1
+
+      img.mask(bezBuffer);
+
+      var _this$getBounds2 = this.getBounds(),
+          x = _this$getBounds2.x,
+          y = _this$getBounds2.y;
+
+      push();
+      translate(this.x, this.y);
+      translate(x - this.bufferSpace, y - this.bufferSpace);
+      image(img, 0, 0);
+      pop();
+    } // In the future when we can apply texture UVs to bezier vertices:
+    // https://github.com/processing/p5.js/issues/5699
+    // setShader(shader) {
+    //     this.theShader = shader;
+    // }
+    // displayTexture(tex) {
+    //     if (!this.isReady()) {
+    //         return;
     //     }
-    //     endShape();
+    //     let buffer = this.pMapper.buffer;
+    //     let bezBuffer = this.pMapper.bezBuffer;
+    //     let theShader = this.pMapper.bezShader;
+    //     this.drawImage(tex, buffer);
+    //     textureMode(NORMAL);
+    //     bezBuffer.shader(theShader);
+    //     theShader.setUniform('resolution', [buffer.width, buffer.height]);
+    //     theShader.setUniform('tex', buffer);
+    //     // rect gives us some geometry on the screen
+    //     bezBuffer.rect(0, 0, bezBuffer.width, bezBuffer.height);
+    //     texture(bezBuffer);
+    //     this.displayBezier();
     // }
 
   }, {
-    key: "displayTexture",
-    value: function displayTexture(tex) {
-      var _this$getBounds = this.getBounds(),
-          x = _this$getBounds.x,
-          y = _this$getBounds.y,
-          w = _this$getBounds.w,
-          h = _this$getBounds.h;
+    key: "drawImage",
+    value: function drawImage(img, pg) {
+      var x = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+      var y = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
 
-      this.buffer.clear();
-      this.buffer.push();
-      this.buffer.background('white'); // this.buffer.translate(-this.buffer.width / 2-x/2, -this.buffer.height / 2-y/2);
-
-      this.buffer.fill(255); // this.buffer.beginShape();
-      // this.buffer.vertex(this.points[0].x, this.points[0].y)
-      // for (let i = 0; i < this.numSegments(); i++) {
-      //     const seg = this.getSegment(i);
-      //     this.buffer.bezierVertex(seg[1].x, seg[1].y, seg[2].x, seg[2].y, seg[3].x, seg[3].y);
-      // }
-      // this.buffer.endShape();
-
-      this.buffer.pop(); // tex.mask(this.buffer);
-
-      image(tex, 0, 0); // this.buffer.pop();
-      // tex.mask(this.buffer);
-      // image(tex, 0, 0);
+      if (img && pg) {
+        pg.push();
+        pg.clear();
+        pg.translate(-pg.width / 2, -pg.height / 2);
+        pg.translate(x, y);
+        pg.image(img, 0, 0);
+        pg.pop();
+      }
     }
   }, {
     key: "displaySolid",
     value: function displaySolid(col) {
       noStroke();
       fill(col);
-      beginShape();
-      vertex(this.points[0].x, this.points[0].y);
+
+      if (this.isMouseOver()) {
+        strokeWeight(1);
+        stroke('white');
+      } else {
+        noStroke();
+      }
+
+      this.displayBezier();
+    }
+  }, {
+    key: "displayBezierPG",
+    value: function displayBezierPG(pg) {
+      var _this$getBounds3 = this.getBounds(),
+          x = _this$getBounds3.x,
+          y = _this$getBounds3.y;
+
+      pg.push();
+      pg.clear();
+      pg.fill('white');
+      pg.translate(-x, -y);
+      pg.translate(this.bufferSpace, this.bufferSpace);
+      pg.beginShape();
+      pg.vertex(this.points[0].pos.x, this.points[0].pos.y);
 
       for (var i = 0; i < this.numSegments(); i++) {
         var seg = this.getSegment(i);
-        bezierVertex(seg[1].x, seg[1].y, seg[2].x, seg[2].y, seg[3].x, seg[3].y);
+        pg.bezierVertex(seg[1].pos.x, seg[1].pos.y, seg[2].pos.x, seg[2].pos.y, seg[3].pos.x, seg[3].pos.y);
       }
 
-      endShape();
+      pg.endShape();
+      pg.pop(); // if (isCalibratingMapper()) {
+      //     translate(0, 0, 3);
+      //     this.displayControls();
+      // }
+    }
+  }, {
+    key: "displayBezier",
+    value: function displayBezier() {
+      push();
+      translate(this.x, this.y);
+      beginShape();
+      vertex(this.points[0].pos.x, this.points[0].pos.y);
 
-      if (isCalibratingMapper()) {
-        translate(0, 0, 3);
-        this.displayControls();
+      for (var i = 0; i < this.numSegments(); i++) {
+        var seg = this.getSegment(i);
+        bezierVertex(seg[1].pos.x, seg[1].pos.y, seg[2].pos.x, seg[2].pos.y, seg[3].pos.x, seg[3].pos.y);
       }
+
+      endShape(); // if (isCalibratingMapper()) {
+      //     translate(0, 0, 3);
+      //     this.displayControls();
+      // }
+
+      pop();
     }
   }, {
-    key: "getBounds",
-    value: function getBounds() {
-      var minX = Math.min.apply(Math, _toConsumableArray(this.points.map(function (pt) {
-        return pt.x;
-      })));
-      var maxX = Math.max.apply(Math, _toConsumableArray(this.points.map(function (pt) {
-        return pt.x;
-      })));
-      var minY = Math.min.apply(Math, _toConsumableArray(this.points.map(function (pt) {
-        return pt.y;
-      })));
-      var maxY = Math.max.apply(Math, _toConsumableArray(this.points.map(function (pt) {
-        return pt.y;
-      })));
-      return {
-        x: minX,
-        y: minY,
-        w: maxX - minX,
-        h: maxY - minY
-      };
-    }
-  }, {
-    key: "displayControls",
-    value: function displayControls() {
-      var lineC = color(255); // this.render(color(0, 255, 0), lineC);
+    key: "displayControlPoints",
+    value: function displayControlPoints() {
+      if (isMovingPoints()) {
+        var lineC = color(255); // this.render(color(0, 255, 0), lineC);
 
-      this.displayControlCircles(lineC);
+        push();
+        translate(this.x, this.y);
+        this.displayControlCircles(lineC);
 
-      if (!this.auto) {
-        this.displayControlLines(lineC);
+        if (!this.auto) {
+          this.displayControlLines(lineC);
+        }
+
+        pop();
       }
     }
   }, {
@@ -2232,31 +2558,80 @@ var BezierMap = /*#__PURE__*/function () {
       for (var i = 0; i < this.numSegments(); i++) {
         var seg = this.getSegment(i);
         stroke(strokeC);
-        line(seg[0].x, seg[0].y, seg[1].x, seg[1].y);
-        line(seg[2].x, seg[2].y, seg[3].x, seg[3].y);
+        line(seg[0].pos.x, seg[0].pos.y, seg[1].pos.x, seg[1].pos.y);
+        line(seg[2].pos.x, seg[2].pos.y, seg[3].pos.x, seg[3].pos.y);
       }
     }
   }, {
     key: "displayControlCircles",
     value: function displayControlCircles(strokeC) {
-      for (var i = 0; i < this.points.length; i++) {
-        var p = this.points[i];
-        stroke(strokeC);
-        strokeWeight(1);
+      var _iterator3 = BezierMap_createForOfIteratorHelper(this.points),
+          _step3;
 
-        if (i % 3 == 0) {
-          fill(255, 0, 0);
-          circle(p.x, p.y, 10);
-        } else if (!this.auto) {
-          fill(255);
-          circle(p.x, p.y, 8);
+      try {
+        for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
+          var p = _step3.value;
+          p.displayControlCircle(strokeC);
+        }
+      } catch (err) {
+        _iterator3.e(err);
+      } finally {
+        _iterator3.f();
+      }
+    }
+  }, {
+    key: "getPolyline",
+    value: function getPolyline() {
+      var polyline = [];
+
+      for (var i = 0; i < this.numSegments(); i++) {
+        var seg = this.getSegment(i);
+        var steps = 4;
+
+        for (var _i = 0; _i <= steps; _i++) {
+          var t = _i / steps;
+          var x = bezierPoint(seg[0].pos.x, seg[1].pos.x, seg[2].pos.x, seg[3].pos.x, t);
+          var y = bezierPoint(seg[0].pos.y, seg[1].pos.y, seg[2].pos.y, seg[3].pos.y, t);
+          polyline.push({
+            x: x,
+            y: y
+          });
         }
       }
+
+      return polyline;
+    } //(x0,y0) is start point; (x1,y1),(x2,y2) is control points; (x3,y3) is end point.
+
+  }, {
+    key: "isMouseOver",
+    value: function isMouseOver() {
+      var polyline = this.getPolyline();
+      var mx = mouseX - width / 2 - this.x;
+      var my = mouseY - height / 2 - this.y;
+      return this.inside(mx, my, polyline);
+    }
+  }, {
+    key: "inside",
+    value: function inside(x, y, vs) {
+      // ray-casting algorithm based on
+      // https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html/pnpoly.html
+      var inside = false;
+
+      for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        var xi = vs[i].x,
+            yi = vs[i].y;
+        var xj = vs[j].x,
+            yj = vs[j].y;
+        var intersect = yi > y != yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi;
+        if (intersect) inside = !inside;
+      }
+
+      return inside;
     }
   }]);
 
   return BezierMap;
-}();
+}(surfaces_Surface);
 
 /* harmony default export */ const Bezier_BezierMap = (BezierMap);
 ;// CONCATENATED MODULE: ./src/ProjectionMapper.js
@@ -2288,24 +2663,38 @@ var ProjectionMapper = /*#__PURE__*/function () {
     this.lines = [];
     this.masks = [];
     this.dragged = null;
+    this.selected = null;
     this.calibrate = false;
     this.pInst = null;
     this.pMousePressed = false;
-  } ////////////////////////////////////////
-  // SURFACES
-  ////////////////////////////////////////
+    this.moveMode = "ALL"; // this.bezShader = null;
 
-  /**
-   * Creates and registers a new quad surface. 
-   * 
-   * @param w width
-   * @param h height
-   * @param res resolution (number of tiles per axis)
-   * @return
-   */
-
+    this.bezBuffer = null; // this.bezierShaderLoaded = false;
+  }
 
   ProjectionMapper_createClass(ProjectionMapper, [{
+    key: "init",
+    value: function init(w, h) {
+      if (this.bezBuffer == null) {
+        this.buffer = this.pInst.createGraphics(w, h, this.pInst.WEBGL);
+        this.bezBuffer = this.pInst.createGraphics(w, h, this.pInst.WEBGL); // console.log("creating pGraphics");
+        // let filePath = "../../src/surfaces/Bezier/shader"
+        // this.bezShader = this.pInst.loadShader(filePath + ".vert", filePath + ".frag", () => this.bezierShaderLoaded = true);
+      }
+    } ////////////////////////////////////////
+    // SURFACES
+    ////////////////////////////////////////
+
+    /**
+     * Creates and registers a new quad surface. 
+     * 
+     * @param w width
+     * @param h height
+     * @param res resolution (number of tiles per axis)
+     * @return
+     */
+
+  }, {
     key: "createQuadMap",
     value: function createQuadMap(w, h) {
       var res = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 20;
@@ -2353,14 +2742,15 @@ var ProjectionMapper = /*#__PURE__*/function () {
     value: function createMaskMap() {
       var numPoints = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 3;
       if (numPoints < 3) numPoints = 3;
-      var mask = new mask_Mask(this.masks.length, numPoints);
+      var mask = new surfaces_Mask(this.masks.length, numPoints);
       this.masks.push(mask);
       return mask;
     }
   }, {
     key: "createBezierMap",
     value: function createBezierMap() {
-      var bez = new Bezier_BezierMap(this.buffer);
+      var bez = new Bezier_BezierMap(this.pInst, this);
+      this.surfaces.push(bez);
       return bez;
     } ////////////////////////////////////////
     // INTERACTION
@@ -2370,21 +2760,53 @@ var ProjectionMapper = /*#__PURE__*/function () {
     key: "onClick",
     value: function onClick() {
       // ignore input events if the calibrate flag is not set
-      if (!this.calibrate) return; // first check masks
+      if (!this.calibrate) return;
 
-      var top = null;
-
+      if (this.moveMode == "SURFACES") {
+        this.checkSurfacesClick();
+      } else if (this.moveMode == "POINTS") {
+        this.checkPointsClick();
+      } else {
+        if (!this.checkPointsClick()) {
+          this.checkSurfacesClick();
+        }
+      }
+    }
+  }, {
+    key: "moveSurfaces",
+    value: function moveSurfaces() {
+      this.moveMode = "SURFACES";
+    }
+  }, {
+    key: "moveControlPoints",
+    value: function moveControlPoints() {
+      this.moveMode = "POINTS";
+    }
+  }, {
+    key: "moveAll",
+    value: function moveAll() {
+      this.moveMode = "ALL";
+    }
+  }, {
+    key: "isMovingPoints",
+    value: function isMovingPoints() {
+      return this.moveMode == "ALL" || this.moveMode == "POINTS";
+    }
+  }, {
+    key: "checkSurfacesClick",
+    value: function checkSurfacesClick() {
+      // first check masks
       var _iterator = ProjectionMapper_createForOfIteratorHelper(this.masks),
           _step;
 
       try {
         for (_iterator.s(); !(_step = _iterator.n()).done;) {
           var mask = _step.value;
-          this.dragged = mask.select();
+          this.dragged = mask.selectSurface();
 
           if (this.dragged != null) {
-            top = mask;
-            return;
+            this.selected = mask;
+            return true;
           }
         } // Check Lines
         // navigate the list backwards, as to select 
@@ -2400,32 +2822,83 @@ var ProjectionMapper = /*#__PURE__*/function () {
         this.dragged = s.select();
 
         if (this.dragged != null) {
-          top = s;
-          return;
+          return true;
         }
       } // check mapping surfaces
 
 
       for (var _i = this.surfaces.length - 1; _i >= 0; _i--) {
         var _s = this.surfaces[_i];
-        this.dragged = _s.select();
+        this.dragged = _s.selectSurface();
 
         if (this.dragged != null) {
-          top = _s;
-          return;
+          this.selected = _s;
+          return true;
         }
       }
 
-      if (top != null) {// TODO
-        // moved the dragged surface to the beginning of the list
-        // this actually breaks the load/save order.
-        // in the new version, add IDs to surfaces so we can just 
-        // re-load in the right order (or create a separate list 
-        // for selection/rendering)
-        //let i = surfaces.indexOf(top);
-        //surfaces.remove(i);
-        //surfaces.add(0, top);
+      this.selected = null;
+      return false;
+    }
+  }, {
+    key: "checkPointsClick",
+    value: function checkPointsClick() {
+      // first check masks
+      var _iterator2 = ProjectionMapper_createForOfIteratorHelper(this.masks),
+          _step2;
+
+      try {
+        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+          var mask = _step2.value;
+          this.dragged = mask.selectPoints();
+
+          if (this.dragged != null) {
+            this.selected = mask;
+            return true;
+          }
+        } // Check Lines
+        // navigate the list backwards, as to select 
+
+      } catch (err) {
+        _iterator2.e(err);
+      } finally {
+        _iterator2.f();
       }
+
+      for (var i = this.lines.length - 1; i >= 0; i--) {
+        var s = this.lines[i];
+        this.dragged = s.select();
+
+        if (this.dragged != null) {
+          return true;
+        }
+      } // check mapping surfaces
+
+
+      for (var _i2 = this.surfaces.length - 1; _i2 >= 0; _i2--) {
+        var _s2 = this.surfaces[_i2];
+        this.dragged = _s2.selectPoints();
+
+        if (this.dragged != null) {
+          this.selected = _s2;
+          return true;
+        }
+      }
+
+      this.selected = null;
+      return false;
+    }
+  }, {
+    key: "checkSelectedClick",
+    value: function checkSelectedClick() {
+      // first check masks
+      if (this.selected) {
+        this.dragged = this.selected.selectPoints();
+        if (this.dragged) return true;
+        return false;
+      }
+
+      return false;
     }
   }, {
     key: "onDrag",
@@ -2441,6 +2914,7 @@ var ProjectionMapper = /*#__PURE__*/function () {
     key: "isDragging",
     value: function isDragging(surface) {
       // TODO - ??? why return true?
+      // need to remember what I was doing here
       if (this.dragged === null) return true;
       return this.dragged === surface;
     }
@@ -2536,8 +3010,8 @@ var ProjectionMapper = /*#__PURE__*/function () {
       index = 0;
 
       while (index < jQuadSurfaces.length && index < mapQuads.length) {
-        var _s2 = mapQuads[index];
-        if (_s2.isEqual(mapQuads[index])) _s2.load(jQuadSurfaces[index]);else console.warn("mismatch between calibration surface types / ids");
+        var _s3 = mapQuads[index];
+        if (_s3.isEqual(mapQuads[index])) _s3.load(jQuadSurfaces[index]);else console.warn("mismatch between calibration surface types / ids");
         index++;
       }
     }
@@ -2568,27 +3042,13 @@ var ProjectionMapper = /*#__PURE__*/function () {
         masks: []
       };
 
-      var _iterator2 = ProjectionMapper_createForOfIteratorHelper(this.masks),
-          _step2;
-
-      try {
-        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-          var mask = _step2.value;
-          json.masks.push(mask.getJson());
-        }
-      } catch (err) {
-        _iterator2.e(err);
-      } finally {
-        _iterator2.f();
-      }
-
-      var _iterator3 = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
+      var _iterator3 = ProjectionMapper_createForOfIteratorHelper(this.masks),
           _step3;
 
       try {
         for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-          var surface = _step3.value;
-          json.surfaces.push(surface.getJson());
+          var mask = _step3.value;
+          json.masks.push(mask.getJson());
         }
       } catch (err) {
         _iterator3.e(err);
@@ -2596,18 +3056,32 @@ var ProjectionMapper = /*#__PURE__*/function () {
         _iterator3.f();
       }
 
-      var _iterator4 = ProjectionMapper_createForOfIteratorHelper(this.lines),
+      var _iterator4 = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
           _step4;
 
       try {
         for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
-          var line = _step4.value;
-          json.lines.push(line.getJson());
+          var surface = _step4.value;
+          json.surfaces.push(surface.getJson());
         }
       } catch (err) {
         _iterator4.e(err);
       } finally {
         _iterator4.f();
+      }
+
+      var _iterator5 = ProjectionMapper_createForOfIteratorHelper(this.lines),
+          _step5;
+
+      try {
+        for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
+          var line = _step5.value;
+          json.lines.push(line.getJson());
+        }
+      } catch (err) {
+        _iterator5.e(err);
+      } finally {
+        _iterator5.f();
       }
 
       this.pInst.saveJSON(json, "".concat(filename));
@@ -2632,52 +3106,65 @@ var ProjectionMapper = /*#__PURE__*/function () {
     } ////////////////////////////////////////
     // RENDERING
     ////////////////////////////////////////
-    // beginSurfaces() {
-    //     for (const surface of this.surfaces) {
-    //         surface.beginDrawing();
-    //     }
-    // }
-    // endSurfaces() {
-    //     for (const surface of this.surfaces) {
-    //         surface.endDrawing();
-    //     }
-    // }
-    // renderSurfaces() {
-    //     this.endSurfaces();
-    //     for (const surface of this.surfaces) {
-    //         surface.render();
-    //     }
-    // }
-    // display() {
-    //     this.renderSurfaces();
-    //     this.displayControlPoints();
-    // }
 
+    /**
+     * begins drawing surfaces
+     *
+     * @deprecated since v0.0.1
+    */
+
+  }, {
+    key: "beginSurfaces",
+    value: function beginSurfaces() {
+      console.warn("beginSurfaces() is a deprecated method");
+    }
+    /**
+     * ends drawing surfaces
+     *
+     * @deprecated since v0.0.1
+    */
+
+  }, {
+    key: "endSurfaces",
+    value: function endSurfaces() {
+      console.warn("endSurfaces() is a deprecated method");
+    }
+    /**
+     * renders surfaces
+     *
+     * @deprecated since v0.0.1
+    */
+
+  }, {
+    key: "renderSurfaces",
+    value: function renderSurfaces() {
+      console.warn("renderSurfaces() is a deprecated method");
+    }
+    /**
+     * displays surfaces
+     *
+     * @deprecated since v0.0.1
+    */
+
+  }, {
+    key: "display",
+    value: function display() {
+      // if (this.selected) {
+      //     this.selected.displaySelected();
+      // }
+      console.warn("display() is a deprecated method");
+    }
   }, {
     key: "displayControlPoints",
     value: function displayControlPoints() {
       if (this.calibrate) {
-        var _iterator5 = ProjectionMapper_createForOfIteratorHelper(this.masks),
-            _step5;
-
-        try {
-          for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
-            var mask = _step5.value;
-            mask.displayControlPoints();
-          }
-        } catch (err) {
-          _iterator5.e(err);
-        } finally {
-          _iterator5.f();
-        }
-
-        var _iterator6 = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
+        var _iterator6 = ProjectionMapper_createForOfIteratorHelper(this.masks),
             _step6;
 
         try {
           for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
-            var surface = _step6.value;
-            surface.displayControlPoints();
+            var mask = _step6.value;
+            mask.displayControlPoints();
           }
         } catch (err) {
           _iterator6.e(err);
@@ -2685,19 +3172,33 @@ var ProjectionMapper = /*#__PURE__*/function () {
           _iterator6.f();
         }
 
-        var _iterator7 = ProjectionMapper_createForOfIteratorHelper(this.lines),
+        var _iterator7 = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
             _step7;
 
         try {
           for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
-            var lineMap = _step7.value;
-            lineMap.displayCalibration();
-            lineMap.displayControlPoints();
+            var surface = _step7.value;
+            surface.displayControlPoints();
           }
         } catch (err) {
           _iterator7.e(err);
         } finally {
           _iterator7.f();
+        }
+
+        var _iterator8 = ProjectionMapper_createForOfIteratorHelper(this.lines),
+            _step8;
+
+        try {
+          for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
+            var lineMap = _step8.value;
+            lineMap.displayCalibration();
+            lineMap.displayControlPoints();
+          }
+        } catch (err) {
+          _iterator8.e(err);
+        } finally {
+          _iterator8.f();
         }
       }
     }
@@ -2713,15 +3214,28 @@ var ProjectionMapper = /*#__PURE__*/function () {
 }();
 
 var pMapper = new ProjectionMapper();
+/**
+ * Initializes the projection mapper object
+ *
+ * @param {p5} pInst is the p5 object - useful for instance mode (??)
+ * @param {number} w is the width of the buffer graphics object used to draw textures on mapped surfaces
+ * @param {number} h is the height of the buffer graphics object...
+ */
 
-p5.prototype.createProjectionMapper = function (pInst) {
+p5.prototype.createProjectionMapper = function (pInst, w, h) {
+  if (!w) w = pInst.width;
+  if (!h) h = pInst.height;
   pMapper.pInst = pInst;
-  pMapper.buffer = pInst.createGraphics(pInst.width, pInst.height, pInst.WEBGL);
+  pMapper.init(w, h);
   return pMapper;
 };
 
 p5.prototype.isCalibratingMapper = function () {
   return pMapper.calibrate;
+};
+
+p5.prototype.isMovingPoints = function () {
+  return pMapper.isMovingPoints();
 };
 
 p5.prototype.isDragging = function (surface) {

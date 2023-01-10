@@ -62,7 +62,22 @@ class QuadMap extends CornerPinSurface {
         }
     }
 
-   
+    displaySelected(tX = 0, tY = 0, tW = this.width, tH = this.height) {
+        beginShape(TRIANGLES);
+        for (let x = 0; x < this.res - 1; x++) {
+            for (let y = 0; y < this.res - 1; y++) {
+                this.getQuadTriangles(x, y, tX, tY, tW, tH);
+            }
+        }
+        endShape(CLOSE);
+
+        if (isCalibratingMapper()) {
+            // TODO
+            // translate(0, 0, 3);
+            this.displayOutline(color("pink"));
+            this.displayGrid(color("pink"));
+        }
+    }
    
 
     display(tX = 0, tY = 0, tW = this.width, tH = this.height) {
@@ -75,33 +90,19 @@ class QuadMap extends CornerPinSurface {
         endShape(CLOSE);
 
         if (isCalibratingMapper()) {
-            translate(0, 0, 3);
+            // TODO -
+            // why translate??
+            // translate(0, 0, 3); 
             this.displayOutline();
             this.displayGrid();
         }
     }
 
-    // render(tX = 0, tY = 0, tW = this.width, tH = this.height) {
-    //     push();
-    //     translate(this.x, this.y);
 
-    //     texture(this);
-    //     this.displayTriangles(tX, tY, tW, tH);
-
-    //     if (isCalibratingMapper()) {
-    //         translate(0, 0, 3);
-    //         this.displayOutline();
-    //         this.displayGrid();
-    //     }
-    //     pop();
-
-
-    // }
-
-    displayGrid() {
+    displayGrid(col=this.controlPointColor) {
         strokeWeight(2);
-        stroke(this.controlPointColor);
-        fill(red(this.controlPointColor), green(this.controlPointColor), blue(this.controlPointColor), 50);
+        stroke(col);
+        fill(red(col), green(col), blue(col), 50);
 
         // stroke(200);
         // noFill();
