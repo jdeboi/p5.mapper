@@ -1,8 +1,12 @@
-class Surface {
+import Draggable from './Draggable';
+import { getRandomizedColor } from '../helpers/helpers';
+
+class Surface extends Draggable {
 
 
     // since there's a limit on WEBGL context
     constructor(id, w, h, res, type, buffer) {
+        super(0, 0);
         // https://github.com/processing/p5.js/issues/3736
         // let g = p5.Graphics.call(this, w, h, WEBGL, pInst);
         // g.drawingContext.disable(g.drawingContext.DEPTH_TEST);
@@ -14,15 +18,7 @@ class Surface {
         this.res = Math.floor(res);
         this.type = type;
 
-        this.x = 0;
-        this.y = 0;
-        this.clickX = 0;
-        this.clickY = 0;
-        this.xStartDrag = this.x;
-        this.yStartDrag = this.y;
-
-        // this.gridColor = color(200);
-        this.controlPointColor = color(255, 0, 255);
+        this.controlPointColor = getRandomizedColor(this.id, this.type);
 
         this.buffer = buffer;
     }
@@ -58,22 +54,18 @@ class Surface {
         pop();
     }
 
-    startDrag() {
-        this.xStartDrag = this.x;
-        this.yStartDrag = this.y;
-        this.clickX = mouseX;
-        this.clickY = mouseY;
-    }
-
-    moveTo() {
-        this.x = this.xStartDrag + mouseX - this.clickX;
-        this.y = this.yStartDrag + mouseY - this.clickY;
-    }
-
     isEqual(json) {
         return json.id === this.id && json.type === this.type;
     }
 
+    getBounds(points) {
+        let minX = Math.min(...points.map((pt) => pt.x));
+        let minY = Math.min(...points.map((pt) => pt.y));
+        let maxX = Math.max(...points.map((pt) => pt.x));
+        let maxY = Math.max(...points.map((pt) => pt.y));
+
+        return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+    }
 
 }
 

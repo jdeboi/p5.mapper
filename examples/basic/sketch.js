@@ -9,7 +9,7 @@
 */
 
 let pMapper;
-let quadMap, triMap, lineMap, bezMap, maskMap;
+let quadMap, triMap, lineMap, bezMap, polyMap;
 
 let myFont;
 let img;
@@ -34,7 +34,7 @@ function setup() {
     lineMap = pMapper.createLineMap();
     bezMap = pMapper.createBezierMap();
     // creates a black mask with 5 moveable points
-    maskMap = pMapper.createMaskMap(5);
+    polyMap = pMapper.createPolyMap(5);
 
     // loads calibration in the "maps" directory
     pMapper.load("maps/map.json");
@@ -50,7 +50,7 @@ function draw() {
     triMap.display(color('blue'));
     lineMap.display(color('lime'));
     bezMap.display(color('orange'));
-    maskMap.display(color('black'));
+    polyMap.display(color('black'));
 }
 
 function keyPressed() {

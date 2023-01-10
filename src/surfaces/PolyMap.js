@@ -1,20 +1,14 @@
+import Surface from "./Surface";
 import MovePoint from "./MovePoint";
-// TODO - this can totally reuse Surface etc.
+
+// TODO 
 // inside method could be reused in bezier
-import { inside, getRandomizedColor, isWEBGL } from '../helpers/helpers';
+import { inside, isWEBGL } from '../helpers/helpers';
 
-class Mask {
+class PolyMap extends Surface {
 
-    constructor(id, numPoints) {
-        this.id = id;
-        this.x = 0;
-        this.y = 0;
-        this.clickX = 0;
-        this.clickY = 0;
-        this.xStartDrag = this.x;
-        this.yStartDrag = this.y;
-        this.type = "MASK";
-        this.controlPointColor = getRandomizedColor(this.id, this.type);
+    constructor(id, numPoints, buffer) {
+        super(id, 0, 0, 0, "POLY", buffer);
 
         this.points = [];
 
@@ -30,7 +24,15 @@ class Mask {
             cp.isControlPoint = true;
             this.points.push(cp);
         }
+
+        // TODO
+
+        const {w, h} = this.getBounds(this.points);
+        this.width = w; 
+        this.height = h;
     }
+
+    
 
     setPoints(pts) {
         this.points = [];
@@ -49,18 +51,20 @@ class Mask {
     display(col = color(0)) {
         push();
         translate(this.x, this.y, 1);
-        noStroke();
-        if (isCalibratingMapper())
-            fill(this.controlPointColor);
+
+        if (isCalibratingMapper()) {
+            stroke(this.controlPointColor);
+            fill(this.getMutedControlColor());
+        }
         else {
             fill(col);
-            stroke(col);
+            noStroke();
         }
         beginShape();
         for (const point of this.points) {
             vertex(point.x, point.y);
         }
-        endShape();
+        endShape(CLOSE);
         pop();
     }
 
@@ -114,12 +118,8 @@ class Mask {
         return sJson;
     }
 
-    isEqual(json) {
-        return json.type === this.type && json.id === this.id;
-    }
-
     selectSurface() {
-        // then, see if the mask itself is selected
+        // then, see if the poly itself is selected
         if (this.isMouseOver()) {
             this.startDrag();
             return this;
@@ -137,19 +137,6 @@ class Mask {
         }
         return null;
     }
-
-    startDrag() {
-        this.xStartDrag = this.x;
-        this.yStartDrag = this.y;
-        this.clickX = mouseX;
-        this.clickY = mouseY;
-    }
-
-
-    moveTo() {
-        this.x = this.xStartDrag + mouseX - this.clickX;
-        this.y = this.yStartDrag + mouseY - this.clickY;
-    }
 }
 
-export default Mask;
+export default PolyMap;

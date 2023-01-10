@@ -527,12 +527,8 @@ var MovePoint = /*#__PURE__*/function () {
   }, {
     key: "moveTo",
     value: function moveTo() {
-      if (this.parent.type === "LINE") {
-        this.moveToMouse();
-      } else {
-        this.x = this.xStartDrag + mouseX - this.clickX;
-        this.y = this.yStartDrag + mouseY - this.clickY;
-      }
+      this.x = this.xStartDrag + mouseX - this.clickX;
+      this.y = this.yStartDrag + mouseY - this.clickY;
     }
   }, {
     key: "setControlPoint",
@@ -654,36 +650,110 @@ var MeshPoint = /*#__PURE__*/function (_MovePoint) {
 }(surfaces_MovePoint);
 
 /* harmony default export */ const surfaces_MeshPoint = (MeshPoint);
+;// CONCATENATED MODULE: ./src/surfaces/Draggable.js
+function Draggable_classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function Draggable_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function Draggable_createClass(Constructor, protoProps, staticProps) { if (protoProps) Draggable_defineProperties(Constructor.prototype, protoProps); if (staticProps) Draggable_defineProperties(Constructor, staticProps); return Constructor; }
+
+var Draggable = /*#__PURE__*/function () {
+  function Draggable() {
+    var x = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+    var y = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+
+    Draggable_classCallCheck(this, Draggable);
+
+    this.x = x;
+    this.y = y;
+    this.clickX = 0;
+    this.clickY = 0;
+    this.xStartDrag = this.x;
+    this.yStartDrag = this.y;
+  }
+
+  Draggable_createClass(Draggable, [{
+    key: "startDrag",
+    value: function startDrag() {
+      this.xStartDrag = this.x;
+      this.yStartDrag = this.y;
+      this.clickX = mouseX;
+      this.clickY = mouseY;
+    }
+  }, {
+    key: "moveTo",
+    value: function moveTo() {
+      this.x = this.xStartDrag + mouseX - this.clickX;
+      this.y = this.yStartDrag + mouseY - this.clickY;
+    }
+  }]);
+
+  return Draggable;
+}();
+
+/* harmony default export */ const surfaces_Draggable = (Draggable);
 ;// CONCATENATED MODULE: ./src/surfaces/Surface.js
+function Surface_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { Surface_typeof = function _typeof(obj) { return typeof obj; }; } else { Surface_typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return Surface_typeof(obj); }
+
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
+
 function Surface_classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function Surface_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
 
 function Surface_createClass(Constructor, protoProps, staticProps) { if (protoProps) Surface_defineProperties(Constructor.prototype, protoProps); if (staticProps) Surface_defineProperties(Constructor, staticProps); return Constructor; }
 
-var Surface = /*#__PURE__*/function () {
+function Surface_inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) Surface_setPrototypeOf(subClass, superClass); }
+
+function Surface_setPrototypeOf(o, p) { Surface_setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return Surface_setPrototypeOf(o, p); }
+
+function Surface_createSuper(Derived) { var hasNativeReflectConstruct = Surface_isNativeReflectConstruct(); return function _createSuperInternal() { var Super = Surface_getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = Surface_getPrototypeOf(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return Surface_possibleConstructorReturn(this, result); }; }
+
+function Surface_possibleConstructorReturn(self, call) { if (call && (Surface_typeof(call) === "object" || typeof call === "function")) { return call; } else if (call !== void 0) { throw new TypeError("Derived constructors may only return object or undefined"); } return Surface_assertThisInitialized(self); }
+
+function Surface_assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function Surface_isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); return true; } catch (e) { return false; } }
+
+function Surface_getPrototypeOf(o) { Surface_getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return Surface_getPrototypeOf(o); }
+
+
+
+
+var Surface = /*#__PURE__*/function (_Draggable) {
+  Surface_inherits(Surface, _Draggable);
+
+  var _super = Surface_createSuper(Surface);
+
   // since there's a limit on WEBGL context
   function Surface(id, w, h, res, type, buffer) {
+    var _this;
+
     Surface_classCallCheck(this, Surface);
 
-    // https://github.com/processing/p5.js/issues/3736
+    _this = _super.call(this, 0, 0); // https://github.com/processing/p5.js/issues/3736
     // let g = p5.Graphics.call(this, w, h, WEBGL, pInst);
     // g.drawingContext.disable(g.drawingContext.DEPTH_TEST);
     // TODO - think about size of surface...
-    this.width = constrain(w, 0, width);
-    this.height = constrain(h, 0, height);
-    this.id = id;
-    this.res = Math.floor(res);
-    this.type = type;
-    this.x = 0;
-    this.y = 0;
-    this.clickX = 0;
-    this.clickY = 0;
-    this.xStartDrag = this.x;
-    this.yStartDrag = this.y; // this.gridColor = color(200);
 
-    this.controlPointColor = color(255, 0, 255);
-    this.buffer = buffer;
+    _this.width = constrain(w, 0, width);
+    _this.height = constrain(h, 0, height);
+    _this.id = id;
+    _this.res = Math.floor(res);
+    _this.type = type;
+    _this.controlPointColor = getRandomizedColor(_this.id, _this.type);
+    _this.buffer = buffer;
+    return _this;
   }
 
   Surface_createClass(Surface, [{
@@ -726,28 +796,36 @@ var Surface = /*#__PURE__*/function () {
       pop();
     }
   }, {
-    key: "startDrag",
-    value: function startDrag() {
-      this.xStartDrag = this.x;
-      this.yStartDrag = this.y;
-      this.clickX = mouseX;
-      this.clickY = mouseY;
-    }
-  }, {
-    key: "moveTo",
-    value: function moveTo() {
-      this.x = this.xStartDrag + mouseX - this.clickX;
-      this.y = this.yStartDrag + mouseY - this.clickY;
-    }
-  }, {
     key: "isEqual",
     value: function isEqual(json) {
       return json.id === this.id && json.type === this.type;
     }
+  }, {
+    key: "getBounds",
+    value: function getBounds(points) {
+      var minX = Math.min.apply(Math, _toConsumableArray(points.map(function (pt) {
+        return pt.x;
+      })));
+      var minY = Math.min.apply(Math, _toConsumableArray(points.map(function (pt) {
+        return pt.y;
+      })));
+      var maxX = Math.max.apply(Math, _toConsumableArray(points.map(function (pt) {
+        return pt.x;
+      })));
+      var maxY = Math.max.apply(Math, _toConsumableArray(points.map(function (pt) {
+        return pt.y;
+      })));
+      return {
+        x: minX,
+        y: minY,
+        w: maxX - minX,
+        h: maxY - minY
+      };
+    }
   }]);
 
   return Surface;
-}(); // TRYING OUT A NEW METHOD OF DISPLAYING TEXTURE
+}(surfaces_Draggable); // TRYING OUT A NEW METHOD OF DISPLAYING TEXTURE
 // Surface.prototype = Object.create(p5.Graphics.prototype);
 
 
@@ -755,11 +833,11 @@ var Surface = /*#__PURE__*/function () {
 ;// CONCATENATED MODULE: ./src/surfaces/CornerPinSurface.js
 function CornerPinSurface_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { CornerPinSurface_typeof = function _typeof(obj) { return typeof obj; }; } else { CornerPinSurface_typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return CornerPinSurface_typeof(obj); }
 
-function _createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
+function _createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = CornerPinSurface_unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
 
-function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+function CornerPinSurface_unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return CornerPinSurface_arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return CornerPinSurface_arrayLikeToArray(o, minLen); }
 
-function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
+function CornerPinSurface_arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
 function CornerPinSurface_classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -816,7 +894,6 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
 
     _this.calculateMesh();
 
-    _this.controlPointColor = getRandomizedColor(_this.id, _this.type);
     return _this;
   }
 
@@ -1411,334 +1488,53 @@ var TriMap = /*#__PURE__*/function (_CornerPinSurface) {
 }(surfaces_CornerPinSurface);
 
 /* harmony default export */ const surfaces_TriMap = (TriMap);
-;// CONCATENATED MODULE: ./src/lines/LineMap.js
-function LineMap_classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+;// CONCATENATED MODULE: ./src/surfaces/PolyMap.js
+function PolyMap_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { PolyMap_typeof = function _typeof(obj) { return typeof obj; }; } else { PolyMap_typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return PolyMap_typeof(obj); }
 
-function LineMap_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+function PolyMap_createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = PolyMap_unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
 
-function LineMap_createClass(Constructor, protoProps, staticProps) { if (protoProps) LineMap_defineProperties(Constructor.prototype, protoProps); if (staticProps) LineMap_defineProperties(Constructor, staticProps); return Constructor; }
+function PolyMap_unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return PolyMap_arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return PolyMap_arrayLikeToArray(o, minLen); }
 
+function PolyMap_arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
- //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// LINE CLASS
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+function PolyMap_classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var LineMap = /*#__PURE__*/function () {
-  function LineMap(x0, y0, x1, y1, id) {
-    LineMap_classCallCheck(this, LineMap);
+function PolyMap_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
 
-    this.id = id;
-    this.x = 0;
-    this.y = 0;
-    this.clickX = 0;
-    this.clickY = 0;
-    this.type = "LINE";
-    this.lineW = 10;
-    this.lastChecked = 0;
-    this.lineC = color(255);
-    this.highlightColor = color(0, 255, 0);
-    this.controlPointColor = getRandomizedColor(this.id, this.type);
-    this.p0 = new surfaces_MovePoint(this, x0, y0);
-    this.p1 = new surfaces_MovePoint(this, x1, y1);
-    this.controlCol = getRandomizedColor();
-    this.leftToRight();
-    this.ang = atan2(this.p0.y - this.p1.y, this.p0.x - this.p1.x);
-    if (this.ang > PI / 2) this.ang -= 2 * PI;
-  } //////////////////////////////////////////////
-  // LOADING / SAVING
-  //////////////////////////////////////////////
+function PolyMap_createClass(Constructor, protoProps, staticProps) { if (protoProps) PolyMap_defineProperties(Constructor.prototype, protoProps); if (staticProps) PolyMap_defineProperties(Constructor, staticProps); return Constructor; }
+
+function PolyMap_inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) PolyMap_setPrototypeOf(subClass, superClass); }
+
+function PolyMap_setPrototypeOf(o, p) { PolyMap_setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return PolyMap_setPrototypeOf(o, p); }
+
+function PolyMap_createSuper(Derived) { var hasNativeReflectConstruct = PolyMap_isNativeReflectConstruct(); return function _createSuperInternal() { var Super = PolyMap_getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = PolyMap_getPrototypeOf(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return PolyMap_possibleConstructorReturn(this, result); }; }
+
+function PolyMap_possibleConstructorReturn(self, call) { if (call && (PolyMap_typeof(call) === "object" || typeof call === "function")) { return call; } else if (call !== void 0) { throw new TypeError("Derived constructors may only return object or undefined"); } return PolyMap_assertThisInitialized(self); }
+
+function PolyMap_assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function PolyMap_isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); return true; } catch (e) { return false; } }
+
+function PolyMap_getPrototypeOf(o) { PolyMap_getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return PolyMap_getPrototypeOf(o); }
 
 
-  LineMap_createClass(LineMap, [{
-    key: "load",
-    value: function load(json) {
-      this.p0.x = json.x0;
-      this.p0.y = json.y0;
-      this.p1.x = json.x1;
-      this.p1.y = json.y1;
-    }
-  }, {
-    key: "getJson",
-    value: function getJson() {
-      var json = {};
-      json.id = this.id;
-      json.x0 = this.p0.x;
-      json.y0 = this.p0.y;
-      json.x1 = this.p1.x;
-      json.y1 = this.p1.y;
-      return json;
-    } //////////////////////////////////////////////
-    // DISPLAY METHODS
-    //////////////////////////////////////////////
-
-  }, {
-    key: "display",
-    value: function display() {
-      var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.lineC;
-      strokeWeight(this.lineW);
-      stroke(col);
-      line(this.p0.x, this.p0.y, this.p1.x, this.p1.y);
-      this.drawEndCaps(this.p0, this.p1, col, col);
-    }
-  }, {
-    key: "displayCenterPulse",
-    value: function displayCenterPulse(per) {
-      var col = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.lineC;
-      // per = constrain(per, 0, 1.0);
-      // let per = this. getPercentWave(speed);
-      var midX = (this.p0.x + this.p1.x) / 2;
-      var midY = (this.p0.y + this.p1.y) / 2;
-      var x0 = map(per, 0, 1.0, midX, this.p0.x);
-      var x1 = map(per, 0, 1.0, midX, this.p1.x);
-      var y0 = map(per, 0, 1.0, midY, this.p0.y);
-      var y1 = map(per, 0, 1.0, midY, this.p1.y);
-      strokeWeight(this.lineW);
-      stroke(col);
-      line(x0, y0, x1, y1);
-      this.drawEndCaps({
-        x: x0,
-        y: y0
-      }, {
-        x: x1,
-        y: y1
-      }, col, col);
-    }
-  }, {
-    key: "displayPercent",
-    value: function displayPercent(per) {
-      var col = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.lineC;
-      var p = per;
-      var p0 = createVector(this.p0.x, this.p0.y);
-      var p1 = createVector(this.p1.x, this.p1.y);
-      var pTemp = p5.Vector.lerp(p0, p1, p);
-      strokeWeight(this.lineW);
-      stroke(col);
-      line(this.p0.x, this.p0.y, pTemp.x, pTemp.y);
-      this.drawEndCaps(p0, pTemp, col, col);
-    }
-  }, {
-    key: "displayPercentWidth",
-    value: function displayPercentWidth(per) {
-      var col = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.lineC;
-      per = constrain(per, 0, 1.0);
-      var sw = map(per, 0, 1.0, 0, 10);
-      strokeWeight(sw);
-      stroke(col);
-      line(this.p0.x, this.p0.y, this.p1.x, this.p1.y);
-      this.drawEndCaps(this.p0, this.p1, col, col, sw);
-    }
-  }, {
-    key: "displayNone",
-    value: function displayNone() {
-      this.display(color(0));
-    }
-  }, {
-    key: "displayRainbowCycle",
-    value: function displayRainbowCycle() {
-      // TODO - is this how we should handle color modes?
-      // shouldn't we set to what it was before call? Can't presume RBG
-      colorMode(HSB, 255);
-      var col = color(frameCount % 255, 255, 255);
-      this.display(col);
-      colorMode(RGB, 255);
-    } // TODO
-    // way too expensive
-
-  }, {
-    key: "displayGradientLine",
-    value: function displayGradientLine(c1, c2, per) {
-      var phase = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 1;
-      var flip = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
-      per += phase;
-      per %= 1;
-      var spacing = 1.0 / height;
-
-      for (var i = 0; i < 1.0; i += spacing) {
-        var grad = (i / 2 + per) % 1;
-        var col = this.get2CycleColor(c1, c2, grad);
-        this.displaySegment(i, spacing, col);
-      }
-    } //////////////////////////////////////////////
-    // DISPLAY HELPERS
-    //////////////////////////////////////////////
-
-  }, {
-    key: "displayCalibration",
-    value: function displayCalibration() {
-      var col = color(0, 255, 0);
-      this.display(col);
-    }
-  }, {
-    key: "displayControlPoints",
-    value: function displayControlPoints() {
-      this.p0.display(this.controlPointColor);
-      this.p1.display(this.controlPointColor);
-    }
-  }, {
-    key: "drawEndCaps",
-    value: function drawEndCaps(p0, p1) {
-      var col0 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.lineC;
-      var col1 = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : this.lineC;
-      var w = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : this.lineW;
-      noStroke();
-
-      if (dist(p0.x, p0.y, p1.x, p1.y) > 1) {
-        fill(col0);
-        ellipse(p0.x, p0.y, w, w);
-        fill(col1);
-        ellipse(p1.x, p1.y, w, w);
-      }
-    }
-  }, {
-    key: "displaySegment",
-    value: function displaySegment(startPer, sizePer) {
-      var col = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.lineC;
-      strokeWeight(this.lineW);
-      stroke(col);
-      var p0 = createVector(this.p0.x, this.p0.y);
-      var p1 = createVector(this.p1.x, this.p1.y);
-      var pTemp = p5.Vector.lerp(p0, p1, startPer);
-      var pTempEnd = p5.Vector.lerp(pTemp, p1, startPer + sizePer);
-      line(pTemp.x, pTemp.y, pTempEnd.x, pTempEnd.y);
-      this.drawEndCaps(pTemp, pTempEnd, col, col);
-    } //////////////////////////////////////////////
-    // COLOR HELPERS
-    //////////////////////////////////////////////
-
-  }, {
-    key: "get2CycleColor",
-    value: function get2CycleColor(c1, c2, per) {
-      per = constrain(per, 0, 1);
-      per *= 2;
-
-      if (per < 1) {
-        return lerpColor(c1, c2, per);
-      } else {
-        per = map(per, 1, 2, 0, 1);
-        return lerpColor(c2, c1, per);
-      }
-    }
-  }, {
-    key: "get3CycleColor",
-    value: function get3CycleColor(c1, c2, per) {
-      per = constrain(per, 0, 1);
-      per *= 3;
-
-      if (per < 1) {
-        return lerpColor(c1, c2, per);
-      } else if (per < 2) {
-        per = map(per, 1, 2, 1, 0);
-        return lerpColor(c3, c2, per);
-      } else {
-        per = map(per, 2, 3, 1, 0);
-        return lerpColor(c1, c3, per);
-      }
-    }
-  }, {
-    key: "getPointHighlight",
-    value: function getPointHighlight(p) {
-      colorMode(RGB, 255);
-      if (this.isMouseOverPoint(p)) stroke(0, 255, 0);else stroke(255, 0, 0);
-    } //////////////////////////////////////////////
-    // CLICK DETECTION
-    //////////////////////////////////////////////
-
-  }, {
-    key: "isMouseOverPoint",
-    value: function isMouseOverPoint(p) {
-      var d = dist(p.x, p.y, mouseX - width / 2, mouseY - height / 2);
-      return d < p.r;
-    } // www.jeffreythompson.org/collision-detection/line-point.php
-
-  }, {
-    key: "isMouseOver",
-    value: function isMouseOver() {
-      var x1 = this.p0.x;
-      var y1 = this.p0.y;
-      var x2 = this.p1.x;
-      var y2 = this.p1.y;
-      var px = mouseX - width / 2;
-      var py = mouseY - height / 2;
-      var d1 = dist(px, py, x1, y1);
-      var d2 = dist(px, py, x2, y2);
-      var lineLen = dist(x1, y1, x2, y2);
-      var buffer = 0.2; // higher # = less accurate
-
-      if (d1 + d2 >= lineLen - buffer && d1 + d2 <= lineLen + buffer) {
-        return true;
-      }
-
-      return false;
-    }
-  }, {
-    key: "select",
-    value: function select() {
-      var x = mouseX - width / 2;
-      var y = mouseY - height / 2;
-      if (dist(this.p0.x, this.p0.y, x, y) < this.p0.r) return this.p0;
-      if (dist(this.p1.x, this.p1.y, x, y) < this.p1.r) return this.p1;
-      return null;
-    } //////////////////////////////////////////////
-    // OTHER HELPERS
-    //////////////////////////////////////////////
-
-  }, {
-    key: "leftToRight",
-    value: function leftToRight() {
-      if (this.p0.x > this.p1.x) {
-        var temp = createVector(this.p0.x, this.p0.y);
-        this.p0.set(this.p1);
-        this.p1.set(temp);
-      }
-    }
-  }, {
-    key: "rightToLeft",
-    value: function rightToLeft() {
-      if (this.p0.x < this.p1.x) {
-        var temp = createVector(this.p0.x, this.p0.y);
-        this.p0.set(this.p1);
-        this.p1.set(temp);
-      }
-    }
-  }]);
-
-  return LineMap;
-}();
-
-/* harmony default export */ const lines_LineMap = (LineMap);
-;// CONCATENATED MODULE: ./src/surfaces/Mask.js
-function Mask_createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = Mask_unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
-
-function Mask_unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return Mask_arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return Mask_arrayLikeToArray(o, minLen); }
-
-function Mask_arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
-
-function Mask_classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function Mask_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function Mask_createClass(Constructor, protoProps, staticProps) { if (protoProps) Mask_defineProperties(Constructor.prototype, protoProps); if (staticProps) Mask_defineProperties(Constructor, staticProps); return Constructor; }
-
- // TODO - this can totally reuse Surface etc.
+ // TODO 
 // inside method could be reused in bezier
 
 
 
-var Mask = /*#__PURE__*/function () {
-  function Mask(id, numPoints) {
-    Mask_classCallCheck(this, Mask);
+var PolyMap = /*#__PURE__*/function (_Surface) {
+  PolyMap_inherits(PolyMap, _Surface);
 
-    this.id = id;
-    this.x = 0;
-    this.y = 0;
-    this.clickX = 0;
-    this.clickY = 0;
-    this.xStartDrag = this.x;
-    this.yStartDrag = this.y;
-    this.type = "MASK";
-    this.controlPointColor = getRandomizedColor(this.id, this.type);
-    this.points = [];
+  var _super = PolyMap_createSuper(PolyMap);
+
+  function PolyMap(id, numPoints, buffer) {
+    var _this;
+
+    PolyMap_classCallCheck(this, PolyMap);
+
+    _this = _super.call(this, id, 0, 0, 0, "POLY", buffer);
+    _this.points = [];
 
     for (var i = 0; i < numPoints; i++) {
       var r = 200;
@@ -1750,18 +1546,28 @@ var Mask = /*#__PURE__*/function () {
         y += height / 2;
       }
 
-      var cp = new surfaces_MovePoint(this, x, y);
+      var cp = new surfaces_MovePoint(PolyMap_assertThisInitialized(_this), x, y);
       cp.isControlPoint = true;
-      this.points.push(cp);
-    }
+
+      _this.points.push(cp);
+    } // TODO
+
+
+    var _this$getBounds = _this.getBounds(_this.points),
+        w = _this$getBounds.w,
+        h = _this$getBounds.h;
+
+    _this.width = w;
+    _this.height = h;
+    return _this;
   }
 
-  Mask_createClass(Mask, [{
+  PolyMap_createClass(PolyMap, [{
     key: "setPoints",
     value: function setPoints(pts) {
       this.points = [];
 
-      var _iterator = Mask_createForOfIteratorHelper(pts),
+      var _iterator = PolyMap_createForOfIteratorHelper(pts),
           _step;
 
       try {
@@ -1788,14 +1594,18 @@ var Mask = /*#__PURE__*/function () {
       var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : color(0);
       push();
       translate(this.x, this.y, 1);
-      noStroke();
-      if (isCalibratingMapper()) fill(this.controlPointColor);else {
+
+      if (isCalibratingMapper()) {
+        stroke(this.controlPointColor);
+        fill(this.getMutedControlColor());
+      } else {
         fill(col);
-        stroke(col);
+        noStroke();
       }
+
       beginShape();
 
-      var _iterator2 = Mask_createForOfIteratorHelper(this.points),
+      var _iterator2 = PolyMap_createForOfIteratorHelper(this.points),
           _step2;
 
       try {
@@ -1809,7 +1619,7 @@ var Mask = /*#__PURE__*/function () {
         _iterator2.f();
       }
 
-      endShape();
+      endShape(CLOSE);
       pop();
     }
   }, {
@@ -1818,7 +1628,7 @@ var Mask = /*#__PURE__*/function () {
       push();
       translate(this.x, this.y, 2);
 
-      var _iterator3 = Mask_createForOfIteratorHelper(this.points),
+      var _iterator3 = PolyMap_createForOfIteratorHelper(this.points),
           _step3;
 
       try {
@@ -1863,7 +1673,7 @@ var Mask = /*#__PURE__*/function () {
       this.x = x;
       this.y = y;
 
-      var _iterator4 = Mask_createForOfIteratorHelper(points),
+      var _iterator4 = PolyMap_createForOfIteratorHelper(points),
           _step4;
 
       try {
@@ -1900,14 +1710,9 @@ var Mask = /*#__PURE__*/function () {
       return sJson;
     }
   }, {
-    key: "isEqual",
-    value: function isEqual(json) {
-      return json.type === this.type && json.id === this.id;
-    }
-  }, {
     key: "selectSurface",
     value: function selectSurface() {
-      // then, see if the mask itself is selected
+      // then, see if the poly itself is selected
       if (this.isMouseOver()) {
         this.startDrag();
         return this;
@@ -1919,7 +1724,7 @@ var Mask = /*#__PURE__*/function () {
     key: "selectPoints",
     value: function selectPoints() {
       // check control points
-      var _iterator5 = Mask_createForOfIteratorHelper(this.points),
+      var _iterator5 = PolyMap_createForOfIteratorHelper(this.points),
           _step5;
 
       try {
@@ -1939,26 +1744,12 @@ var Mask = /*#__PURE__*/function () {
 
       return null;
     }
-  }, {
-    key: "startDrag",
-    value: function startDrag() {
-      this.xStartDrag = this.x;
-      this.yStartDrag = this.y;
-      this.clickX = mouseX;
-      this.clickY = mouseY;
-    }
-  }, {
-    key: "moveTo",
-    value: function moveTo() {
-      this.x = this.xStartDrag + mouseX - this.clickX;
-      this.y = this.yStartDrag + mouseY - this.clickY;
-    }
   }]);
 
-  return Mask;
-}();
+  return PolyMap;
+}(surfaces_Surface);
 
-/* harmony default export */ const surfaces_Mask = (Mask);
+/* harmony default export */ const surfaces_PolyMap = (PolyMap);
 ;// CONCATENATED MODULE: ./src/surfaces/Bezier/BezierPoint.js
 function BezierPoint_classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -2091,14 +1882,6 @@ var ControlPoint = /*#__PURE__*/function () {
 ;// CONCATENATED MODULE: ./src/surfaces/Bezier/BezierMap.js
 function BezierMap_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { BezierMap_typeof = function _typeof(obj) { return typeof obj; }; } else { BezierMap_typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return BezierMap_typeof(obj); }
 
-function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || BezierMap_unsupportedIterableToArray(arr) || _nonIterableSpread(); }
-
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-
-function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
-
-function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return BezierMap_arrayLikeToArray(arr); }
-
 function BezierMap_createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = BezierMap_unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
 
 function BezierMap_unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return BezierMap_arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return BezierMap_arrayLikeToArray(o, minLen); }
@@ -2110,6 +1893,10 @@ function BezierMap_classCallCheck(instance, Constructor) { if (!(instance instan
 function BezierMap_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
 
 function BezierMap_createClass(Constructor, protoProps, staticProps) { if (protoProps) BezierMap_defineProperties(Constructor.prototype, protoProps); if (staticProps) BezierMap_defineProperties(Constructor, staticProps); return Constructor; }
+
+function BezierMap_get(target, property, receiver) { if (typeof Reflect !== "undefined" && Reflect.get) { BezierMap_get = Reflect.get; } else { BezierMap_get = function _get(target, property, receiver) { var base = BezierMap_superPropBase(target, property); if (!base) return; var desc = Object.getOwnPropertyDescriptor(base, property); if (desc.get) { return desc.get.call(receiver); } return desc.value; }; } return BezierMap_get(target, property, receiver || target); }
+
+function BezierMap_superPropBase(object, property) { while (!Object.prototype.hasOwnProperty.call(object, property)) { object = BezierMap_getPrototypeOf(object); if (object === null) break; } return object; }
 
 function BezierMap_inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) BezierMap_setPrototypeOf(subClass, superClass); }
 
@@ -2287,24 +2074,7 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
     key: "getBounds",
     value: function getBounds() {
       var polyline = this.getPolyline();
-      var minX = Math.min.apply(Math, _toConsumableArray(polyline.map(function (pt) {
-        return pt.x;
-      })));
-      var minY = Math.min.apply(Math, _toConsumableArray(polyline.map(function (pt) {
-        return pt.y;
-      })));
-      var maxX = Math.max.apply(Math, _toConsumableArray(polyline.map(function (pt) {
-        return pt.x;
-      })));
-      var maxY = Math.max.apply(Math, _toConsumableArray(polyline.map(function (pt) {
-        return pt.y;
-      })));
-      return {
-        x: minX,
-        y: minY,
-        w: maxX - minX,
-        h: maxY - minY
-      };
+      return BezierMap_get(BezierMap_getPrototypeOf(BezierMap.prototype), "getBounds", this).call(this, polyline);
     }
   }, {
     key: "loopIndex",
@@ -2683,6 +2453,377 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
 }(surfaces_Surface);
 
 /* harmony default export */ const Bezier_BezierMap = (BezierMap);
+;// CONCATENATED MODULE: ./src/lines/LineMap.js
+function LineMap_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { LineMap_typeof = function _typeof(obj) { return typeof obj; }; } else { LineMap_typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return LineMap_typeof(obj); }
+
+function LineMap_classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function LineMap_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function LineMap_createClass(Constructor, protoProps, staticProps) { if (protoProps) LineMap_defineProperties(Constructor.prototype, protoProps); if (staticProps) LineMap_defineProperties(Constructor, staticProps); return Constructor; }
+
+function LineMap_inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) LineMap_setPrototypeOf(subClass, superClass); }
+
+function LineMap_setPrototypeOf(o, p) { LineMap_setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return LineMap_setPrototypeOf(o, p); }
+
+function LineMap_createSuper(Derived) { var hasNativeReflectConstruct = LineMap_isNativeReflectConstruct(); return function _createSuperInternal() { var Super = LineMap_getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = LineMap_getPrototypeOf(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return LineMap_possibleConstructorReturn(this, result); }; }
+
+function LineMap_possibleConstructorReturn(self, call) { if (call && (LineMap_typeof(call) === "object" || typeof call === "function")) { return call; } else if (call !== void 0) { throw new TypeError("Derived constructors may only return object or undefined"); } return LineMap_assertThisInitialized(self); }
+
+function LineMap_assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function LineMap_isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); return true; } catch (e) { return false; } }
+
+function LineMap_getPrototypeOf(o) { LineMap_getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return LineMap_getPrototypeOf(o); }
+
+
+
+ //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// LINE CLASS
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var LineMap = /*#__PURE__*/function (_Draggable) {
+  LineMap_inherits(LineMap, _Draggable);
+
+  var _super = LineMap_createSuper(LineMap);
+
+  function LineMap(x0, y0, x1, y1, id) {
+    var _this;
+
+    LineMap_classCallCheck(this, LineMap);
+
+    _this = _super.call(this, 0, 0);
+    _this.id = id;
+    _this.type = "LINE";
+    _this.lineW = 10;
+    _this.endCapsOn = true;
+    _this.lastChecked = 0;
+    _this.lineC = color(255);
+    _this.highlightColor = color(0, 255, 0);
+    _this.controlPointColor = getRandomizedColor(_this.id, _this.type);
+    _this.p0 = new surfaces_MovePoint(LineMap_assertThisInitialized(_this), x0, y0);
+    _this.p1 = new surfaces_MovePoint(LineMap_assertThisInitialized(_this), x1, y1);
+    _this.controlCol = getRandomizedColor();
+
+    _this.leftToRight();
+
+    _this.ang = atan2(_this.p0.y - _this.p1.y, _this.p0.x - _this.p1.x);
+    if (_this.ang > PI / 2) _this.ang -= 2 * PI;
+    return _this;
+  } //////////////////////////////////////////////
+  // LOADING / SAVING
+  //////////////////////////////////////////////
+
+
+  LineMap_createClass(LineMap, [{
+    key: "load",
+    value: function load(json) {
+      this.x = json.x;
+      this.y = json.y;
+      this.p0.x = json.x0;
+      this.p0.y = json.y0;
+      this.p1.x = json.x1;
+      this.p1.y = json.y1;
+    }
+  }, {
+    key: "getJson",
+    value: function getJson() {
+      var json = {};
+      json.id = this.id;
+      json.x = this.x;
+      json.y = this.y;
+      json.x0 = this.p0.x;
+      json.y0 = this.p0.y;
+      json.x1 = this.p1.x;
+      json.y1 = this.p1.y;
+      return json;
+    } //////////////////////////////////////////////
+    // DISPLAY METHODS
+    //////////////////////////////////////////////
+
+  }, {
+    key: "display",
+    value: function display() {
+      var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.lineC;
+      strokeWeight(this.lineW);
+      stroke(col);
+      push();
+      translate(this.x, this.y);
+      line(this.p0.x, this.p0.y, this.p1.x, this.p1.y);
+      this.drawEndCaps(this.p0, this.p1, col, col);
+      pop();
+    }
+  }, {
+    key: "displayCenterPulse",
+    value: function displayCenterPulse(per) {
+      var col = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.lineC;
+      // per = constrain(per, 0, 1.0);
+      // let per = this. getPercentWave(speed);
+      var midX = (this.p0.x + this.p1.x) / 2;
+      var midY = (this.p0.y + this.p1.y) / 2;
+      var x0 = map(per, 0, 1.0, midX, this.p0.x);
+      var x1 = map(per, 0, 1.0, midX, this.p1.x);
+      var y0 = map(per, 0, 1.0, midY, this.p0.y);
+      var y1 = map(per, 0, 1.0, midY, this.p1.y);
+      strokeWeight(this.lineW);
+      stroke(col);
+      push();
+      translate(this.x, this.y);
+      line(x0, y0, x1, y1);
+      this.drawEndCaps({
+        x: x0,
+        y: y0
+      }, {
+        x: x1,
+        y: y1
+      }, col, col);
+      pop();
+    }
+  }, {
+    key: "displayPercent",
+    value: function displayPercent(per) {
+      var col = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.lineC;
+      var p = per;
+      var p0 = createVector(this.p0.x, this.p0.y);
+      var p1 = createVector(this.p1.x, this.p1.y);
+      var pTemp = p5.Vector.lerp(p0, p1, p);
+      strokeWeight(this.lineW);
+      stroke(col);
+      push();
+      translate(this.x, this.y);
+      line(this.p0.x, this.p0.y, pTemp.x, pTemp.y);
+      this.drawEndCaps(p0, pTemp, col, col);
+      pop();
+    }
+  }, {
+    key: "displayPercentWidth",
+    value: function displayPercentWidth(per) {
+      var col = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.lineC;
+      per = constrain(per, 0, 1.0);
+      var sw = map(per, 0, 1.0, 0, 10);
+      strokeWeight(sw);
+      stroke(col);
+      push();
+      translate(this.x, this.y);
+      line(this.p0.x, this.p0.y, this.p1.x, this.p1.y);
+      this.drawEndCaps(this.p0, this.p1, col, col, sw);
+      pop();
+    }
+  }, {
+    key: "displayNone",
+    value: function displayNone() {
+      this.display(color(0));
+    }
+  }, {
+    key: "displayRainbowCycle",
+    value: function displayRainbowCycle() {
+      // TODO - is this how we should handle color modes?
+      // shouldn't we set to what it was before call? Can't presume RBG
+      colorMode(HSB, 255);
+      var col = color(frameCount % 255, 255, 255);
+      this.display(col);
+      colorMode(RGB, 255);
+    } // TODO
+    // way too expensive
+
+  }, {
+    key: "displayGradientLine",
+    value: function displayGradientLine(c1, c2, per) {
+      var phase = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 1;
+      var flip = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
+      per += phase;
+      per %= 1;
+      var spacing = 1.0 / height;
+
+      for (var i = 0; i < 1.0; i += spacing) {
+        var grad = (i / 2 + per) % 1;
+        var col = this.get2CycleColor(c1, c2, grad);
+        this.displaySegment(i, spacing, col);
+      }
+    } //////////////////////////////////////////////
+    // DISPLAY HELPERS
+    //////////////////////////////////////////////
+
+  }, {
+    key: "displayCalibration",
+    value: function displayCalibration() {
+      var col = color(0, 255, 0);
+      this.display(col);
+    }
+  }, {
+    key: "displayControlPoints",
+    value: function displayControlPoints() {
+      push();
+      translate(this.x, this.y);
+      this.p0.display(this.controlPointColor);
+      this.p1.display(this.controlPointColor);
+      pop();
+    }
+  }, {
+    key: "setEndCapsOn",
+    value: function setEndCapsOn() {
+      this.endCapsOn = true;
+    }
+  }, {
+    key: "setEndCapsOff",
+    value: function setEndCapsOff() {
+      this.endCapsOn = false;
+    }
+  }, {
+    key: "drawEndCaps",
+    value: function drawEndCaps(p0, p1) {
+      var col0 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.lineC;
+      var col1 = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : this.lineC;
+
+      if (!this.endCapsOn) {
+        return;
+      }
+
+      noStroke();
+
+      if (dist(p0.x, p0.y, p1.x, p1.y) > 1) {
+        fill(col0);
+        ellipse(p0.x, p0.y, this.lineW);
+        fill(col1);
+        ellipse(p1.x, p1.y, this.lineW);
+      }
+    }
+  }, {
+    key: "displaySegment",
+    value: function displaySegment(startPer, sizePer) {
+      var col = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.lineC;
+      strokeWeight(this.lineW);
+      stroke(col);
+      var p0 = createVector(this.p0.x, this.p0.y);
+      var p1 = createVector(this.p1.x, this.p1.y);
+      var pTemp = p5.Vector.lerp(p0, p1, startPer);
+      push();
+      translate(this.x, this.y);
+      var pTempEnd = p5.Vector.lerp(pTemp, p1, startPer + sizePer);
+      line(pTemp.x, pTemp.y, pTempEnd.x, pTempEnd.y);
+      this.drawEndCaps(pTemp, pTempEnd, col, col);
+      pop();
+    } //////////////////////////////////////////////
+    // COLOR HELPERS
+    //////////////////////////////////////////////
+
+  }, {
+    key: "get2CycleColor",
+    value: function get2CycleColor(c1, c2, per) {
+      per = constrain(per, 0, 1);
+      per *= 2;
+
+      if (per < 1) {
+        return lerpColor(c1, c2, per);
+      } else {
+        per = map(per, 1, 2, 0, 1);
+        return lerpColor(c2, c1, per);
+      }
+    }
+  }, {
+    key: "get3CycleColor",
+    value: function get3CycleColor(c1, c2, per) {
+      per = constrain(per, 0, 1);
+      per *= 3;
+
+      if (per < 1) {
+        return lerpColor(c1, c2, per);
+      } else if (per < 2) {
+        per = map(per, 1, 2, 1, 0);
+        return lerpColor(c3, c2, per);
+      } else {
+        per = map(per, 2, 3, 1, 0);
+        return lerpColor(c1, c3, per);
+      }
+    }
+  }, {
+    key: "getPointHighlight",
+    value: function getPointHighlight(p) {
+      colorMode(RGB, 255);
+      if (this.isMouseOverPoint(p)) stroke(0, 255, 0);else stroke(255, 0, 0);
+    } //////////////////////////////////////////////
+    // CLICK DETECTION
+    //////////////////////////////////////////////
+    // isMouseOverPoint(p) {
+    //     let d = dist(p.x, p.y, mouseX - width / 2, mouseY - height / 2);
+    //     return d < p.r;
+    // }
+    // www.jeffreythompson.org/collision-detection/line-point.php
+
+  }, {
+    key: "isMouseOver",
+    value: function isMouseOver() {
+      var x1 = this.p0.x;
+      var y1 = this.p0.y;
+      var x2 = this.p1.x;
+      var y2 = this.p1.y;
+      var px = mouseX - width / 2 - this.x;
+      var py = mouseY - height / 2 - this.y;
+      var d1 = dist(px, py, x1, y1);
+      var d2 = dist(px, py, x2, y2);
+      var lineLen = dist(x1, y1, x2, y2);
+      var buffer = 0.2; // higher # = less accurate
+
+      if (d1 + d2 >= lineLen - buffer && d1 + d2 <= lineLen + buffer) {
+        return true;
+      }
+
+      return false;
+    }
+  }, {
+    key: "selectSurface",
+    value: function selectSurface() {
+      if (this.isMouseOver()) {
+        this.startDrag();
+        return this;
+      }
+
+      return null;
+    }
+  }, {
+    key: "selectPoints",
+    value: function selectPoints() {
+      // check control points
+      if (this.p0.isMouseOver()) {
+        this.p0.startDrag();
+        return this.p0;
+      }
+
+      if (this.p1.isMouseOver()) {
+        this.p1.startDrag();
+        return this.p1;
+      }
+
+      return null;
+    } //////////////////////////////////////////////
+    // OTHER HELPERS
+    //////////////////////////////////////////////
+
+  }, {
+    key: "leftToRight",
+    value: function leftToRight() {
+      if (this.p0.x > this.p1.x) {
+        var temp = createVector(this.p0.x, this.p0.y);
+        this.p0.set(this.p1);
+        this.p1.set(temp);
+      }
+    }
+  }, {
+    key: "rightToLeft",
+    value: function rightToLeft() {
+      if (this.p0.x < this.p1.x) {
+        var temp = createVector(this.p0.x, this.p0.y);
+        this.p0.set(this.p1);
+        this.p1.set(temp);
+      }
+    }
+  }]);
+
+  return LineMap;
+}(surfaces_Draggable);
+
+/* harmony default export */ const lines_LineMap = (LineMap);
 ;// CONCATENATED MODULE: ./src/ProjectionMapper.js
 function ProjectionMapper_createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = ProjectionMapper_unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
 
@@ -2709,8 +2850,8 @@ var ProjectionMapper = /*#__PURE__*/function () {
 
     this.buffer;
     this.surfaces = [];
-    this.lines = [];
-    this.masks = [];
+    this.lines = []; // this.masks = [];
+
     this.dragged = null;
     this.selected = null;
     this.calibrate = false;
@@ -2789,13 +2930,13 @@ var ProjectionMapper = /*#__PURE__*/function () {
       return l;
     }
   }, {
-    key: "createMaskMap",
-    value: function createMaskMap() {
+    key: "createPolyMap",
+    value: function createPolyMap() {
       var numPoints = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 3;
       if (numPoints < 3) numPoints = 3;
-      var mask = new surfaces_Mask(this.masks.length, numPoints);
-      this.masks.push(mask);
-      return mask;
+      var s = new surfaces_PolyMap(this.surfaces.length, numPoints, this.buffer);
+      this.surfaces.push(s);
+      return s;
     }
   }, {
     key: "createBezierMap",
@@ -2846,31 +2987,11 @@ var ProjectionMapper = /*#__PURE__*/function () {
   }, {
     key: "checkSurfacesClick",
     value: function checkSurfacesClick() {
-      // first check masks
-      var _iterator = ProjectionMapper_createForOfIteratorHelper(this.masks),
-          _step;
-
-      try {
-        for (_iterator.s(); !(_step = _iterator.n()).done;) {
-          var mask = _step.value;
-          this.dragged = mask.selectSurface();
-
-          if (this.dragged != null) {
-            this.selected = mask;
-            return true;
-          }
-        } // Check Lines
-        // navigate the list backwards, as to select 
-
-      } catch (err) {
-        _iterator.e(err);
-      } finally {
-        _iterator.f();
-      }
-
+      // Check Lines
+      // navigate the list backwards, as to select 
       for (var i = this.lines.length - 1; i >= 0; i--) {
         var s = this.lines[i];
-        this.dragged = s.select();
+        this.dragged = s.selectSurface();
 
         if (this.dragged != null) {
           return true;
@@ -2894,31 +3015,11 @@ var ProjectionMapper = /*#__PURE__*/function () {
   }, {
     key: "checkPointsClick",
     value: function checkPointsClick() {
-      // first check masks
-      var _iterator2 = ProjectionMapper_createForOfIteratorHelper(this.masks),
-          _step2;
-
-      try {
-        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-          var mask = _step2.value;
-          this.dragged = mask.selectPoints();
-
-          if (this.dragged != null) {
-            this.selected = mask;
-            return true;
-          }
-        } // Check Lines
-        // navigate the list backwards, as to select 
-
-      } catch (err) {
-        _iterator2.e(err);
-      } finally {
-        _iterator2.f();
-      }
-
+      // Check Lines
+      // navigate the list backwards, as to select 
       for (var i = this.lines.length - 1; i >= 0; i--) {
         var s = this.lines[i];
-        this.dragged = s.select();
+        this.dragged = s.selectPoints();
 
         if (this.dragged != null) {
           return true;
@@ -3006,26 +3107,8 @@ var ProjectionMapper = /*#__PURE__*/function () {
   }, {
     key: "loadedJson",
     value: function loadedJson(json) {
-      if (json.masks) this.loadMasks(json);
       if (json.surfaces) this.loadSurfaces(json);
       if (json.lines) this.loadLines(json);
-    }
-  }, {
-    key: "loadMasks",
-    value: function loadMasks(json) {
-      var jMasks = json.masks;
-
-      if (jMasks.length !== this.masks.length) {
-        console.warn("json calibration file has ".concat(jMasks.length, " masks but there are ").concat(this.masks.length, " masks in memory (check sketch.js for # of mask objects)"));
-      }
-
-      var index = 0;
-
-      while (index < jMasks.length && index < this.masks.length) {
-        var s = this.masks[index];
-        if (s.isEqual(this.masks[index])) s.load(jMasks[index]);else console.warn("mismatch between calibration mask types / ids");
-        index++;
-      }
     }
   }, {
     key: "loadSurfaces",
@@ -3047,6 +3130,9 @@ var ProjectionMapper = /*#__PURE__*/function () {
       var jBezSurfaces = jSurfaces.filter(function (surf) {
         return surf.type === "BEZ";
       });
+      var jPolySurfaces = jSurfaces.filter(function (surf) {
+        return surf.type === "POLY";
+      });
       var mapTris = this.surfaces.filter(function (surf) {
         return surf.type === "TRI";
       });
@@ -3055,6 +3141,9 @@ var ProjectionMapper = /*#__PURE__*/function () {
       });
       var mapBez = this.surfaces.filter(function (surf) {
         return surf.type === "BEZ";
+      });
+      var mapPolys = this.surfaces.filter(function (surf) {
+        return surf.type === "POLY";
       }); // loading tris
 
       var index = 0;
@@ -3085,6 +3174,19 @@ var ProjectionMapper = /*#__PURE__*/function () {
         } else console.warn("mismatch between calibration bez surface types / ids");
 
         index++;
+      } // loading poly
+
+
+      index = 0;
+
+      while (index < jPolySurfaces.length && index < mapPolys.length) {
+        var _s5 = mapPolys[index];
+
+        if (_s5.isEqual(mapPolys[index])) {
+          _s5.load(jPolySurfaces[index]);
+        } else console.warn("mismatch between calibration poly surface types / ids");
+
+        index++;
       }
     }
   }, {
@@ -3110,50 +3212,37 @@ var ProjectionMapper = /*#__PURE__*/function () {
       console.log("saving all mapped surfaces to json...");
       var json = {
         surfaces: [],
-        lines: [],
-        masks: []
-      };
+        lines: []
+      }; // for (const mask of this.masks) {
+      //     json.masks.push(mask.getJson());
+      // }
 
-      var _iterator3 = ProjectionMapper_createForOfIteratorHelper(this.masks),
-          _step3;
-
-      try {
-        for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-          var mask = _step3.value;
-          json.masks.push(mask.getJson());
-        }
-      } catch (err) {
-        _iterator3.e(err);
-      } finally {
-        _iterator3.f();
-      }
-
-      var _iterator4 = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
-          _step4;
+      var _iterator = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
+          _step;
 
       try {
-        for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
-          var surface = _step4.value;
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
+          var surface = _step.value;
           json.surfaces.push(surface.getJson());
         }
       } catch (err) {
-        _iterator4.e(err);
+        _iterator.e(err);
       } finally {
-        _iterator4.f();
+        _iterator.f();
       }
 
-      var _iterator5 = ProjectionMapper_createForOfIteratorHelper(this.lines),
-          _step5;
+      var _iterator2 = ProjectionMapper_createForOfIteratorHelper(this.lines),
+          _step2;
 
       try {
-        for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
-          var line = _step5.value;
+        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+          var line = _step2.value;
           json.lines.push(line.getJson());
         }
       } catch (err) {
-        _iterator5.e(err);
+        _iterator2.e(err);
       } finally {
-        _iterator5.f();
+        _iterator2.f();
       }
 
       this.pInst.saveJSON(json, "".concat(filename));
@@ -3230,47 +3319,36 @@ var ProjectionMapper = /*#__PURE__*/function () {
     key: "displayControlPoints",
     value: function displayControlPoints() {
       if (this.calibrate) {
-        var _iterator6 = ProjectionMapper_createForOfIteratorHelper(this.masks),
-            _step6;
+        // for (const mask of this.masks) {
+        //     mask.displayControlPoints();
+        // }
+        var _iterator3 = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
+            _step3;
 
         try {
-          for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
-            var mask = _step6.value;
-            mask.displayControlPoints();
-          }
-        } catch (err) {
-          _iterator6.e(err);
-        } finally {
-          _iterator6.f();
-        }
-
-        var _iterator7 = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
-            _step7;
-
-        try {
-          for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
-            var surface = _step7.value;
+          for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
+            var surface = _step3.value;
             surface.displayControlPoints();
           }
         } catch (err) {
-          _iterator7.e(err);
+          _iterator3.e(err);
         } finally {
-          _iterator7.f();
+          _iterator3.f();
         }
 
-        var _iterator8 = ProjectionMapper_createForOfIteratorHelper(this.lines),
-            _step8;
+        var _iterator4 = ProjectionMapper_createForOfIteratorHelper(this.lines),
+            _step4;
 
         try {
-          for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
-            var lineMap = _step8.value;
+          for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+            var lineMap = _step4.value;
             lineMap.displayCalibration();
             lineMap.displayControlPoints();
           }
         } catch (err) {
-          _iterator8.e(err);
+          _iterator4.e(err);
         } finally {
-          _iterator8.f();
+          _iterator4.f();
         }
       }
     }

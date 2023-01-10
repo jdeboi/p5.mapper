@@ -1,8 +1,8 @@
 import QuadMap from './surfaces/QuadMap';
 import TriMap from './surfaces/TriMap';
-import LineMap from './lines/LineMap';
-import Mask from './surfaces/Mask';
+import PolyMap from './surfaces/PolyMap';
 import BezierMap from './surfaces/Bezier/BezierMap';
+import LineMap from './lines/LineMap';
 
 import { getPercentWave } from './helpers/helpers';
 
@@ -12,7 +12,7 @@ class ProjectionMapper {
         this.buffer;
         this.surfaces = [];
         this.lines = [];
-        this.masks = [];
+        // this.masks = [];
         this.dragged = null;
         this.selected = null;
         this.calibrate = false;
@@ -81,13 +81,13 @@ class ProjectionMapper {
         return l;
     }
 
-    createMaskMap(numPoints = 3) {
+    createPolyMap(numPoints = 3) {
         if (numPoints < 3)
             numPoints = 3;
 
-        let mask = new Mask(this.masks.length, numPoints);
-        this.masks.push(mask);
-        return mask;
+        let s = new PolyMap(this.surfaces.length, numPoints, this.buffer);
+        this.surfaces.push(s);
+        return s;
     }
 
     createBezierMap() {
@@ -135,19 +135,12 @@ class ProjectionMapper {
     }
 
     checkSurfacesClick() {
-        // first check masks
-        for (const mask of this.masks) {
-            this.dragged = mask.selectSurface();
-            if (this.dragged != null) {
-                this.selected = mask;
-                return true;
-            }
-        }
+       
         // Check Lines
         // navigate the list backwards, as to select 
         for (let i = this.lines.length - 1; i >= 0; i--) {
             let s = this.lines[i];
-            this.dragged = s.select();
+            this.dragged = s.selectSurface();
             if (this.dragged != null) {
                 return true;
             }
@@ -167,19 +160,12 @@ class ProjectionMapper {
     }
 
     checkPointsClick() {
-        // first check masks
-        for (const mask of this.masks) {
-            this.dragged = mask.selectPoints();
-            if (this.dragged != null) {
-                this.selected = mask;
-                return true;
-            }
-        }
+        
         // Check Lines
         // navigate the list backwards, as to select 
         for (let i = this.lines.length - 1; i >= 0; i--) {
             let s = this.lines[i];
-            this.dragged = s.select();
+            this.dragged = s.selectPoints();
             if (this.dragged != null) {
                 return true;
             }
@@ -259,29 +245,12 @@ class ProjectionMapper {
 
     loadedJson(json) {
 
-        if (json.masks) this.loadMasks(json);
-
         if (json.surfaces) this.loadSurfaces(json);
 
         if (json.lines) this.loadLines(json);
     }
 
-    loadMasks(json) {
-        let jMasks = json.masks;
-        if (jMasks.length !== this.masks.length) {
-            console.warn(`json calibration file has ${jMasks.length} masks but there are ${this.masks.length} masks in memory (check sketch.js for # of mask objects)`)
-        }
-        let index = 0;
-        while (index < jMasks.length && index < this.masks.length) {
-            const s = this.masks[index];
-            if (s.isEqual(this.masks[index]))
-                s.load(jMasks[index]);
-            else
-                console.warn("mismatch between calibration mask types / ids")
-
-            index++;
-        }
-    }
+ 
 
     loadSurfaces(json) {
         let jSurfaces = json.surfaces;
@@ -294,9 +263,12 @@ class ProjectionMapper {
         const jTriSurfaces = jSurfaces.filter(surf => surf.type === "TRI");
         const jQuadSurfaces = jSurfaces.filter(surf => surf.type === "QUAD");
         const jBezSurfaces = jSurfaces.filter(surf => surf.type === "BEZ");
+        const jPolySurfaces = jSurfaces.filter(surf => surf.type === "POLY");
+
         const mapTris = this.surfaces.filter(surf => surf.type === "TRI");
         const mapQuads = this.surfaces.filter(surf => surf.type === "QUAD");
         const mapBez = this.surfaces.filter(surf => surf.type === "BEZ");
+        const mapPolys = this.surfaces.filter(surf => surf.type === "POLY");
 
         // loading tris
         let index = 0;
@@ -332,6 +304,19 @@ class ProjectionMapper {
                 console.warn("mismatch between calibration bez surface types / ids")
             index++;
         }
+
+        // loading poly
+        index = 0;
+        while (index < jPolySurfaces.length && index < mapPolys.length) {
+            const s = mapPolys[index];
+
+            if (s.isEqual(mapPolys[index])) {
+                s.load(jPolySurfaces[index]);
+            }
+            else
+                console.warn("mismatch between calibration poly surface types / ids")
+            index++;
+        }
     }
 
     loadLines(json) {
@@ -350,11 +335,11 @@ class ProjectionMapper {
 
     save(filename = "map.json") {
         console.log("saving all mapped surfaces to json...");
-        let json = { surfaces: [], lines: [], masks: [] }
+        let json = { surfaces: [], lines: []}
 
-        for (const mask of this.masks) {
-            json.masks.push(mask.getJson());
-        }
+        // for (const mask of this.masks) {
+        //     json.masks.push(mask.getJson());
+        // }
 
         for (const surface of this.surfaces) {
             json.surfaces.push(surface.getJson());
@@ -425,9 +410,9 @@ class ProjectionMapper {
 
     displayControlPoints() {
         if (this.calibrate) {
-            for (const mask of this.masks) {
-                mask.displayControlPoints();
-            }
+            // for (const mask of this.masks) {
+            //     mask.displayControlPoints();
+            // }
             for (const surface of this.surfaces) {
                 surface.displayControlPoints();
             }

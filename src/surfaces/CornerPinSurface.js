@@ -23,8 +23,6 @@ class CornerPinSurface extends Surface {
         this.perspT = null;
         this.initMesh();
         this.calculateMesh();
-
-        this.controlPointColor = getRandomizedColor(this.id, this.type);
     }
 
     

@@ -48,13 +48,8 @@ class MovePoint {
     }
 
     moveTo() {
-        if (this.parent.type === "LINE") {
-            this.moveToMouse();
-        }
-        else {
-            this.x = this.xStartDrag + mouseX - this.clickX;
-            this.y = this.yStartDrag + mouseY - this.clickY;
-        }
+        this.x = this.xStartDrag + mouseX - this.clickX;
+        this.y = this.yStartDrag + mouseY - this.clickY;
     }
 
     setControlPoint(cp) {

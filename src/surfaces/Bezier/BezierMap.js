@@ -112,12 +112,7 @@ class BezierMap extends Surface {
     getBounds() {
         let polyline = this.getPolyline();
 
-        let minX = Math.min(...polyline.map((pt) => pt.x));
-        let minY = Math.min(...polyline.map((pt) => pt.y));
-        let maxX = Math.max(...polyline.map((pt) => pt.x));
-        let maxY = Math.max(...polyline.map((pt) => pt.y));
-
-        return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+       return super.getBounds(polyline);
     }
 
 
