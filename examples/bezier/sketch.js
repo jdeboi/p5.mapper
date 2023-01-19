@@ -28,32 +28,31 @@ function draw() {
 }
 
 function mousePressed() {
+    // if shift is down while clicking, add anchor and controls points
     if (keyIsDown(SHIFT)) {
         console.log("adding bezier point");
         bez.addSegment();
+    }
+    // if 'd' key is down when clicking, remove anchor
+    else if (keyIsDown(68)) {
+        bez.removeSegment();
     }
 }
 
 function keyPressed() {
     switch (key) {
         case 'c':
-            // enter/leave calibration mode, where surfaces can be warped 
-            // and moved
             pMapper.toggleCalibration();
             break;
         case 'f':
-            // enter/ exit fullscreen mode
             let fs = fullscreen();
             fullscreen(!fs);
             break;
         case 'l':
-            // load calibration file
             pMapper.load("maps/map.json");
             break;
 
         case 's':
-            // saves the calibration to map.json
-            // change browser download location as needed
             pMapper.save("map.json");
             break;
     }

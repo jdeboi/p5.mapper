@@ -12,7 +12,8 @@ class LineMap extends Draggable {
         super(0, 0);
 
         this.id = id;
-
+        this.x = 0;
+        this.y = 0;
         this.type = "LINE";
         this.lineW = 10;
         this.endCapsOn = true;
@@ -147,7 +148,13 @@ class LineMap extends Draggable {
     // DISPLAY HELPERS
     //////////////////////////////////////////////
     displayCalibration() {
-        let col = color(0, 255, 0);
+        colorMode(HSB, 255);
+        let h = hue(this.controlPointColor);
+        let col = color((h+80)%255, 255, 255);
+        colorMode(RGB);
+        if(this.isMouseOver()) {
+            col = color(255);
+        }
         this.display(col);
     }
 
@@ -252,7 +259,7 @@ class LineMap extends Draggable {
         let d1 = dist(px, py, x1, y1);
         let d2 = dist(px, py, x2, y2);
         let lineLen = dist(x1, y1, x2, y2);
-        let buffer = 0.2;    // higher # = less accurate
+        let buffer = 0.15*this.lineW;    // higher # = less accurate
         if (d1 + d2 >= lineLen - buffer && d1 + d2 <= lineLen + buffer) {
             return true;
         }

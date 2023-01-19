@@ -31,8 +31,6 @@ Calibrating methods:
 * `stopCalibration()`
 * `toggleCalibration()`
   
-
-
 ## LineMap
 
 To create a line map:

@@ -60,15 +60,15 @@ function draw() {
             break;
         case "sketch":
             lineMap.display(color('black'));
-            quadMap.displaySketch(drawLines);
-            triMap.displaySketch(drawLines);
-            bezMap.displaySketch(drawLines);
-            polyMap.displaySketch(drawLines);
+            quadMap.displaySketch(drawCoords);
+            triMap.displaySketch(drawCoords);
+            bezMap.displaySketch(drawCoords);
+            polyMap.displaySketch(drawCoords);
             break;
     }
 }
 
-function drawLines(pg) {
+function drawCoords(pg) {
     pg.clear();
     pg.push();
     pg.background(0, 255, 0);
@@ -88,23 +88,17 @@ function drawLines(pg) {
 function keyPressed() {
     switch (key) {
         case 'c':
-            // enter/leave calibration mode, where surfaces can be warped 
-            // and moved
             pMapper.toggleCalibration();
             break;
         case 'f':
-            // enter/ exit fullscreen mode
             let fs = fullscreen();
             fullscreen(!fs);
             break;
         case 'l':
-            // load calibration file
             pMapper.load("maps/map.json");
             break;
 
         case 's':
-            // saves the calibration to map.json
-            // change browser download location as needed
             pMapper.save("map.json");
             break;
     }

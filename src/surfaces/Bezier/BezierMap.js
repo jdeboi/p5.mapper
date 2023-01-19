@@ -252,6 +252,17 @@ class BezierMap extends Surface {
 
     }
 
+    removeSegment() {
+        if (this.points.length <= 3) {
+            console.warn("cannot have a bezier with less than one anchor");
+            return;
+        }
+        for (let i = 0; i < this.points.length; i+= 3) {
+            if (this.points[i].select()) {
+                this.points.splice(i, 3);
+            }
+        }
+    }
 
     autoSetControlPoint(anchorI, controlSpacing) {
         if ((anchorI - 3 < 0 || anchorI + 3 >= this.points.length) && !this.closed) return;
