@@ -9,13 +9,14 @@ p5.mapper is a projection mapping library for [p5.js](https://p5js.org/). This l
 ![shapes example](images/shapes.png)
 
 
-### Examples
+## Examples
 * [basic](https://editor.p5js.org/jdeboi/sketches/EjUrc7RiP)
 * [quads](https://editor.p5js.org/jdeboi/sketches/gPBajTX8Z)
 * [lines](https://editor.p5js.org/jdeboi/sketches/v4zMGF-6n)
 * [bezier](https://editor.p5js.org/jdeboi/sketches/hqTzdgULE)
 * [video](https://editor.p5js.org/jdeboi/sketches/He2_OvO2p)
 
+## Library
 You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. Include the library in your `index.html` (after loading p5.js).
 
 ```html
