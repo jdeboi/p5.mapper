@@ -1,20 +1,44 @@
 import QuadMap from './surfaces/QuadMap';
 import TriMap from './surfaces/TriMap';
+import PolyMap from './surfaces/PolyMap';
+import BezierMap from './surfaces/Bezier/BezierMap';
 import LineMap from './lines/LineMap';
-import Mask from './mask/Mask';
 
 import { getPercentWave } from './helpers/helpers';
 
 class ProjectionMapper {
 
     constructor() {
+        this.buffer;
         this.surfaces = [];
         this.lines = [];
-        this.masks = [];
         this.dragged = null;
+        this.selected = null;
         this.calibrate = false;
         this.pInst = null;
         this.pMousePressed = false;
+        this.moveMode = "ALL";
+
+        this.bezBuffer = null;
+        // this.bezShader = null;
+        // this.bezierShaderLoaded = false;
+    }
+
+    init(w, h) {
+        if (this.bezBuffer == null) {
+            // TODO
+            // should these be WEBGL??
+
+            // TODO
+            // warning about reading frequently?? 
+            // https://stackoverflow.com/questions/74020182/canvas2d-multiple-readback-operations-using-getimagedata-are-faster-with-the-wi
+            this.buffer = this.pInst.createGraphics(w, h);
+            this.bezBuffer = this.pInst.createGraphics(w, h);
+
+            // TODO - when implementing shader
+            // let filePath = "../../src/surfaces/Bezier/shader"
+            // this.bezShader = this.pInst.loadShader(filePath + ".vert", filePath + ".frag", () => this.bezierShaderLoaded = true);
+        }
     }
 
     ////////////////////////////////////////
@@ -29,7 +53,7 @@ class ProjectionMapper {
      * @return
      */
     createQuadMap(w, h, res = 20) {
-        const s = new QuadMap(this.surfaces.length, w, h, res, this.pInst);
+        const s = new QuadMap(this.surfaces.length, w, h, res, this.buffer);
         this.surfaces.push(s);
         return s;
     }
@@ -43,7 +67,7 @@ class ProjectionMapper {
      * @return
      */
     createTriMap(w, h, res = 20) {
-        const s = new TriMap(this.surfaces.length, w, h, res, this.pInst);
+        const s = new TriMap(this.surfaces.length, w, h, res, this.buffer);
         this.surfaces.push(s);
         return s;
     }
@@ -59,15 +83,20 @@ class ProjectionMapper {
         return l;
     }
 
-    createMaskMap(numPoints = 3) {
+    createPolyMap(numPoints = 3) {
         if (numPoints < 3)
             numPoints = 3;
 
-        let mask = new Mask(this.masks.length, numPoints);
-        this.masks.push(mask);
-        return mask;
+        let s = new PolyMap(this.surfaces.length, numPoints, this.buffer);
+        this.surfaces.push(s);
+        return s;
     }
 
+    createBezierMap(numPoints=5) {
+        let bez = new BezierMap(this.surfaces.length, numPoints, this.pInst, this);
+        this.surfaces.push(bez);
+        return bez;
+    }
 
     ////////////////////////////////////////
     // INTERACTION
@@ -77,49 +106,96 @@ class ProjectionMapper {
         if (!this.calibrate)
             return;
 
-        // first check masks
-        let top = null;
-        for (const mask of this.masks) {
-            this.dragged = mask.select();
-            if (this.dragged != null) {
-                top = mask;
-                return;
+        if (this.moveMode == "SURFACES") {
+            this.checkSurfacesClick();
+        }
+        else if (this.moveMode == "POINTS") {
+            this.checkPointsClick();
+        }
+        else {
+            if (!this.checkPointsClick()) {
+                this.checkSurfacesClick();
             }
         }
+
+    }
+
+    moveSurfaces() {
+        this.moveMode = "SURFACES";
+    }
+
+    moveControlPoints() {
+        this.moveMode = "POINTS";
+    }
+
+    moveAll() {
+        this.moveMode = "ALL";
+    }
+
+    isMovingPoints() {
+        return this.moveMode == "ALL" || this.moveMode == "POINTS";
+    }
+
+    checkSurfacesClick() {
+       
         // Check Lines
         // navigate the list backwards, as to select 
         for (let i = this.lines.length - 1; i >= 0; i--) {
             let s = this.lines[i];
-            this.dragged = s.select();
+            this.dragged = s.selectSurface();
             if (this.dragged != null) {
-                top = s;
-                return;
+                return true;
             }
         }
 
         // check mapping surfaces
         for (let i = this.surfaces.length - 1; i >= 0; i--) {
             let s = this.surfaces[i];
-            this.dragged = s.select();
+            this.dragged = s.selectSurface();
             if (this.dragged != null) {
-                top = s;
-                return;
+                this.selected = s;
+                return true;
+            }
+        }
+        this.selected = null;
+        return false;
+    }
+
+    checkPointsClick() {
+        
+        // Check Lines
+        // navigate the list backwards, as to select 
+        for (let i = this.lines.length - 1; i >= 0; i--) {
+            let s = this.lines[i];
+            this.dragged = s.selectPoints();
+            if (this.dragged != null) {
+                return true;
             }
         }
 
-
-
-        if (top != null) {
-            // TODO
-            // moved the dragged surface to the beginning of the list
-            // this actually breaks the load/save order.
-            // in the new version, add IDs to surfaces so we can just 
-            // re-load in the right order (or create a separate list 
-            // for selection/rendering)
-            //let i = surfaces.indexOf(top);
-            //surfaces.remove(i);
-            //surfaces.add(0, top);
+        // TODO - check bez control points before anchors
+        // check mapping surfaces
+        for (let i = this.surfaces.length - 1; i >= 0; i--) {
+            let s = this.surfaces[i];
+            this.dragged = s.selectPoints();
+            if (this.dragged != null) {
+                this.selected = s;
+                return true;
+            }
         }
+        this.selected = null;
+        return false;
+    }
+
+    checkSelectedClick() {
+        // first check masks
+        if (this.selected) {
+            this.dragged = this.selected.selectPoints();
+            if (this.dragged)
+                return true;
+            return false;
+        }
+        return false;
     }
 
     onDrag() {
@@ -133,6 +209,8 @@ class ProjectionMapper {
 
     isDragging(surface) {
         // TODO - ??? why return true?
+        // need to remember what I was doing here
+        
         if (this.dragged === null)
             return true;
         return this.dragged === surface;
@@ -169,29 +247,12 @@ class ProjectionMapper {
 
     loadedJson(json) {
 
-        if (json.masks) this.loadMasks(json);
-
         if (json.surfaces) this.loadSurfaces(json);
 
         if (json.lines) this.loadLines(json);
     }
 
-    loadMasks(json) {
-        let jMasks = json.masks;
-        if (jMasks.length !== this.masks.length) {
-            console.warn(`json calibration file has ${jMasks.length} masks but there are ${this.masks.length} masks in memory (check sketch.js for # of mask objects)`)
-        }
-        let index = 0;
-        while (index < jMasks.length && index < this.masks.length) {
-            const s = this.masks[index];
-            if (s.isEqual(this.masks[index]))
-                s.load(jMasks[index]);
-            else
-                console.warn("mismatch between calibration mask types / ids")
-
-            index++;
-        }
-    }
+ 
 
     loadSurfaces(json) {
         let jSurfaces = json.surfaces;
@@ -199,11 +260,17 @@ class ProjectionMapper {
             console.warn(`json calibration file has ${jSurfaces.length} surface maps but there are ${this.surfaces.length} surface maps in memory (check sketch.js for # of map objects)`)
         }
 
+        // TODO - don't remember what I was doing here...
         // in the future if we want to make sure only to load tris into tris, etc.
         const jTriSurfaces = jSurfaces.filter(surf => surf.type === "TRI");
         const jQuadSurfaces = jSurfaces.filter(surf => surf.type === "QUAD");
+        const jBezSurfaces = jSurfaces.filter(surf => surf.type === "BEZ");
+        const jPolySurfaces = jSurfaces.filter(surf => surf.type === "POLY");
+
         const mapTris = this.surfaces.filter(surf => surf.type === "TRI");
         const mapQuads = this.surfaces.filter(surf => surf.type === "QUAD");
+        const mapBez = this.surfaces.filter(surf => surf.type === "BEZ");
+        const mapPolys = this.surfaces.filter(surf => surf.type === "POLY");
 
         // loading tris
         let index = 0;
@@ -226,6 +293,32 @@ class ProjectionMapper {
                 console.warn("mismatch between calibration surface types / ids")
             index++;
         }
+
+        // loading bez
+        index = 0;
+        while (index < jBezSurfaces.length && index < mapBez.length) {
+            const s = mapBez[index];
+
+            if (s.isEqual(mapBez[index])) {
+                s.load(jBezSurfaces[index]);
+            }
+            else
+                console.warn("mismatch between calibration bez surface types / ids")
+            index++;
+        }
+
+        // loading poly
+        index = 0;
+        while (index < jPolySurfaces.length && index < mapPolys.length) {
+            const s = mapPolys[index];
+
+            if (s.isEqual(mapPolys[index])) {
+                s.load(jPolySurfaces[index]);
+            }
+            else
+                console.warn("mismatch between calibration poly surface types / ids")
+            index++;
+        }
     }
 
     loadLines(json) {
@@ -244,11 +337,11 @@ class ProjectionMapper {
 
     save(filename = "map.json") {
         console.log("saving all mapped surfaces to json...");
-        let json = { surfaces: [], lines: [], masks: [] }
+        let json = { surfaces: [], lines: []}
 
-        for (const mask of this.masks) {
-            json.masks.push(mask.getJson());
-        }
+        // for (const mask of this.masks) {
+        //     json.masks.push(mask.getJson());
+        // }
 
         for (const surface of this.surfaces) {
             json.surfaces.push(surface.getJson());
@@ -278,35 +371,50 @@ class ProjectionMapper {
     ////////////////////////////////////////
     // RENDERING
     ////////////////////////////////////////
+    /**
+     * begins drawing surfaces
+     *
+     * @deprecated since v0.0.1
+    */
     beginSurfaces() {
-        for (const surface of this.surfaces) {
-            surface.beginDrawing();
-        }
+        console.warn("beginSurfaces() is a deprecated method");
     }
 
+    /**
+     * ends drawing surfaces
+     *
+     * @deprecated since v0.0.1
+    */
     endSurfaces() {
-        for (const surface of this.surfaces) {
-            surface.endDrawing();
-        }
+        console.warn("endSurfaces() is a deprecated method");
     }
 
+    /**
+     * renders surfaces
+     *
+     * @deprecated since v0.0.1
+    */
     renderSurfaces() {
-        this.endSurfaces();
-        for (const surface of this.surfaces) {
-            surface.render();
-        }
+        console.warn("renderSurfaces() is a deprecated method");
     }
 
+    /**
+     * displays surfaces
+     *
+     * @deprecated since v0.0.1
+    */
     display() {
-        this.renderSurfaces();
-        this.displayControlPoints();
+        // if (this.selected) {
+        //     this.selected.displaySelected();
+        // }
+        console.warn("display() is a deprecated method");
     }
 
     displayControlPoints() {
         if (this.calibrate) {
-            for (const mask of this.masks) {
-                mask.displayControlPoints();
-            }
+            // for (const mask of this.masks) {
+            //     mask.displayControlPoints();
+            // }
             for (const surface of this.surfaces) {
                 surface.displayControlPoints();
             }
@@ -326,14 +434,28 @@ class ProjectionMapper {
 
 const pMapper = new ProjectionMapper();
 
-p5.prototype.createProjectionMapper = function (pInst) {
+/**
+ * Initializes the projection mapper object
+ *
+ * @param {p5} pInst is the p5 object - useful for instance mode (??)
+ * @param {number} w is the width of the buffer graphics object used to draw textures on mapped surfaces
+ * @param {number} h is the height of the buffer graphics object...
+ */
+p5.prototype.createProjectionMapper = function (pInst, w, h) {
+    if (!w) w = pInst.width;
+    if (!h) h = pInst.height;
     pMapper.pInst = pInst;
+    pMapper.init(w, h);
     return pMapper;
 };
 
 
 p5.prototype.isCalibratingMapper = function () {
     return pMapper.calibrate;
+};
+
+p5.prototype.isMovingPoints = function () {
+    return pMapper.isMovingPoints();
 };
 
 p5.prototype.isDragging = function (surface) {
@@ -344,8 +466,8 @@ p5.prototype.isDragging = function (surface) {
 
 
 
-p5.prototype.registerMethod('pre', () => pMapper.beginSurfaces());
-p5.prototype.registerMethod('post', () => pMapper.display());
+// p5.prototype.registerMethod('pre', () => pMapper.beginSurfaces());
+p5.prototype.registerMethod('post', () => pMapper.displayControlPoints());
 p5.prototype.registerMethod('post', () => pMapper.updateEvents());
 
 export default pMapper;

@@ -8,44 +8,43 @@
 */
 
 let pMapper;
-let surfaces = [];
+let bez;
 
 
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
-    // initialize map surfaces
     pMapper = createProjectionMapper(this);
-    
-    for (let i = 0; i < 10; i++) {
-        surfaces.push(pMapper.createQuadMap(50, 300));
-    }
-    // load maps
-    pMapper.load("maps/map.json");
-
-    // HSB color for rainbow effect
-    colorMode(HSB, 255);
+  
+    bez = pMapper.createBezierMap(5);
+    // pMapper.load("maps/map.json");
 }
 
 function draw() {
-    background(0);
+    background(100);
 
-    let index = 0;
-    for (const surface of surfaces) {
-        let col = color((frameCount + index++ * 20) % 255, 255, 255);
-        surface.display(col);
-    }
+    bez.display(color('blue'));
+   
 }
 
+function mousePressed() {
+    // if shift is down while clicking, add anchor and controls points
+    if (keyIsDown(SHIFT)) {
+        console.log("adding bezier point");
+        bez.addSegment();
+    }
+    // if 'd' key is down when clicking, remove anchor
+    else if (keyIsDown(68)) {
+        bez.removeSegment();
+    }
+}
 
 function keyPressed() {
     switch (key) {
         case 'c':
-            // toggle calibration
             pMapper.toggleCalibration();
             break;
         case 'f':
-            // toggle fullscreen
             let fs = fullscreen();
             fullscreen(!fs);
             break;

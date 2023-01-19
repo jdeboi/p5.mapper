@@ -3,8 +3,8 @@ import CornerPinSurface from './CornerPinSurface';
 class TriMap extends CornerPinSurface {
 
 
-	constructor(id, w, h, res, pInst) {
-		super(id, w, h, res, "TRI", pInst);
+	constructor(id, w, h, res, buffer) {
+		super(id, w, h, res, "TRI", buffer);
 
 		this.setTriMesh();
 	}
@@ -48,34 +48,31 @@ class TriMap extends CornerPinSurface {
 	}
 
 
-	render() {
-		push();
-		translate(this.x, this.y);
 
-		noStroke();
-		fill(0);
-		texture(this);
+
+	displaySurface(isUV=true, tX = 0, tY = 0, tW = this.width, tH = this.height) {
 		beginShape();
 		let u = 0;
 		let v = this.height;
-		vertex(this.mesh[this.BL].x, this.mesh[this.BL].y, u, v);
+		if (isUV) vertex(this.mesh[this.BL].x, this.mesh[this.BL].y, u, v);
+		else vertex(this.mesh[this.BL].x, this.mesh[this.BL].y);
 
 		u = this.width / 2;
 		v = 0;
-		vertex(this.mesh[this.TP].x, this.mesh[this.TP].y, u, v);
+		if (isUV) vertex(this.mesh[this.TP].x, this.mesh[this.TP].y, u, v);
+		else vertex(this.mesh[this.TP].x, this.mesh[this.TP].y);
 
 		u = this.width;
 		v = this.height;
-		vertex(this.mesh[this.BR].x, this.mesh[this.BR].y, u, v);
+		if (isUV) vertex(this.mesh[this.BR].x, this.mesh[this.BR].y, u, v);
+		else vertex(this.mesh[this.BR].x, this.mesh[this.BR].y);
+
 		endShape(CLOSE);
 
-		if (isCalibratingMapper()) {
-			// translate(0, 0, 1);
-			this.displayOutline();
-		}
-
-		pop();
+		
 	}
+
+	// display
 
 
 }

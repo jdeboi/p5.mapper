@@ -1,10 +1,9 @@
 /*
 * p5.mapper
-* projection mapping with lines for staircase
+* https://github.com/jdeboi/p5.mapper
 * 
 * Jenna deBoisblanc
 * jdeboi.com
-* 11/16/2021
 * 
 */
 
@@ -19,22 +18,26 @@ const DISPLAY = 1;
 const LEFT_PULSE = 2;
 const NUM_MODES = LEFT_PULSE + 1;
 
-// colors
 let startC, endC;
 
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
-    // initialize mapper
     pMapper = createProjectionMapper(this);
+
+    // initialize empty lines
     for (let i = 0; i < 9; i++) {
-        // initialize empty lines
         let lineMap = pMapper.createLineMap();
         lineMaps.push(lineMap);
+
         // decrease line width for higher stairs (farther away)
         lineMap.lineW = map(i, 0, 9, 20, 70);
+
+        // end cap display
+        // lineMap.setEndCapsOff();
+        // lineMap.setEndCapsOn();
     }
-    // load saved calibration
+
     pMapper.load("maps/map.json");
 
     // initialize gradient colors
@@ -105,9 +108,7 @@ function keyPressed() {
             break;
         case 'f':
             let fs = fullscreen();
-            document.getElementById("header").style.display = "none";
             fullscreen(!fs);
-            console.log("go")
             break;
         case 'l':
             pMapper.load("maps/map.json");

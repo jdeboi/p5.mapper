@@ -1885,7 +1885,7 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
 
   var _super = BezierMap_createSuper(BezierMap);
 
-  function BezierMap(id, numPoints, pInst, pMapper) {
+  function BezierMap(id, pInst, pMapper) {
     var _this;
 
     BezierMap_classCallCheck(this, BezierMap);
@@ -1901,7 +1901,7 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
     _this.contentImg.drawingContext.willReadFrequently = true;
     _this.maskImg.drawingContext.willReadFrequently = true;
 
-    _this.initEmpty(numPoints);
+    _this.initEmpty();
 
     _this.mode = "FREE";
     _this.r = 8; // let filePath = "../../src/surfaces/Bezier/shader."
@@ -1913,47 +1913,16 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
   BezierMap_createClass(BezierMap, [{
     key: "initEmpty",
     value: function initEmpty() {
-      var numAnchors = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 5;
       this.points = [];
-      this.x = 0;
-      this.y = 0;
-      var r = 100;
-      var lineW = 50;
-      var x = r * cos(0);
-      var y = r * sin(0);
-      var x0 = lineW * cos(Math.PI / 2);
-      var y0 = -lineW * sin(Math.PI / 2);
-      var x1 = -x0;
-      var y1 = -y0;
-      this.points.push(new BezierPoint(x, y, this));
-      this.points.push(new BezierPoint(x + x1, y + y1, this));
-
-      for (var i = 1; i < numAnchors; i++) {
-        var ang = i * 2 * Math.PI / numAnchors;
-
-        var _x = r * cos(ang);
-
-        var _y = r * sin(ang);
-
-        var _x2 = -lineW * cos(Math.PI / 2 - ang);
-
-        var _y2 = lineW * sin(Math.PI / 2 - ang);
-
-        var _x3 = -_x2;
-
-        var _y3 = -_y2;
-
-        this.points.push(new BezierPoint(_x + _x3, _y + _y3, this));
-        this.points.push(new BezierPoint(_x, _y, this));
-        this.points.push(new BezierPoint(_x + _x2, _y + _y2, this));
-      }
-
-      this.points.push(new BezierPoint(x + x0, y + y0, this)); // 
-      // this.points.push(new BezierPoint( r * cos(ang2),  r * sin(ang2), this));
-      // 
-
-      this.closed = true;
+      this.x = 100;
+      this.y = 100;
+      this.points.push(new BezierPoint(0, 0, this));
+      this.points.push(new BezierPoint(this.width, 0, this));
+      this.points.push(new BezierPoint(this.width, this.height, this));
+      this.points.push(new BezierPoint(0, this.height, this));
+      this.closed = false;
       this.auto = false;
+      this.toggleClosed();
     }
   }, {
     key: "setAlignedMode",
@@ -2158,62 +2127,17 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
         y = mouseY - height / 2 - this.y;
       }
 
-      console.log(this.getClosestAnchors(), this.points.length - 2);
-      var closestAnchorId = this.getClosestAnchors(); // this.toggleClosed();
-      // const prevAnchor = this.points[this.points.length - 2].pos;
-      // const prevControl = this.points[this.points.length - 1].pos;
-
-      var prevAnchor = this.points[closestAnchorId].pos;
-      var prevControl = this.points[closestAnchorId + 1].pos;
+      this.toggleClosed();
+      var prevAnchor = this.points[this.points.length - 2].pos;
+      var prevControl = this.points[this.points.length - 1].pos;
       var anchor = createVector(x, y);
       var aP = new BezierPoint(anchor.x, anchor.y, this);
       var control1 = p5.Vector.lerp(prevControl, prevAnchor, -1);
       var cp1 = new BezierPoint(control1.x, control1.y, this);
       var control2 = p5.Vector.lerp(control1, anchor, 0.5);
       var cp2 = new BezierPoint(control2.x, control2.y, this);
-      this.points.push(cp1, cp2, aP); // this.toggleClosed();
-    }
-  }, {
-    key: "removeSegment",
-    value: function removeSegment() {
-      if (this.points.length <= 3) {
-        console.warn("cannot have a bezier with less than one anchor");
-        return;
-      }
-
-      for (var i = 0; i < this.points.length; i += 3) {
-        if (this.points[i].select()) {
-          this.points.splice(i, 3);
-        }
-      }
-    }
-  }, {
-    key: "getClosestAnchors",
-    value: function getClosestAnchors() {
-      var mx = mouseX - width / 2 - this.x;
-      var my = mouseY - height / 2 - this.y;
-      var minDis = Infinity;
-      var index = -1;
-
-      for (var i = 0; i < this.points.length; i += 3) {
-        if (i == 0) {
-          var p0 = this.points[this.points.length - 1];
-          var p1 = this.points[i];
-        } else {
-          var p0 = this.points[i - 3];
-          var p1 = this.points[i];
-        }
-
-        var d0 = dist(p0.pos.x, p0.pos.y, mx, my);
-        var d1 = dist(p1.pos.x, p1.pos.y, mx, my);
-
-        if (d0 + d1 < minDis) {
-          minDis = d0 + d1;
-          index = i - 3;
-        }
-      }
-
-      return index;
+      this.points.push(cp1, cp2, aP);
+      this.toggleClosed();
     }
   }, {
     key: "autoSetControlPoint",
@@ -2581,8 +2505,6 @@ var LineMap = /*#__PURE__*/function (_Draggable) {
 
     _this = _super.call(this, 0, 0);
     _this.id = id;
-    _this.x = 0;
-    _this.y = 0;
     _this.type = "LINE";
     _this.lineW = 10;
     _this.endCapsOn = true;
@@ -2736,15 +2658,7 @@ var LineMap = /*#__PURE__*/function (_Draggable) {
   }, {
     key: "displayCalibration",
     value: function displayCalibration() {
-      colorMode(HSB, 255);
-      var h = hue(this.controlPointColor);
-      var col = color((h + 80) % 255, 255, 255);
-      colorMode(RGB);
-
-      if (this.isMouseOver()) {
-        col = color(255);
-      }
-
+      var col = color(0, 255, 0);
       this.display(col);
     }
   }, {
@@ -2859,7 +2773,7 @@ var LineMap = /*#__PURE__*/function (_Draggable) {
       var d1 = dist(px, py, x1, y1);
       var d2 = dist(px, py, x2, y2);
       var lineLen = dist(x1, y1, x2, y2);
-      var buffer = 0.15 * this.lineW; // higher # = less accurate
+      var buffer = 0.2; // higher # = less accurate
 
       if (d1 + d2 >= lineLen - buffer && d1 + d2 <= lineLen + buffer) {
         return true;
@@ -3039,8 +2953,7 @@ var ProjectionMapper = /*#__PURE__*/function () {
   }, {
     key: "createBezierMap",
     value: function createBezierMap() {
-      var numPoints = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 5;
-      var bez = new Bezier_BezierMap(this.surfaces.length, numPoints, this.pInst, this);
+      var bez = new Bezier_BezierMap(this.surfaces.length, this.pInst, this);
       this.surfaces.push(bez);
       return bez;
     } ////////////////////////////////////////
