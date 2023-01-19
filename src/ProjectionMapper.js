@@ -12,7 +12,6 @@ class ProjectionMapper {
         this.buffer;
         this.surfaces = [];
         this.lines = [];
-        // this.masks = [];
         this.dragged = null;
         this.selected = null;
         this.calibrate = false;
@@ -20,8 +19,8 @@ class ProjectionMapper {
         this.pMousePressed = false;
         this.moveMode = "ALL";
 
-        // this.bezShader = null;
         this.bezBuffer = null;
+        // this.bezShader = null;
         // this.bezierShaderLoaded = false;
     }
 
@@ -29,11 +28,14 @@ class ProjectionMapper {
         if (this.bezBuffer == null) {
             // TODO
             // should these be WEBGL??
+
+            // TODO
+            // warning about reading frequently?? 
+            // https://stackoverflow.com/questions/74020182/canvas2d-multiple-readback-operations-using-getimagedata-are-faster-with-the-wi
             this.buffer = this.pInst.createGraphics(w, h);
             this.bezBuffer = this.pInst.createGraphics(w, h);
 
-            // console.log("creating pGraphics");
-
+            // TODO - when implementing shader
             // let filePath = "../../src/surfaces/Bezier/shader"
             // this.bezShader = this.pInst.loadShader(filePath + ".vert", filePath + ".frag", () => this.bezierShaderLoaded = true);
         }
@@ -90,8 +92,8 @@ class ProjectionMapper {
         return s;
     }
 
-    createBezierMap() {
-        let bez = new BezierMap(this.surfaces.length, this.pInst, this);
+    createBezierMap(numPoints=5) {
+        let bez = new BezierMap(this.surfaces.length, numPoints, this.pInst, this);
         this.surfaces.push(bez);
         return bez;
     }

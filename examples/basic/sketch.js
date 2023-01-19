@@ -1,19 +1,19 @@
 /*
 * p5.mapper
-* create mapped surfaces (quad, tri, line, masks)
+* https://github.com/jdeboi/p5.mapper
 * 
 * Jenna deBoisblanc
 * jdeboi.com
-* 11/16/2021
 * 
 */
 
 let pMapper;
 let quadMap, triMap, lineMap, bezMap, polyMap;
 
+let sel;
+let mode;
 let myFont;
 let img;
-let x = 0;
 
 function preload() {
     img = loadImage("assets/catnap.jpg");
@@ -22,19 +22,18 @@ function preload() {
 
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
-
     textFont(myFont);
+    initSelection();
 
     // create mapper object
     pMapper = createProjectionMapper(this);
 
-    // create mapping surfaces (width / height)
+    polyMap = pMapper.createPolyMap(5);
     triMap = pMapper.createTriMap(300, 300);
     quadMap = pMapper.createQuadMap(400, 400);
     lineMap = pMapper.createLineMap();
     bezMap = pMapper.createBezierMap();
-    // creates a black mask with 5 moveable points
-    polyMap = pMapper.createPolyMap(5);
+
 
     // loads calibration in the "maps" directory
     pMapper.load("maps/map.json");
@@ -42,16 +41,49 @@ function setup() {
 
 function draw() {
     background(100);
-
     displayFrameRate();
 
-    // display order from back to front is determined in setup, not draw
-    quadMap.display(color('red'));
-    triMap.display(color('blue'));
-    lineMap.display(color('lime'));
-    bezMap.display(color('orange'));
-    polyMap.display(color('black'));
+    switch (mode) {
+        case "solid":
+            lineMap.display(color('lime'));
+            quadMap.display(color('red'));
+            triMap.display(color('blue'));
+            bezMap.display(color('orange'));
+            polyMap.display(color('black'));
+            break;
+        case "image":
+            lineMap.display(color('black'));
+            quadMap.displayTexture(img);
+            triMap.displayTexture(img);
+            bezMap.displayTexture(img);
+            polyMap.displayTexture(img);
+            break;
+        case "sketch":
+            lineMap.display(color('black'));
+            quadMap.displaySketch(drawLines);
+            triMap.displaySketch(drawLines);
+            bezMap.displaySketch(drawLines);
+            polyMap.displaySketch(drawLines);
+            break;
+    }
 }
+
+function drawLines(pg) {
+    pg.clear();
+    pg.push();
+    pg.background(0, 255, 0);
+    pg.fill(0);
+
+    for (let i = 0; i < 1000; i += 50) {
+        pg.text(i, i, 150);
+        pg.text(i, 150, i);
+    }
+    pg.fill(255);
+    pg.ellipse(mouseX, mouseY, 50);
+    pg.pop();
+}
+
+
 
 function keyPressed() {
     switch (key) {
@@ -63,7 +95,6 @@ function keyPressed() {
         case 'f':
             // enter/ exit fullscreen mode
             let fs = fullscreen();
-            document.getElementById("header").style.display = "none";
             fullscreen(!fs);
             break;
         case 'l':
@@ -79,6 +110,19 @@ function keyPressed() {
     }
 }
 
+function initSelection() {
+    mode = "solid"
+    sel = createSelect();
+    sel.position(10, 10);
+    sel.option('solid');
+    sel.option('image');
+    sel.option('sketch');
+    sel.changed(mySelectEvent);
+}
+
+function mySelectEvent() {
+    mode = sel.value();
+}
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
@@ -87,5 +131,5 @@ function windowResized() {
 function displayFrameRate() {
     fill(255);
     noStroke();
-    text(round(frameRate()), -width / 2 + 20, -height / 2 + 20);
+    text(round(frameRate()), -width / 2 + 15, -height / 2 + 50);
 }

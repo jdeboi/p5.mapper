@@ -1,3 +1,5 @@
+
+'use strict';
 // Credit:
 // https://geeksoutofthebox.com/2020/11/23/simons-bezier-editor-in-p5-js/
 
@@ -7,32 +9,69 @@ import Surface from '../Surface';
 class BezierMap extends Surface {
 
 
-    constructor(id, pInst, pMapper) {
+    constructor(id, numPoints, pInst, pMapper) {
         super(id, 0, 0, 0, "BEZ", pInst.buffer);
         this.pInst = pInst;
         this.pMapper = pMapper;
         this.bufferSpace = 10;
-        this.initEmpty();
+
+        this.width = 100;
+        this.height = 100;
+        this.contentImg = createImage(this.width, this.height);
+        this.maskImg = createImage(this.width, this.height);
+
+        this.contentImg.drawingContext.willReadFrequently = true;
+        this.maskImg.drawingContext.willReadFrequently = true;
+
+        this.initEmpty(numPoints);
+
         this.mode = "FREE";
         this.r = 8;
+
         // let filePath = "../../src/surfaces/Bezier/shader."
         // this.theShader = loadShader(filePath + "vert", filePath + "frag")
 
+
     }
 
-    initEmpty() {
+    initEmpty(numAnchors = 5) {
         this.points = [];
-        this.x = 100;
-        this.y = 100;
-        this.width = 100;
-        this.height = 100;
-        this.points.push(new BezierPoint(0, 0, this));
-        this.points.push(new BezierPoint(this.width, 0, this));
-        this.points.push(new BezierPoint(this.width, this.height, this));
-        this.points.push(new BezierPoint(0, this.height, this));
-        this.closed = false;
+        this.x = 0;
+        this.y = 0;
+        let r = 100;
+        let lineW = 50;
+
+        let x = r * cos(0);
+        let y = r * sin(0);
+        let x0 = lineW * cos(Math.PI / 2);
+        let y0 = -lineW * sin(Math.PI / 2);
+        let x1 = -x0;
+        let y1 = -y0;
+        this.points.push(new BezierPoint(x, y, this));
+        this.points.push(new BezierPoint(x + x1, y + y1, this));
+
+        for (let i = 1; i < numAnchors; i++) {
+            let ang = i * 2 * Math.PI / numAnchors;
+
+            let x = r * cos(ang);
+            let y = r * sin(ang);
+            let x0 = -lineW * cos(Math.PI / 2 - ang);
+            let y0 = lineW * sin(Math.PI / 2 - ang);
+            let x1 = -x0;
+            let y1 = -y0;
+            this.points.push(new BezierPoint(x + x1, y + y1, this));
+            this.points.push(new BezierPoint(x, y, this));
+
+            this.points.push(new BezierPoint(x + x0, y + y0, this));
+
+        }
+        this.points.push(new BezierPoint(x + x0, y + y0, this));
+        // 
+        // this.points.push(new BezierPoint( r * cos(ang2),  r * sin(ang2), this));
+        // 
+        this.closed = true;
         this.auto = false;
-        this.toggleClosed();
+
     }
 
     setAlignedMode() {
@@ -101,7 +140,15 @@ class BezierMap extends Surface {
 
     selectPoints() {
         // check if control points are selected
-        for (const p of this.points) {
+        let controls = this.selectControls();
+        if (controls) return controls;
+        return this.selectAnchors();
+    }
+
+    selectAnchors() {
+        // check if control points are selected
+        for (let i = 0; i < this.points.length; i += 3) {
+            const p = this.points[i];
             if (p.select()) {
                 return p;
             }
@@ -109,10 +156,22 @@ class BezierMap extends Surface {
         return null;
     }
 
+    selectControls() {
+        // check if control points are selected
+        for (const p of this.points) {
+            if (p.isAnchor()) {
+                continue;
+            }
+            else if (p.select())
+                return p;
+        }
+        return null;
+    }
+
     getBounds() {
         let polyline = this.getPolyline();
 
-       return super.getBounds(polyline);
+        return super.getBounds(polyline);
     }
 
 
@@ -140,10 +199,14 @@ class BezierMap extends Surface {
 
         this.setDimensions();
     }
+
     setDimensions() {
         const { w, h } = this.getBounds();
         this.width = w + this.bufferSpace * 2;
         this.height = h + this.bufferSpace * 2;
+
+        this.contentImg.resize(this.width, this.height);
+        this.maskImg.resize(this.width, this.height);
 
         let bezBuffer = this.pMapper.bezBuffer;
         this.displayBezierPG(bezBuffer);
@@ -242,10 +305,7 @@ class BezierMap extends Surface {
 
 
     displayTexture(img, x = 0, y = 0) {
-        if (isCalibratingMapper()) {
-            this.display();
-            return;
-        }
+
 
         if (!this.isReady()) {
             return;
@@ -253,13 +313,15 @@ class BezierMap extends Surface {
         let buffer = this.pMapper.buffer;
         this.drawImage(img, buffer, x, y);
         this.displayGraphicsTexture(buffer);
+
+        // if (isCalibratingMapper()) {
+        //     this.display();
+        //     return;
+        // }
     }
 
     displaySketch(sketch, x = 0, y = 0) {
-        if (isCalibratingMapper()) {
-            this.display();
-            return;
-        }
+
 
         let buffer = this.pMapper.buffer;
         buffer.push();
@@ -279,26 +341,34 @@ class BezierMap extends Surface {
         sketch(buffer);
         buffer.pop();
         this.displayGraphicsTexture(buffer);
+
+        // if (isCalibratingMapper()) {
+        //     this.display();
+        //     return;
+        // }
     }
 
 
     displayGraphicsTexture(pg) {
-        // 1 - white bezier mask should be recreated every time 
+        // white bezier mask should be recreated every time 
         // shape changes (this.setDimensions())
+        let maskPG = this.pMapper.bezBuffer;
+        this.pgMask(pg, maskPG);
 
-        // 2 - convert PGraphics into img for masking
-        let bezBuffer = this.pMapper.bezBuffer;
-        let img = pg.get();
 
-        // 3 - mask it with step 1
-        img.mask(bezBuffer);
-
+        // TODO - issue with createImage() and createGraphics()
+        // leading to memory leak
         const { x, y } = this.getBounds();
         push();
         translate(this.x, this.y);
         translate(x - this.bufferSpace, y - this.bufferSpace);
-        image(img, 0, 0);
+        image(this.contentImg, 0, 0);
         pop();
+
+        if (isCalibratingMapper()) {
+            this.display();
+            return;
+        }
     }
 
 
@@ -458,6 +528,30 @@ class BezierMap extends Surface {
 
         return inside;
     };
+
+    // https://editor.p5js.org/mikima/sketches/SkEXyPvpf
+    pgMask(_content, _mask) {
+        //Create the mask as image
+        this.contentImg.copy(_content, 0, 0, this.contentImg.width, this.contentImg.height, 0, 0, this.contentImg.width, this.contentImg.height);
+
+        // clear mask before copying
+        this.maskImg.loadPixels();
+        for (var i = 0; i < this.maskImg.pixels.length; i += 4) {
+            this.maskImg.pixels[i] = 0;
+            this.maskImg.pixels[i + 1] = 0;
+            this.maskImg.pixels[i + 2] = 0;
+            this.maskImg.pixels[i + 3] = 0;
+        }
+        this.maskImg.updatePixels();
+
+        this.maskImg.copy(_mask, 0, 0, this.maskImg.width, this.maskImg.height, 0, 0, this.maskImg.width, this.maskImg.height);
+
+
+        this.contentImg.mask(this.maskImg);
+        // return the masked image
+        // return contentImg;
+    }
 }
+
 
 export default BezierMap;

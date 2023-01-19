@@ -62,51 +62,29 @@ class QuadMap extends CornerPinSurface {
         }
     }
 
-    displaySelected(tX = 0, tY = 0, tW = this.width, tH = this.height) {
-        beginShape(TRIANGLES);
-        for (let x = 0; x < this.res - 1; x++) {
-            for (let y = 0; y < this.res - 1; y++) {
-                this.getQuadTriangles(x, y, tX, tY, tW, tH);
-            }
-        }
-        endShape(CLOSE);
-
-        if (isCalibratingMapper()) {
-            // TODO
-            // translate(0, 0, 3);
-            this.displayOutline(color("pink"));
-            this.displayGrid(color("pink"));
-        }
-    }
    
 
-    displaySurface(tX = 0, tY = 0, tW = this.width, tH = this.height) {
+    displaySurface(isUV=true, tX = 0, tY = 0, tW = this.width, tH = this.height) {
         beginShape(TRIANGLES);
         for (let x = 0; x < this.res - 1; x++) {
             for (let y = 0; y < this.res - 1; y++) {
-                this.getQuadTriangles(x, y, tX, tY, tW, tH);
+                if (isUV) this.getQuadTriangles(x, y, tX, tY, tW, tH);
+                else this.getQuadTrianglesOutline(x, y);
             }
         }
         endShape(CLOSE);
+    }
 
-        if (isCalibratingMapper()) {
-            // TODO -
-            // why translate??
-            // to do with the way lines overlap in z dimension?
-            // translate(0, 0, 3); 
-            this.displayOutline();
-            this.displayGrid();
-        }
+    displayCalibration() {
+        this.displayGrid();
     }
 
 
-    displayGrid(col=this.controlPointColor) {
+    displayGrid(col = this.controlPointColor) {
         strokeWeight(2);
         stroke(col);
         fill(this.getMutedControlColor(col));
 
-        // stroke(200);
-        // noFill();
         beginShape(TRIANGLES);
 
         for (let x = 0; x < this.res - 1; x++) {

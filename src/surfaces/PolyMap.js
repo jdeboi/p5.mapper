@@ -14,25 +14,21 @@ class PolyMap extends Surface {
 
         for (let i = 0; i < numPoints; i++) {
             let r = 200;
-            let x = r * cos(i / numPoints * 2 * PI);
-            let y = r * sin(i / numPoints * 2 * PI);
-            if (!isWEBGL()) {
-                x += width / 2;
-                y += height / 2;
-            }
+            let x = r + r * cos(i / numPoints * 2 * PI);
+            let y = r + r * sin(i / numPoints * 2 * PI);
+            // if (!isWEBGL()) {
+            //     x += width / 2;
+            //     y += height / 2;
+            // }
             let cp = new MovePoint(this, x, y);
             cp.isControlPoint = true;
             this.points.push(cp);
         }
 
-        // TODO
-
-        const {w, h} = this.getBounds(this.points);
-        this.width = w; 
-        this.height = h;
+        this.setDimensions(this.points);
     }
 
-    
+
 
     setPoints(pts) {
         this.points = [];
@@ -44,28 +40,16 @@ class PolyMap extends Surface {
     }
 
 
-    displaySelected() {
-        this.display("pink");
-    }
-
-    display(col = color(0)) {
-        push();
-        translate(this.x, this.y, 1);
-
-        if (isCalibratingMapper()) {
-            stroke(this.controlPointColor);
-            fill(this.getMutedControlColor());
-        }
-        else {
-            fill(col);
-            noStroke();
-        }
+    displaySurface(isUV=true, tX = 0, tY = 0, tW = this.width, tH = this.height) {
+        const { x, y } = this.getBounds(this.points);
         beginShape();
         for (const point of this.points) {
-            vertex(point.x, point.y);
+            if (isUV)
+                vertex(point.x, point.y, point.x - x, point.y - y);
+            else
+                vertex(point.x, point.y);
         }
         endShape(CLOSE);
-        pop();
     }
 
     displayControlPoints() {

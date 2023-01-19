@@ -1,10 +1,9 @@
 /*
 * p5.mapper
-* projection mapping with lines for staircase
+* https://github.com/jdeboi/p5.mapper
 * 
 * Jenna deBoisblanc
 * jdeboi.com
-* 11/16/2021
 * 
 */
 
@@ -105,9 +104,7 @@ function keyPressed() {
             break;
         case 'f':
             let fs = fullscreen();
-            document.getElementById("header").style.display = "none";
             fullscreen(!fs);
-            console.log("go")
             break;
         case 'l':
             pMapper.load("maps/map.json");

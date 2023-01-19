@@ -1,11 +1,9 @@
 /*
 * p5.mapper
-* Video on quad surface
-* Click to start video
+* https://github.com/jdeboi/p5.mapper
 * 
 * Jenna deBoisblanc
 * jdeboi.com
-* 11/16/2021
 * 
 */
 
@@ -39,13 +37,14 @@ function draw() {
 
     displayFrameRate();
 
-    quadMap.clear();
-    quadMap.translate(-quadMap.width / 2, -quadMap.height / 2);
-    if (isPlaying)
-        quadMap.image(video, 0, 0);
-    quadMap.noFill();
-    quadMap.stroke(0, 255, 0);
-    quadMap.rect(5, 5, quadMap.width - 25, quadMap.height - 20);
+    
+    if (isPlaying) {
+        quadMap.displayTexture(video);
+    }
+    else {
+        fill(255);
+        text("click to play", 0, 0);
+    }
 }
 
 function keyPressed() {
@@ -55,7 +54,6 @@ function keyPressed() {
             break;
         case 'f':
             let fs = fullscreen();
-            document.getElementById("header").style.display = "none";
             fullscreen(!fs);
             break;
         case 'l':

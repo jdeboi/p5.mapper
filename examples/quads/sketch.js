@@ -1,10 +1,9 @@
 /*
 * p5.mapper
-* Display rainbow array of quad maps
+* https://github.com/jdeboi/p5.mapper
 * 
 * Jenna deBoisblanc
 * jdeboi.com
-* 11/16/2021
 * 
 */
 
@@ -17,8 +16,9 @@ function setup() {
 
     // initialize map surfaces
     pMapper = createProjectionMapper(this);
+    
     for (let i = 0; i < 10; i++) {
-        surfaces.push(pMapper.createQuadMap(50, 300, 4));
+        surfaces.push(pMapper.createQuadMap(50, 300));
     }
     // load maps
     pMapper.load("maps/map.json");
@@ -30,12 +30,10 @@ function setup() {
 function draw() {
     background(0);
 
-    // draw on quad surfaces
     let index = 0;
     for (const surface of surfaces) {
         let col = color((frameCount + index++ * 20) % 255, 255, 255);
-        surface.clear();
-        surface.background(col);
+        surface.display(col);
     }
 }
 
@@ -49,7 +47,6 @@ function keyPressed() {
         case 'f':
             // toggle fullscreen
             let fs = fullscreen();
-            document.getElementById("header").style.display = "none";
             fullscreen(!fs);
             break;
         case 'l':

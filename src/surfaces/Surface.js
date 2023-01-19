@@ -1,3 +1,4 @@
+'use strict';
 import Draggable from './Draggable';
 import { getRandomizedColor } from '../helpers/helpers';
 
@@ -27,22 +28,23 @@ class Surface extends Draggable {
         return color(red(col), green(col), blue(col), 50);
     }
 
-    display(col=color('black')) {
+    display(col = color('black')) {
         this.buffer.background(col);
         this.displayTexture(this.buffer);
+    }
+
+    // override with geometry specifics
+    displaySurface(isUV=true, tX = 0, tY = 0, tW = this.width, tH = this.height) {
+        console.warn("should be overriding with specific geometry...");
     }
 
     displaySketch(sketch) {
         this.buffer.clear();
         this.buffer.push();
-        // start by drawing everything on buffer at the top left
-        this.buffer.translate(-this.buffer.width/2, -this.buffer.height/2);
-
-        // now get in the middle for the final shape
-        this.buffer.translate(this.width/2, this.height/2);
+        // draw all textures from top left of surface
         sketch(this.buffer);
         this.buffer.pop();
-        
+
         this.displayTexture(this.buffer);
     }
 
@@ -50,21 +52,50 @@ class Surface extends Draggable {
         push();
         translate(this.x, this.y);
         texture(tex);
-        this.displaySurface(tX, tY, tW, tH);
+        textureMode(IMAGE);
+        this.displaySurface(true, tX, tY, tW, tH);
+
+        if (isCalibratingMapper()) {
+            this.displayCalibration();
+        }
         pop();
     }
+
+    displayCalibration() {
+        push();
+        // TODO -
+        // why translate??
+        // to do with the way lines overlap in z dimension?
+        // translate(0, 0, 3); 
+        this.displayOutline();
+        pop();
+    }
+
+    displayOutline(col=this.controlPointColor) {
+        strokeWeight(3);
+        stroke(col);
+        fill(this.getMutedControlColor());
+        this.displaySurface(false);
+    }
+
 
     isEqual(json) {
         return json.id === this.id && json.type === this.type;
     }
 
     getBounds(points) {
-        let minX = Math.min(...points.map((pt) => pt.x));
-        let minY = Math.min(...points.map((pt) => pt.y));
-        let maxX = Math.max(...points.map((pt) => pt.x));
-        let maxY = Math.max(...points.map((pt) => pt.y));
+        let minX = Math.floor(Math.min(...points.map((pt) => pt.x)));
+        let minY = Math.floor(Math.min(...points.map((pt) => pt.y)));
+        let maxX = Math.floor(Math.max(...points.map((pt) => pt.x)));
+        let maxY = Math.floor(Math.max(...points.map((pt) => pt.y)));
 
         return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+    }
+
+    setDimensions(points) {
+        const { w, h } = this.getBounds(points);
+        this.width = w;
+        this.height = h;
     }
 
 }

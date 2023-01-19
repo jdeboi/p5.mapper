@@ -1,6 +1,5 @@
 import MeshPoint from './MeshPoint';
 import Surface from './Surface';
-import { getRandomizedColor } from '../helpers/helpers';
 
 class CornerPinSurface extends Surface {
 
@@ -39,12 +38,6 @@ class CornerPinSurface extends Surface {
                 this.mesh[y * this.res + x] = new MeshPoint(this, mx, my, u, v);
             }
         }
-
-        // for (let i = 0; i < this.res*this.res; i++) {
-        // 	let x = floor(i % this.res) / (this.res - 1);
-        // 	let y = floor(i / this.res) / (this.res - 1);
-        // 	this.mesh[i] = new MeshPoint(this, x * this.width, y * this.height, x * this.width, y * this.height);
-        // }
 
         this.TL = 0 + 0; // x + y
         this.TR = this.res - 1 + 0;
@@ -158,11 +151,6 @@ class CornerPinSurface extends Surface {
     // }
 
 
-
-
-
-
-
     selectSurface() {
         // if the surface itself is selected
         if (this.isMouseOver()) {
@@ -225,26 +213,6 @@ class CornerPinSurface extends Surface {
         for (const p of this.controlPoints)
             p.display(this.controlPointColor);
         pop();
-    }
-
-    displayOutline(col=this.controlPointColor) {
-        strokeWeight(3);
-        stroke(col);
-
-        fill(this.getMutedControlColor());
-        beginShape();
-        for (const cp of this.controlPoints) {
-            vertex(cp.x, cp.y);
-        }
-        endShape(CLOSE);
-    }
-
-    beginDrawing() {
-        this.push();
-    }
-
-    endDrawing() {
-        this.pop();
     }
 
 
