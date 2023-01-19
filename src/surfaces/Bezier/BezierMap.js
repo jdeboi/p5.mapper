@@ -235,9 +235,14 @@ class BezierMap extends Surface {
             y = mouseY - height / 2 - this.y;
         }
 
-        this.toggleClosed();
-        const prevAnchor = this.points[this.points.length - 2].pos;
-        const prevControl = this.points[this.points.length - 1].pos;
+        console.log(this.getClosestAnchors(), this.points.length - 2);
+        let closestAnchorId = this.getClosestAnchors();
+        // this.toggleClosed();
+        // const prevAnchor = this.points[this.points.length - 2].pos;
+        // const prevControl = this.points[this.points.length - 1].pos;
+        const prevAnchor = this.points[closestAnchorId].pos;
+        const prevControl = this.points[closestAnchorId+1].pos;
+
 
         const anchor = createVector(x, y);
         const aP = new BezierPoint(anchor.x, anchor.y, this);
@@ -248,7 +253,7 @@ class BezierMap extends Surface {
 
         this.points.push(cp1, cp2, aP);
 
-        this.toggleClosed();
+        // this.toggleClosed();
 
     }
 
@@ -257,11 +262,35 @@ class BezierMap extends Surface {
             console.warn("cannot have a bezier with less than one anchor");
             return;
         }
-        for (let i = 0; i < this.points.length; i+= 3) {
+        for (let i = 0; i < this.points.length; i += 3) {
             if (this.points[i].select()) {
                 this.points.splice(i, 3);
             }
         }
+    }
+
+    getClosestAnchors() {
+        let mx = mouseX - width / 2 - this.x;
+        let my = mouseY - height / 2 - this.y;
+        let minDis = Infinity;
+        let index = -1;
+        for (let i = 0; i < this.points.length; i += 3) {
+            if (i == 0) {
+                var p0 = this.points[this.points.length - 2];
+                var p1 = this.points[i];
+            }
+            else {
+                var p0 = this.points[i - 3];
+                var p1 = this.points[i];
+            }
+            let d0 = dist(p0.pos.x, p0.pos.y, mx, my);
+            let d1 = dist(p1.pos.x, p1.pos.y, mx, my);
+            if (d0 + d1 < minDis) {
+                minDis = d0 + d1;
+                index = i -3;
+            }
+        }
+        return index;
     }
 
     autoSetControlPoint(anchorI, controlSpacing) {
