@@ -235,25 +235,34 @@ class BezierMap extends Surface {
             y = mouseY - height / 2 - this.y;
         }
 
-        console.log(this.getClosestAnchors(), this.points.length - 2);
-        let closestAnchorId = this.getClosestAnchors();
+        // console.log(this.getClosestAnchors(), this.points.length - 2);
+        let closestAnchorId = this.getClosestAnchor();
+        let nextClosestAnchorId = this.getNextClosestAnchor();
         // this.toggleClosed();
         // const prevAnchor = this.points[this.points.length - 2].pos;
         // const prevControl = this.points[this.points.length - 1].pos;
         const prevAnchor = this.points[closestAnchorId].pos;
-        const prevControl = this.points[closestAnchorId+1].pos;
-
+        const prevControl = this.points[closestAnchorId + 1].pos;
+        const nextAnchor = this.points[nextClosestAnchorId].pos;
+        
+        let nextControlID = nextClosestAnchorId-1;
+        if (nextControlID == -1) {
+            nextControlID = this.points.length - 1;
+        }
+        const nextControl = this.points[nextControlID].pos;
 
         const anchor = createVector(x, y);
         const aP = new BezierPoint(anchor.x, anchor.y, this);
-        const control1 = p5.Vector.lerp(prevControl, prevAnchor, -1);
+        
+        const control1 = p5.Vector.lerp(prevControl, anchor, 1-.3);
+        const control2 = p5.Vector.lerp(anchor, nextControl, 0.3);
+        
         const cp1 = new BezierPoint(control1.x, control1.y, this);
-        const control2 = p5.Vector.lerp(control1, anchor, 0.5);
         const cp2 = new BezierPoint(control2.x, control2.y, this);
+       
 
-        this.points.push(cp1, cp2, aP);
+        this.points.splice(closestAnchorId + 2, 0, cp1, aP, cp2);
 
-        // this.toggleClosed();
 
     }
 
@@ -269,28 +278,36 @@ class BezierMap extends Surface {
         }
     }
 
-    getClosestAnchors() {
+    getClosestAnchor() {
         let mx = mouseX - width / 2 - this.x;
         let my = mouseY - height / 2 - this.y;
         let minDis = Infinity;
-        let index = -1;
+        let index = 0;
         for (let i = 0; i < this.points.length; i += 3) {
-            if (i == 0) {
-                var p0 = this.points[this.points.length - 2];
-                var p1 = this.points[i];
+            if (i >= this.points.length - 3) {
+                var p0 = this.points[i];
+                var p1 = this.points[0];
             }
             else {
-                var p0 = this.points[i - 3];
-                var p1 = this.points[i];
+                var p0 = this.points[i];
+                var p1 = this.points[i + 3];
             }
             let d0 = dist(p0.pos.x, p0.pos.y, mx, my);
             let d1 = dist(p1.pos.x, p1.pos.y, mx, my);
             if (d0 + d1 < minDis) {
                 minDis = d0 + d1;
-                index = i -3;
+                index = i;
             }
         }
         return index;
+    }
+
+    getNextClosestAnchor() {
+        let anchor = this.getClosestAnchor();
+        let next = anchor + 3;
+        if (next > this.points.length - 3)
+            next = 0;
+        return next;
     }
 
     autoSetControlPoint(anchorI, controlSpacing) {
@@ -508,7 +525,7 @@ class BezierMap extends Surface {
             if (!this.auto) {
                 this.displayControlLines(lineC);
             }
-            this.displayControlCircles(lineC);
+            this.displayControlCircles(color('red'));
             pop();
         }
     }
@@ -523,9 +540,20 @@ class BezierMap extends Surface {
         }
     }
 
-    displayControlCircles(strokeC) {
+    displayControlCircles(anchorCol) {
+        let i = 0;
+        let index = this.getClosestAnchor();
+        let nextIndex = this.getNextClosestAnchor();
         for (const p of this.points) {
-            p.displayControlCircle(strokeC);
+            let col = anchorCol;
+            if (i == index) {
+                col = color(255, 200, 200);
+            }
+            else if (i == nextIndex) {
+                col = color(255,200, 200);
+            }
+            p.displayControlCircle(col);
+            i++;
         }
     }
 

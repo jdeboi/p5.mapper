@@ -76,26 +76,29 @@ class ControlPoint {
         return i % 3 == 0;
     }
 
-    displayControlCircle(strokeC) {
+    displayControlCircle(strokeC=color(255, 0, 0)) {
         const i = this.parentPath.points.indexOf(this);
         stroke(strokeC);
         strokeWeight(2);
         if (i % 3 == 0) {
             // anchor
-            this.displayCircle(color(255, 0, 0), this.r);
+            this.displayCircle(strokeC, this.r);
         } else if (!this.parentPath.auto) {
             let col = this.parentPath.controlPointColor;
             this.displayCircle(col, this.r-2);
         }
     }
 
-    displayCircle(fillC, r) {
+    displayCircle(col, r) {
         noFill();
-        stroke(fillC);
+        stroke(col);
         ellipse(this.pos.x, this.pos.y, r * 2);
         noStroke();
-        fill(fillC);
+        fill(col);
         ellipse(this.pos.x, this.pos.y, r);
+
+        const i = this.parentPath.points.indexOf(this);
+        text(i, this.pos.x, this.pos.y+20);
     }
 }
 
