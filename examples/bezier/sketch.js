@@ -17,6 +17,7 @@ function setup() {
     pMapper = createProjectionMapper(this);
   
     bez = pMapper.createBezierMap(5);
+
     // pMapper.load("maps/map.json");
 }
 
