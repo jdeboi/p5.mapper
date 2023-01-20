@@ -1,5 +1,3 @@
-// https://itp-xstory.github.io/p5js-shaders/#/./docs/examples/image_effects
-
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -8,7 +6,8 @@ precision mediump float;
 varying vec2 vTexCoord;
 
 // our texture coming from p5
-uniform sampler2D tex;
+uniform sampler2D texMask;
+uniform sampler2D texImg;
 
 
 void main() {
@@ -16,7 +15,18 @@ void main() {
   
   // the texture is loaded upside down and backwards by default so lets flip it
   uv.y = 1.0 - uv.y;
+  
+  vec4 maskT = texture2D(texMask, uv);
+  vec4 imgT = texture2D(texImg, uv);
+  
+  float gray = (maskT.r + maskT.g + maskT.b) / 3.0;
+
+ 
+  float threshR = imgT.r* gray ;
+  float threshG = imgT.g* gray ;
+  float threshB = imgT.b* gray ;
+  vec3 thresh = vec3(threshR, threshG, threshB);
 
   // render the output
-  gl_FragColor = texture2D(tex, uv);
+  gl_FragColor = vec4(thresh, 1.0);
 }

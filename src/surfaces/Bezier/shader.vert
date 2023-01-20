@@ -1,4 +1,3 @@
-// https://itp-xstory.github.io/p5js-shaders/#/./docs/examples/image_effects
 // vert file and comments from adam ferriss
 // https://github.com/aferriss/p5jsShaderExamples
 

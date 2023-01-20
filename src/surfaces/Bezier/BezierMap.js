@@ -18,10 +18,10 @@ class BezierMap extends Surface {
         this.width = 100;
         this.height = 100;
         this.contentImg = createImage(this.width, this.height);
-        this.maskImg = createImage(this.width, this.height);
-
-        this.contentImg.drawingContext.willReadFrequently = true;
-        this.maskImg.drawingContext.willReadFrequently = true;
+        // this.maskImg = createImage(this.width, this.height);
+        
+        // this.contentImg.drawingContext.willReadFrequently = true;
+        // this.maskImg.drawingContext.willReadFrequently = true;
 
         this.initEmpty(numPoints);
 
@@ -96,8 +96,8 @@ class BezierMap extends Surface {
     }
 
     isReady() {
-        return this.pMapper.bezBuffer;
-        // return this.pMapper.bezBuffer && this.pMapper.bezierShaderLoaded;
+        // return this.pMapper.bezBuffer;
+        return this.pMapper.bezBuffer && this.pMapper.bezierShaderLoaded;
     }
 
     load(json) {
@@ -405,8 +405,39 @@ class BezierMap extends Surface {
         // }
     }
 
+    displayGraphicsTexture(pBuffer) {
+        // white bezier mask should be recreated every time 
+        // shape changes (this.setDimensions())
+        let pMask = this.pMapper.bezBuffer;
+        let theShader = this.pMapper.bezShader;
+        let pOutput = this.pMapper.bufferWEBGL;
 
-    displayGraphicsTexture(pg) {
+        pOutput.shader(theShader);
+        theShader.setUniform("resolution", [width, height]);
+        theShader.setUniform("time", millis() / 1000.0);
+        theShader.setUniform("mouse", [mouseX, map(mouseY, 0, height, height, 0)]);
+        theShader.setUniform("texMask", pMask);
+        theShader.setUniform("texImg", pBuffer);
+      
+        pOutput.rect(0, 0, width, height);
+      
+
+        // TODO - issue with createImage() and createGraphics()
+        // leading to memory leak
+        const { x, y } = this.getBounds();
+        push();
+        translate(this.x, this.y);
+        translate(x - this.bufferSpace, y - this.bufferSpace);
+        image(pOutput, 0, 0);
+        pop();
+
+        if (isCalibratingMapper()) {
+            this.display();
+            return;
+        }
+    }
+
+    displayGraphicsTextureOG(pg) {
         // white bezier mask should be recreated every time 
         // shape changes (this.setDimensions())
         let maskPG = this.pMapper.bezBuffer;
