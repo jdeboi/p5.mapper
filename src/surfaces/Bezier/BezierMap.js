@@ -17,7 +17,7 @@ class BezierMap extends Surface {
 
         this.width = 100;
         this.height = 100;
-        this.contentImg = createImage(this.width, this.height);
+        // this.contentImg = createImage(this.width, this.height);
         // this.maskImg = createImage(this.width, this.height);
         
         // this.contentImg.drawingContext.willReadFrequently = true;
@@ -205,8 +205,8 @@ class BezierMap extends Surface {
         this.width = w + this.bufferSpace * 2;
         this.height = h + this.bufferSpace * 2;
 
-        this.contentImg.resize(this.width, this.height);
-        this.maskImg.resize(this.width, this.height);
+        // this.contentImg.resize(this.width, this.height);
+        // this.maskImg.resize(this.width, this.height);
 
         let bezBuffer = this.pMapper.bezBuffer;
         this.displayBezierPG(bezBuffer);
@@ -406,6 +406,9 @@ class BezierMap extends Surface {
     }
 
     displayGraphicsTexture(pBuffer) {
+        if (!this.isReady()) {
+            return;
+        }
         // white bezier mask should be recreated every time 
         // shape changes (this.setDimensions())
         let pMask = this.pMapper.bezBuffer;
@@ -422,8 +425,8 @@ class BezierMap extends Surface {
         pOutput.rect(0, 0, width, height);
       
 
-        // TODO - issue with createImage() and createGraphics()
-        // leading to memory leak
+        // // TODO - issue with createImage() and createGraphics()
+        // // leading to memory leak
         const { x, y } = this.getBounds();
         push();
         translate(this.x, this.y);

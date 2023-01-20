@@ -97,8 +97,8 @@ class ControlPoint {
         fill(col);
         ellipse(this.pos.x, this.pos.y, r);
 
-        // const i = this.parentPath.points.indexOf(this);
-        // text(i, this.pos.x, this.pos.y+20);
+        const i = this.parentPath.points.indexOf(this);
+        text(i, this.pos.x, this.pos.y+20);
     }
 }
 

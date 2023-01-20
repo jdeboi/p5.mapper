@@ -28,5 +28,5 @@ void main() {
   vec3 thresh = vec3(threshR, threshG, threshB);
 
   // render the output
-  gl_FragColor = vec4(thresh, 1.0);
+  gl_FragColor = vec4(thresh, gray);
 }
