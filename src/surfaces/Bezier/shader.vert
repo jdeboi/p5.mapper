@@ -1,3 +1,7 @@
+#ifdef GL_ES
+precision mediump float;
+#endif
+
 // vert file and comments from adam ferriss
 // https://github.com/aferriss/p5jsShaderExamples
 

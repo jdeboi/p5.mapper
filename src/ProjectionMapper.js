@@ -27,7 +27,7 @@ class ProjectionMapper {
     }
 
     preload(shader) {
-        this.bezShader = shader; 
+        this.bezShader = shader;
         this.bezierShaderLoaded = true;
     }
 
@@ -99,16 +99,10 @@ class ProjectionMapper {
     }
 
     createBezierMap(numPoints = 5) {
-        // TODO - why calling this twice??
-        // console.log(frameCount);
-        // if (frameCount != this.lastFrame) {
-        //     this.lastFrame = frameCount;
-            let bez = new BezierMap(this.surfaces.length, numPoints, this.pInst, this);
-            this.surfaces.push(bez);
-            console.log("f", frameCount, this.surfaces);
-            return bez;
-        // }
-        // return bethis.surfaces[this.surfaces.length - 1];
+        // why was it calling this twice??
+        let bez = new BezierMap(this.surfaces.length, numPoints, this.pInst, this);
+        this.surfaces.push(bez);
+        return bez;
     }
 
     ////////////////////////////////////////
@@ -477,14 +471,15 @@ p5.prototype.isDragging = function (surface) {
 
 
 p5.prototype.initPMapperShader = function () {
-    let filePath = "../../src/surfaces/Bezier/shader"
+    // TODO - is there a better way to do this?
+    // let filePath = "../../src/surfaces/Bezier/shader";
+    let filePath = "https://cdn.jsdelivr.net/gh/jdeboi/p5.mapper/src/surfaces/Bezier/shader"
     this.loadShader(filePath + ".vert", filePath + ".frag", (bezShader) => pMapper.preload(bezShader));
 }
 
-// p5.prototype.registerPreloadMethod('preload', pMapper);
-// p5.prototype.registerMethod('pre', () => pMapper.beginSurfaces());
 p5.prototype.registerMethod('init', p5.prototype.initPMapperShader);
 
+// p5.prototype.registerMethod('pre', () => pMapper.beginSurfaces());
 p5.prototype.registerMethod('post', () => pMapper.displayControlPoints());
 p5.prototype.registerMethod('post', () => pMapper.updateEvents());
 
