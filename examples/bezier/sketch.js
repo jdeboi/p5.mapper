@@ -30,7 +30,6 @@ function draw() {
 function mousePressed() {
     // if shift is down while clicking, add anchor and controls points
     if (keyIsDown(SHIFT)) {
-        console.log("adding bezier point");
         bez.addSegment();
     }
     // if 'd' key is down when clicking, remove anchor

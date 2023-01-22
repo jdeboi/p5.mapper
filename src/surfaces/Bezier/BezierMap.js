@@ -1,5 +1,5 @@
 
-'use strict';
+
 // Credit:
 // https://geeksoutofthebox.com/2020/11/23/simons-bezier-editor-in-p5-js/
 
@@ -348,14 +348,14 @@ class BezierMap extends Surface {
 
 
     display(col = color('black')) {
+        noStroke();
+        fill(col);
+        this.displayBezier();
+
         if (isCalibratingMapper()) {
             strokeWeight(3);
             stroke(this.controlPointColor);
             fill(this.getMutedControlColor());
-        }
-        else {
-            noStroke();
-            fill(col);
         }
         this.displayBezier();
     }
@@ -367,14 +367,18 @@ class BezierMap extends Surface {
         if (!this.isReady()) {
             return;
         }
+        
         let buffer = this.pMapper.buffer;
         this.drawImage(img, buffer, x, y);
         this.displayGraphicsTexture(buffer);
 
-        // if (isCalibratingMapper()) {
-        //     this.display();
-        //     return;
-        // }
+        if (isCalibratingMapper()) {
+            strokeWeight(3);
+            stroke(this.controlPointColor);
+            fill(this.getMutedControlColor());
+            this.displayBezier();
+        }
+        
     }
 
     displaySketch(sketch, x = 0, y = 0) {
@@ -411,6 +415,7 @@ class BezierMap extends Surface {
         }
         // white bezier mask should be recreated every time 
         // shape changes (this.setDimensions())
+        this.setDimensions();
         let pMask = this.pMapper.bezBuffer;
         let theShader = this.pMapper.bezShader;
         let pOutput = this.pMapper.bufferWEBGL;
