@@ -41,11 +41,9 @@ function draw() {
 function keyPressed() {
     switch (key) {
         case 'c':
-            // toggle calibration
             pMapper.toggleCalibration();
             break;
         case 'f':
-            // toggle fullscreen
             let fs = fullscreen();
             fullscreen(!fs);
             break;

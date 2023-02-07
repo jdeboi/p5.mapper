@@ -1,5 +1,5 @@
 
-'use strict';
+
 // Credit:
 // https://geeksoutofthebox.com/2020/11/23/simons-bezier-editor-in-p5-js/
 
@@ -17,11 +17,11 @@ class BezierMap extends Surface {
 
         this.width = 100;
         this.height = 100;
-        this.contentImg = createImage(this.width, this.height);
-        this.maskImg = createImage(this.width, this.height);
-
-        this.contentImg.drawingContext.willReadFrequently = true;
-        this.maskImg.drawingContext.willReadFrequently = true;
+        // this.contentImg = createImage(this.width, this.height);
+        // this.maskImg = createImage(this.width, this.height);
+        
+        // this.contentImg.drawingContext.willReadFrequently = true;
+        // this.maskImg.drawingContext.willReadFrequently = true;
 
         this.initEmpty(numPoints);
 
@@ -96,8 +96,8 @@ class BezierMap extends Surface {
     }
 
     isReady() {
-        return this.pMapper.bezBuffer;
-        // return this.pMapper.bezBuffer && this.pMapper.bezierShaderLoaded;
+        // return this.pMapper.bezBuffer;
+        return this.pMapper.bezBuffer && this.pMapper.bezierShaderLoaded;
     }
 
     load(json) {
@@ -205,8 +205,8 @@ class BezierMap extends Surface {
         this.width = w + this.bufferSpace * 2;
         this.height = h + this.bufferSpace * 2;
 
-        this.contentImg.resize(this.width, this.height);
-        this.maskImg.resize(this.width, this.height);
+        // this.contentImg.resize(this.width, this.height);
+        // this.maskImg.resize(this.width, this.height);
 
         // TODO - MAJOR
         // editing the mask buffer of one bezier affects the others
@@ -350,14 +350,14 @@ class BezierMap extends Surface {
 
 
     display(col = color('black')) {
+        noStroke();
+        fill(col);
+        this.displayBezier();
+
         if (isCalibratingMapper()) {
             strokeWeight(3);
             stroke(this.controlPointColor);
             fill(this.getMutedControlColor());
-        }
-        else {
-            noStroke();
-            fill(col);
         }
         this.displayBezier();
     }
@@ -369,14 +369,18 @@ class BezierMap extends Surface {
         if (!this.isReady()) {
             return;
         }
+        
         let buffer = this.pMapper.buffer;
         this.drawImage(img, buffer, x, y);
         this.displayGraphicsTexture(buffer);
 
-        // if (isCalibratingMapper()) {
-        //     this.display();
-        //     return;
-        // }
+        if (isCalibratingMapper()) {
+            strokeWeight(3);
+            stroke(this.controlPointColor);
+            fill(this.getMutedControlColor());
+            this.displayBezier();
+        }
+        
     }
 
     displaySketch(sketch, x = 0, y = 0) {
@@ -408,8 +412,43 @@ class BezierMap extends Surface {
         // }
     }
 
+    displayGraphicsTexture(pBuffer) {
+        if (!this.isReady()) {
+            return;
+        }
+        // white bezier mask should be recreated every time 
+        // shape changes (this.setDimensions())
+        this.setDimensions();
+        let pMask = this.pMapper.bezBuffer;
+        let theShader = this.pMapper.bezShader;
+        let pOutput = this.pMapper.bufferWEBGL;
 
-    displayGraphicsTexture(pg) {
+        pOutput.shader(theShader);
+        theShader.setUniform("resolution", [width, height]);
+        theShader.setUniform("time", millis() / 1000.0);
+        theShader.setUniform("mouse", [mouseX, map(mouseY, 0, height, height, 0)]);
+        theShader.setUniform("texMask", pMask);
+        theShader.setUniform("texImg", pBuffer);
+      
+        pOutput.rect(0, 0, width, height);
+      
+
+        // // TODO - issue with createImage() and createGraphics()
+        // // leading to memory leak
+        const { x, y } = this.getBounds();
+        push();
+        translate(this.x, this.y);
+        translate(x - this.bufferSpace, y - this.bufferSpace);
+        image(pOutput, 0, 0);
+        pop();
+
+        if (isCalibratingMapper()) {
+            this.display();
+            return;
+        }
+    }
+
+    displayGraphicsTextureOG(pg) {
         // white bezier mask should be recreated every time 
         // shape changes (this.setDimensions())
         let maskPG = this.pMapper.bezBuffer;

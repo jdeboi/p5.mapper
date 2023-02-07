@@ -1,4 +1,4 @@
-'use strict';
+
 import Draggable from './Draggable';
 import { getRandomizedColor } from '../helpers/helpers';
 

@@ -10,6 +10,7 @@ class ProjectionMapper {
 
     constructor() {
         this.buffer;
+        this.bufferWEBGL;
         this.surfaces = [];
         this.lines = [];
         this.dragged = null;
@@ -20,8 +21,14 @@ class ProjectionMapper {
         this.moveMode = "ALL";
 
         this.bezBuffer = null;
-        // this.bezShader = null;
-        // this.bezierShaderLoaded = false;
+        this.bezShader = null;
+        this.bezierShaderLoaded = false;
+        this.lastFrame = -1;
+    }
+
+    preload(shader) {
+        this.bezShader = shader;
+        this.bezierShaderLoaded = true;
     }
 
     init(w, h) {
@@ -33,11 +40,10 @@ class ProjectionMapper {
             // warning about reading frequently?? 
             // https://stackoverflow.com/questions/74020182/canvas2d-multiple-readback-operations-using-getimagedata-are-faster-with-the-wi
             this.buffer = this.pInst.createGraphics(w, h);
+            this.bufferWEBGL = this.pInst.createGraphics(w, h, WEBGL);
             this.bezBuffer = this.pInst.createGraphics(w, h);
 
-            // TODO - when implementing shader
-            // let filePath = "../../src/surfaces/Bezier/shader"
-            // this.bezShader = this.pInst.loadShader(filePath + ".vert", filePath + ".frag", () => this.bezierShaderLoaded = true);
+
         }
     }
 
@@ -92,7 +98,8 @@ class ProjectionMapper {
         return s;
     }
 
-    createBezierMap(numPoints=5) {
+    createBezierMap(numPoints = 5) {
+        // why was it calling this twice??
         let bez = new BezierMap(this.surfaces.length, numPoints, this.pInst, this);
         this.surfaces.push(bez);
         return bez;
@@ -137,7 +144,7 @@ class ProjectionMapper {
     }
 
     checkSurfacesClick() {
-       
+
         // Check Lines
         // navigate the list backwards, as to select 
         for (let i = this.lines.length - 1; i >= 0; i--) {
@@ -162,7 +169,7 @@ class ProjectionMapper {
     }
 
     checkPointsClick() {
-        
+
         // Check Lines
         // navigate the list backwards, as to select 
         for (let i = this.lines.length - 1; i >= 0; i--) {
@@ -210,7 +217,7 @@ class ProjectionMapper {
     isDragging(surface) {
         // TODO - ??? why return true?
         // need to remember what I was doing here
-        
+
         if (this.dragged === null)
             return true;
         return this.dragged === surface;
@@ -252,7 +259,7 @@ class ProjectionMapper {
         if (json.lines) this.loadLines(json);
     }
 
- 
+
 
     loadSurfaces(json) {
         let jSurfaces = json.surfaces;
@@ -337,7 +344,7 @@ class ProjectionMapper {
 
     save(filename = "map.json") {
         console.log("saving all mapped surfaces to json...");
-        let json = { surfaces: [], lines: []}
+        let json = { surfaces: [], lines: [] }
 
         // for (const mask of this.masks) {
         //     json.masks.push(mask.getJson());
@@ -463,8 +470,14 @@ p5.prototype.isDragging = function (surface) {
 };
 
 
+p5.prototype.initPMapperShader = function () {
+    // TODO - is there a better way to do this?
+    // let filePath = "../../src/surfaces/Bezier/shader";
+    let filePath = "https://cdn.jsdelivr.net/gh/jdeboi/p5.mapper@latest/src/surfaces/Bezier/shader"
+    this.loadShader(filePath + ".vert", filePath + ".frag", (bezShader) => pMapper.preload(bezShader));
+}
 
-
+p5.prototype.registerMethod('init', p5.prototype.initPMapperShader);
 
 // p5.prototype.registerMethod('pre', () => pMapper.beginSurfaces());
 p5.prototype.registerMethod('post', () => pMapper.displayControlPoints());
