@@ -472,8 +472,9 @@ p5.prototype.isDragging = function (surface) {
 
 p5.prototype.initPMapperShader = function () {
     // TODO - is there a better way to do this?
-    // let filePath = "../../src/surfaces/Bezier/shader";
-    let filePath = "https://cdn.jsdelivr.net/gh/jdeboi/p5.mapper@latest/src/surfaces/Bezier/shader"
+    // const filePath = "../../src/surfaces/Bezier/shader";
+    // const filePath = "https://cdn.jsdelivr.net/gh/jdeboi/p5.mapper/src/surfaces/Bezier/shader"
+    const filePath = "https://cdn.statically.io/gh/jdeboi/p5.mapper/main/src/surfaces/Bezier/shader"
     this.loadShader(filePath + ".vert", filePath + ".frag", (bezShader) => pMapper.preload(bezShader));
 }
 
