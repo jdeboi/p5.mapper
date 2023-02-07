@@ -208,6 +208,8 @@ class BezierMap extends Surface {
         // this.contentImg.resize(this.width, this.height);
         // this.maskImg.resize(this.width, this.height);
 
+        // TODO - MAJOR
+        // editing the mask buffer of one bezier affects the others
         let bezBuffer = this.pMapper.bezBuffer;
         this.displayBezierPG(bezBuffer);
     }
@@ -385,6 +387,7 @@ class BezierMap extends Surface {
 
 
         let buffer = this.pMapper.buffer;
+        
         buffer.push();
 
         // TODO
@@ -449,6 +452,7 @@ class BezierMap extends Surface {
         // white bezier mask should be recreated every time 
         // shape changes (this.setDimensions())
         let maskPG = this.pMapper.bezBuffer;
+        this.displayBezierPG(maskPG);
         this.pgMask(pg, maskPG);
 
 
