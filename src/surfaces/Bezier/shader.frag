@@ -1,4 +1,4 @@
-// https://github.com/aferriss/p5jsShaderExamples
+// https://github.com/aferriss/p5jsShaderExamples 
 
 #ifdef GL_ES
 precision mediump float;
@@ -23,7 +23,7 @@ void main() {
   
   float gray = (maskT.r + maskT.g + maskT.b) / 3.0;
 
- 
+  // mask
   float threshR = imgT.r* gray ;
   float threshG = imgT.g* gray ;
   float threshB = imgT.b* gray ;
