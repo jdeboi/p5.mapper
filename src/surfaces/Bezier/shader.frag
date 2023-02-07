@@ -1,3 +1,5 @@
+// https://github.com/aferriss/p5jsShaderExamples
+
 #ifdef GL_ES
 precision mediump float;
 #endif
