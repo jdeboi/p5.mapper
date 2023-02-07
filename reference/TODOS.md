@@ -12,5 +12,5 @@
 ### Additional features
 * Create a GUI
   * move, open, close the box
-  * add quad, tri, line, mask
+  * add surfaces
   * change color (?)
