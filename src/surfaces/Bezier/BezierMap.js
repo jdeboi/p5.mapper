@@ -205,10 +205,7 @@ class BezierMap extends Surface {
         this.width = w + this.bufferSpace * 2;
         this.height = h + this.bufferSpace * 2;
 
-        // this.contentImg.resize(this.width, this.height);
-        // this.maskImg.resize(this.width, this.height);
-
-
+       
         // editing the mask buffer of one bezier affects the others
         let bezBuffer = this.pMapper.bezBuffer;
         this.displayBezierPG(bezBuffer);
@@ -237,15 +234,10 @@ class BezierMap extends Surface {
             y = mouseY - height / 2 - this.y;
         }
 
-        // console.log(this.getClosestAnchors(), this.points.length - 2);
         let closestAnchorId = this.getClosestAnchor();
         let nextClosestAnchorId = this.getNextClosestAnchor();
-        // this.toggleClosed();
-        // const prevAnchor = this.points[this.points.length - 2].pos;
-        // const prevControl = this.points[this.points.length - 1].pos;
-        const prevAnchor = this.points[closestAnchorId].pos;
+        
         const prevControl = this.points[closestAnchorId + 1].pos;
-        const nextAnchor = this.points[nextClosestAnchorId].pos;
         
         let nextControlID = nextClosestAnchorId-1;
         if (nextControlID == -1) {
@@ -354,16 +346,20 @@ class BezierMap extends Surface {
         fill(col);
         this.displayBezier();
 
+        this.displayCalib();
+        
+    }
+
+    displayCalib() {
         if (isCalibratingMapper()) {
             strokeWeight(3);
             stroke(this.controlPointColor);
             fill(this.getMutedControlColor());
+            this.displayBezier();
         }
-        this.displayBezier();
     }
 
-
-    displayTexture(img, x = 0, y = 0) {
+    displayTexture(img, x = 0, y = 0, tW = 0, tH = 0) {
 
 
         if (!this.isReady()) {
@@ -371,19 +367,14 @@ class BezierMap extends Surface {
         }
         
         let buffer = this.pMapper.buffer;
-        this.drawImage(img, buffer, x, y);
+        this.drawImage(img, buffer, x, y, tW, tH);
         this.displayGraphicsTexture(buffer);
 
-        if (isCalibratingMapper()) {
-            strokeWeight(3);
-            stroke(this.controlPointColor);
-            fill(this.getMutedControlColor());
-            this.displayBezier();
-        }
+        this.displayCalib();
         
     }
 
-    displaySketch(sketch, x = 0, y = 0) {
+    displaySketch(sketch, x = 0, y = 0, tW = 0, tH = 0) {
 
 
         let buffer = this.pMapper.buffer;
@@ -405,11 +396,6 @@ class BezierMap extends Surface {
         sketch(buffer);
         buffer.pop();
         this.displayGraphicsTexture(buffer);
-
-        // if (isCalibratingMapper()) {
-        //     this.display();
-        //     return;
-        // }
     }
 
     displayGraphicsTexture(pBuffer) {
@@ -433,8 +419,6 @@ class BezierMap extends Surface {
         pOutput.rect(0, 0, width, height);
       
 
-        // // TODO - issue with createImage() and createGraphics()
-        // // leading to memory leak
         const { x, y } = this.getBounds();
         push();
         translate(this.x, this.y);
@@ -442,75 +426,43 @@ class BezierMap extends Surface {
         image(pOutput, 0, 0);
         pop();
 
-        if (isCalibratingMapper()) {
-            this.display();
-            return;
-        }
+        this.displayCalib();
     }
 
-    displayGraphicsTextureOG(pg) {
-        // white bezier mask should be recreated every time 
-        // shape changes (this.setDimensions())
-        let maskPG = this.pMapper.bezBuffer;
-        this.displayBezierPG(maskPG);
-        this.pgMask(pg, maskPG);
+    // displayGraphicsTextureOG(pg) {
+    //     // white bezier mask should be recreated every time 
+    //     // shape changes (this.setDimensions())
+    //     let maskPG = this.pMapper.bezBuffer;
+    //     this.displayBezierPG(maskPG);
+    //     this.pgMask(pg, maskPG);
 
 
-        // TODO - issue with createImage() and createGraphics()
-        // leading to memory leak
-        const { x, y } = this.getBounds();
-        push();
-        translate(this.x, this.y);
-        translate(x - this.bufferSpace, y - this.bufferSpace);
-        image(this.contentImg, 0, 0);
-        pop();
+    //     // TODO - issue with createImage() and createGraphics()
+    //     // leading to memory leak
+    //     const { x, y } = this.getBounds();
+    //     push();
+    //     translate(this.x, this.y);
+    //     translate(x - this.bufferSpace, y - this.bufferSpace);
+    //     image(this.contentImg, 0, 0);
+    //     pop();
 
-        if (isCalibratingMapper()) {
-            this.display();
-            return;
-        }
-    }
-
-
-
-    // In the future when we can apply texture UVs to bezier vertices:
-    // https://github.com/processing/p5.js/issues/5699
-
-    // setShader(shader) {
-    //     this.theShader = shader;
-    // }
-
-    // displayTexture(tex) {
-    //     if (!this.isReady()) {
+    //     if (isCalibratingMapper()) {
+    //         this.display();
     //         return;
     //     }
-
-    //     let buffer = this.pMapper.buffer;
-    //     let bezBuffer = this.pMapper.bezBuffer;
-    //     let theShader = this.pMapper.bezShader;
-
-    //     this.drawImage(tex, buffer);
-
-    //     textureMode(NORMAL);
-    //     bezBuffer.shader(theShader);
-    //     theShader.setUniform('resolution', [buffer.width, buffer.height]);
-    //     theShader.setUniform('tex', buffer);
-
-    //     // rect gives us some geometry on the screen
-    //     bezBuffer.rect(0, 0, bezBuffer.width, bezBuffer.height);
-
-    //     texture(bezBuffer);
-    //     this.displayBezier();
     // }
 
-    drawImage(img, pg, x = 0, y = 0) {
+
+    drawImage(img, pg, x = 0, y = 0, tW = 0, tH = 0) {
         if (img && pg) {
+            if (tW <= 0) tW = img.width;
+            if (tH <= 0) tH = img.height;
             pg.push();
             pg.clear();
             // useful for WEBGL mode...
             // pg.translate(-pg.width / 2, -pg.height / 2);
             pg.translate(x, y);
-            pg.image(img, 0, 0);
+            pg.image(img, 0, 0, tW, tH);
             pg.pop();
         }
     }
@@ -531,11 +483,6 @@ class BezierMap extends Surface {
         }
         pg.endShape();
         pg.pop();
-
-        // if (isCalibratingMapper()) {
-        //     translate(0, 0, 3);
-        //     this.displayControls();
-        // }
     }
 
     displayBezier() {
@@ -549,11 +496,6 @@ class BezierMap extends Surface {
         }
         endShape();
 
-        // if (isCalibratingMapper()) {
-
-        //     translate(0, 0, 3);
-        //     this.displayControls();
-        // }
         pop();
     }
 
@@ -641,27 +583,7 @@ class BezierMap extends Surface {
     };
 
     // https://editor.p5js.org/mikima/sketches/SkEXyPvpf
-    pgMask(_content, _mask) {
-        //Create the mask as image
-        this.contentImg.copy(_content, 0, 0, this.contentImg.width, this.contentImg.height, 0, 0, this.contentImg.width, this.contentImg.height);
-
-        // clear mask before copying
-        this.maskImg.loadPixels();
-        for (var i = 0; i < this.maskImg.pixels.length; i += 4) {
-            this.maskImg.pixels[i] = 0;
-            this.maskImg.pixels[i + 1] = 0;
-            this.maskImg.pixels[i + 2] = 0;
-            this.maskImg.pixels[i + 3] = 0;
-        }
-        this.maskImg.updatePixels();
-
-        this.maskImg.copy(_mask, 0, 0, this.maskImg.width, this.maskImg.height, 0, 0, this.maskImg.width, this.maskImg.height);
-
-
-        this.contentImg.mask(this.maskImg);
-        // return the masked image
-        // return contentImg;
-    }
+   // pg_mask
 }
 
 

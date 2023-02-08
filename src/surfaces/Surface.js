@@ -34,21 +34,27 @@ class Surface extends Draggable {
     }
 
     // override with geometry specifics
-    displaySurface(isUV=true, tX = 0, tY = 0, tW = this.width, tH = this.height) {
+    displaySurface(isUV = true, tX = 0, tY = 0, tW = 1, tH = 1) {
         console.warn("should be overriding with specific geometry...");
     }
 
-    displaySketch(sketch) {
+    displaySketch(sketch, tX = 0, tY = 0, texW = 0, texH = 0) {
         this.buffer.clear();
         this.buffer.push();
         // draw all textures from top left of surface
         sketch(this.buffer);
         this.buffer.pop();
 
-        this.displayTexture(this.buffer);
+        this.displayTexture(this.buffer, tX, tY, texW, texH);
     }
 
-    displayTexture(tex, tX = 0, tY = 0, tW = this.width, tH = this.height) {
+    displayTexture(tex, tX = 0, tY = 0, texW = 0, texH = 0) {
+        if (!tex || tex.width <= 0 || tex.height <= 0) return;
+        if (texW <= 0) texW = tex.width;
+        if (texH <= 0) texH = tex.height;
+        const tW = tex.width / texW;
+        const tH = tex.height / texH;
+
         push();
         translate(this.x, this.y);
         texture(tex);
@@ -71,7 +77,7 @@ class Surface extends Draggable {
         pop();
     }
 
-    displayOutline(col=this.controlPointColor) {
+    displayOutline(col = this.controlPointColor) {
         strokeWeight(3);
         stroke(col);
         fill(this.getMutedControlColor());

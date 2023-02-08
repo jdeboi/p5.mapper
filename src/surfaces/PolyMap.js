@@ -40,12 +40,16 @@ class PolyMap extends Surface {
     }
 
 
-    displaySurface(isUV=true, tX = 0, tY = 0, tW = this.width, tH = this.height) {
+    displaySurface(isUV = true, tX = 0, tY = 0, tW = this.width, tH = this.height) {
         const { x, y } = this.getBounds(this.points);
         beginShape();
         for (const point of this.points) {
-            if (isUV)
-                vertex(point.x, point.y, point.x - x, point.y - y);
+            if (isUV) {
+                let dx = point.x - x;
+                let dy = point.y - y;
+                vertex(point.x, point.y, dx*tW-tX,dy*tH-tY);
+            }
+
             else
                 vertex(point.x, point.y);
         }

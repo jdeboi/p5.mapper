@@ -50,20 +50,26 @@ class TriMap extends CornerPinSurface {
 
 
 
-	displaySurface(isUV=true, tX = 0, tY = 0, tW = this.width, tH = this.height) {
+	displaySurface(isUV=true, tX = 0, tY = 0, tW = 1, tH = 1) {
 		beginShape();
-		let u = 0;
-		let v = this.height;
+		let u = 0-tX;
+		let v = this.height*tH-tY;
+		// u *= this.width/tW;
+		// v *= this.height/tH;
 		if (isUV) vertex(this.mesh[this.BL].x, this.mesh[this.BL].y, u, v);
 		else vertex(this.mesh[this.BL].x, this.mesh[this.BL].y);
 
-		u = this.width / 2;
-		v = 0;
+		u = this.width / 2*tW-tX;
+		v = 0-tY;
+		// u *= this.width/tW;
+		// v *= this.height/tH;
 		if (isUV) vertex(this.mesh[this.TP].x, this.mesh[this.TP].y, u, v);
 		else vertex(this.mesh[this.TP].x, this.mesh[this.TP].y);
 
-		u = this.width;
-		v = this.height;
+		u = this.width*tW-tX;
+		v = this.height*tH-tY;
+		// u *= this.width/tW;
+		// v *= this.height/tH;
 		if (isUV) vertex(this.mesh[this.BR].x, this.mesh[this.BR].y, u, v);
 		else vertex(this.mesh[this.BR].x, this.mesh[this.BR].y);
 

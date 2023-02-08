@@ -64,7 +64,7 @@ class QuadMap extends CornerPinSurface {
 
    
 
-    displaySurface(isUV=true, tX = 0, tY = 0, tW = this.width, tH = this.height) {
+    displaySurface(isUV=true, tX = 0, tY = 0, tW = 1, tH = 1) {
         beginShape(TRIANGLES);
         for (let x = 0; x < this.res - 1; x++) {
             for (let y = 0; y < this.res - 1; y++) {
@@ -96,7 +96,7 @@ class QuadMap extends CornerPinSurface {
     }
 
     getQuadTriangles(x, y, tX, tY, tW, tH) {
-
+       
         ////////////////////////////////
         let mp = this.mesh[(x) + (y) * this.res];
         this.getVertexUV(mp, tX, tY, tW, tH);
@@ -144,15 +144,9 @@ class QuadMap extends CornerPinSurface {
         vertex(mp.x, mp.y);
     }
 
-
     getVertexUV(mp, tX, tY, tW, tH) {
-        let u = map(mp.u, 0, 1, tX, tX + tW);
-        let v = map(mp.v, 0, 1, tY, tY + tH);
-        // let u = map(mp.u, 0, this.width, tX, tX + tW);
-        // let v = map(mp.v, 0, this.height, tY, tY + tH);
-        vertex(mp.x, mp.y, u, v);
+        vertex(mp.x, mp.y, mp.u*this.width*tW-tX, mp.v*this.height*tH-tY);
     }
-
 }
 
 export default QuadMap;
