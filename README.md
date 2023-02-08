@@ -6,7 +6,7 @@ p5.mapper is a projection mapping library for [p5.js](https://p5js.org/). This l
 
 
 ![projection mapped example](images/mapped_surfaces.png)
-![shapes example](images/shapes.png)
+![shapes example](images/shapes2.png)
 
 
 ## Examples
@@ -23,10 +23,10 @@ You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. In
 <script type="text/javascript" src="p5.mapper.min.js"></script>
 ```
   
-Alternatively, you can get the library through jsDelivr:  
+Alternatively, you can get the library through cdn:  
   
 ```html
-<script src="https://cdn.jsdelivr.net/gh/jdeboi/p5.mapper/dist/p5.mapper.min.js"></script>
+<script src="https://cdn.statically.io/gh/jdeboi/p5.mapper/main/dist/p5.mapper.min.js"></script>
 ```
 
 ## Acknowledgements

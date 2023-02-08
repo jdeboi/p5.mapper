@@ -40,10 +40,17 @@ function setup() {
 }
 
 function draw() {
-    background(100);
+    background(0);
     displayFrameRate();
 
     switch (mode) {
+        case "all":
+            lineMap.display(color('lime'));
+            quadMap.displayTexture(img);
+            triMap.displaySketch(rainbow);
+            bezMap.display(color('orange'));
+            polyMap.displaySketch(dots);
+            break;
         case "solid":
             lineMap.display(color('lime'));
             quadMap.display(color('red'));
@@ -83,6 +90,32 @@ function drawCoords(pg) {
     pg.pop();
 }
 
+function dots(pg) {
+    randomSeed(0);
+    pg.clear();
+    pg.push();
+    pg.background("pink");
+    pg.fill(255);
+    pg.noStroke();
+    for (let i = 0; i < 60; i++) {
+        pg.ellipse(random(width), random(height), random(10, 80));
+    }
+    pg.pop();
+}
+
+function rainbow(pg) {
+    pg.clear();
+    pg.push();
+    pg.background('pink');
+    pg.colorMode(HSB, 255);
+
+    for (let i = 0; i < 1000; i++) {
+        pg.stroke(i % 255, 255, 255);
+        pg.line(i, 0, i, 300);
+    }
+    pg.pop();
+}
+
 
 
 function keyPressed() {
@@ -105,7 +138,7 @@ function keyPressed() {
 }
 
 function initSelection() {
-    mode = "solid"
+    mode = "all"
     sel = createSelect();
     sel.position(10, 10);
     sel.option('solid');
