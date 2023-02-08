@@ -19,7 +19,7 @@ class BezierMap extends Surface {
         this.height = 100;
         // this.contentImg = createImage(this.width, this.height);
         // this.maskImg = createImage(this.width, this.height);
-        
+
         // this.contentImg.drawingContext.willReadFrequently = true;
         // this.maskImg.drawingContext.willReadFrequently = true;
 
@@ -205,7 +205,7 @@ class BezierMap extends Surface {
         this.width = w + this.bufferSpace * 2;
         this.height = h + this.bufferSpace * 2;
 
-       
+
         // editing the mask buffer of one bezier affects the others
         let bezBuffer = this.pMapper.bezBuffer;
         this.displayBezierPG(bezBuffer);
@@ -236,10 +236,10 @@ class BezierMap extends Surface {
 
         let closestAnchorId = this.getClosestAnchor();
         let nextClosestAnchorId = this.getNextClosestAnchor();
-        
+
         const prevControl = this.points[closestAnchorId + 1].pos;
-        
-        let nextControlID = nextClosestAnchorId-1;
+
+        let nextControlID = nextClosestAnchorId - 1;
         if (nextControlID == -1) {
             nextControlID = this.points.length - 1;
         }
@@ -247,13 +247,13 @@ class BezierMap extends Surface {
 
         const anchor = createVector(x, y);
         const aP = new BezierPoint(anchor.x, anchor.y, this);
-        
-        const control1 = p5.Vector.lerp(prevControl, anchor, 1-.3);
+
+        const control1 = p5.Vector.lerp(prevControl, anchor, 1 - .3);
         const control2 = p5.Vector.lerp(anchor, nextControl, 0.3);
-        
+
         const cp1 = new BezierPoint(control1.x, control1.y, this);
         const cp2 = new BezierPoint(control2.x, control2.y, this);
-       
+
 
         this.points.splice(closestAnchorId + 2, 0, cp1, aP, cp2);
 
@@ -347,7 +347,7 @@ class BezierMap extends Surface {
         this.displayBezier();
 
         this.displayCalib();
-        
+
     }
 
     displayCalib() {
@@ -359,26 +359,26 @@ class BezierMap extends Surface {
         }
     }
 
-    displayTexture(img, x = 0, y = 0, tW = 0, tH = 0) {
+    displayTexture(img, x = 0, y = 0, texW = 0, texH = 0) {
 
 
         if (!this.isReady()) {
             return;
         }
-        
+
         let buffer = this.pMapper.buffer;
-        this.drawImage(img, buffer, x, y, tW, tH);
+        this.drawImage(img, buffer, x, y, texW, texH);
         this.displayGraphicsTexture(buffer);
 
         this.displayCalib();
-        
+
     }
 
     displaySketch(sketch, x = 0, y = 0, tW = 0, tH = 0) {
 
 
         let buffer = this.pMapper.buffer;
-        
+
         buffer.push();
 
         // TODO
@@ -399,6 +399,8 @@ class BezierMap extends Surface {
     }
 
     displayGraphicsTexture(pBuffer) {
+       
+
         if (!this.isReady()) {
             return;
         }
@@ -409,15 +411,16 @@ class BezierMap extends Surface {
         let theShader = this.pMapper.bezShader;
         let pOutput = this.pMapper.bufferWEBGL;
 
+        pOutput.setAttributes('alpha', true);
         pOutput.shader(theShader);
         theShader.setUniform("resolution", [width, height]);
         theShader.setUniform("time", millis() / 1000.0);
         theShader.setUniform("mouse", [mouseX, map(mouseY, 0, height, height, 0)]);
         theShader.setUniform("texMask", pMask);
         theShader.setUniform("texImg", pBuffer);
-      
+
         pOutput.rect(0, 0, width, height);
-      
+
 
         const { x, y } = this.getBounds();
         push();
@@ -429,40 +432,17 @@ class BezierMap extends Surface {
         this.displayCalib();
     }
 
-    // displayGraphicsTextureOG(pg) {
-    //     // white bezier mask should be recreated every time 
-    //     // shape changes (this.setDimensions())
-    //     let maskPG = this.pMapper.bezBuffer;
-    //     this.displayBezierPG(maskPG);
-    //     this.pgMask(pg, maskPG);
 
-
-    //     // TODO - issue with createImage() and createGraphics()
-    //     // leading to memory leak
-    //     const { x, y } = this.getBounds();
-    //     push();
-    //     translate(this.x, this.y);
-    //     translate(x - this.bufferSpace, y - this.bufferSpace);
-    //     image(this.contentImg, 0, 0);
-    //     pop();
-
-    //     if (isCalibratingMapper()) {
-    //         this.display();
-    //         return;
-    //     }
-    // }
-
-
-    drawImage(img, pg, x = 0, y = 0, tW = 0, tH = 0) {
+    drawImage(img, pg, x = 0, y = 0, texW = 0, texH = 0) {
         if (img && pg) {
-            if (tW <= 0) tW = img.width;
-            if (tH <= 0) tH = img.height;
+            if (texH <= 0) texW = img.width;
+            if (texH <= 0) texH = img.height;
             pg.push();
             pg.clear();
             // useful for WEBGL mode...
             // pg.translate(-pg.width / 2, -pg.height / 2);
             pg.translate(x, y);
-            pg.image(img, 0, 0, tW, tH);
+            pg.image(img, 0, 0, texW, texH);
             pg.pop();
         }
     }
@@ -476,6 +456,7 @@ class BezierMap extends Surface {
         pg.translate(this.bufferSpace, this.bufferSpace);
 
         pg.beginShape();
+
         pg.vertex(this.points[0].pos.x, this.points[0].pos.y);
         for (let i = 0; i < this.numSegments(); i++) {
             const seg = this.getSegment(i);
@@ -535,7 +516,7 @@ class BezierMap extends Surface {
                 col = color(255, 200, 200);
             }
             else if (i == nextIndex) {
-                col = color(255,200, 200);
+                col = color(255, 200, 200);
             }
             p.displayControlCircle(col);
             i++;
@@ -583,7 +564,7 @@ class BezierMap extends Surface {
     };
 
     // https://editor.p5js.org/mikima/sketches/SkEXyPvpf
-   // pg_mask
+    // pg_mask
 }
 
 

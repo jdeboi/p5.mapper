@@ -57,8 +57,8 @@ class Surface extends Draggable {
 
         push();
         translate(this.x, this.y);
-        texture(tex);
         textureMode(IMAGE);
+        texture(tex);
         this.displaySurface(true, tX, tY, tW, tH);
 
         if (isCalibratingMapper()) {
