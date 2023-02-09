@@ -41,6 +41,7 @@ class Surface extends Draggable {
     displaySketch(sketch, tX = 0, tY = 0, texW = 0, texH = 0) {
         this.buffer.clear();
         this.buffer.push();
+        // this.buffer.translate(-this.buffer.width/2, -this.buffer.height/2);
         // draw all textures from top left of surface
         sketch(this.buffer);
         this.buffer.pop();

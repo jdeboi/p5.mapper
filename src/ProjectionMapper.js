@@ -10,6 +10,7 @@ class ProjectionMapper {
 
     constructor() {
         this.buffer;
+        // for pOutput bezier
         this.bufferWEBGL;
         this.surfaces = [];
         this.lines = [];
@@ -33,17 +34,15 @@ class ProjectionMapper {
 
     init(w, h) {
         if (this.bezBuffer == null) {
-            // TODO
-            // should these be WEBGL??
+
+            this.bufferWEBGL = this.pInst.createGraphics(w, h, WEBGL);
 
             // TODO
+            // should these be WEBGL??
             // warning about reading frequently?? 
             // https://stackoverflow.com/questions/74020182/canvas2d-multiple-readback-operations-using-getimagedata-are-faster-with-the-wi
             this.buffer = this.pInst.createGraphics(w, h);
-            this.bufferWEBGL = this.pInst.createGraphics(w, h, WEBGL);
             this.bezBuffer = this.pInst.createGraphics(w, h);
-
-
         }
     }
 
