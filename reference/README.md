@@ -13,9 +13,9 @@ const pMapper = createProjectionMapper(this);
 Methods to create mapping surfaces:
 * `pMapper.createQuadMap(width, height, [resolution])`
 * `pMapper.createTriMap(width, height, [resolution])`
-* `pMapper.createPolyMap([numPoints])`{:.javascript}
-* `pMapper.createBezierMap([numPoints])`{:.javascript}
-* `pMapper.createLineMap([x0], [y0], [x1], [y1])`{:.javascript}
+* `pMapper.createPolyMap([numPoints])`
+* `pMapper.createBezierMap([numPoints])`
+* `pMapper.createLineMap([x0], [y0], [x1], [y1])`
 
 
 Get the value of an oscillator (useful for LineMap animations):
@@ -23,8 +23,8 @@ Get the value of an oscillator (useful for LineMap animations):
   * (bascially a sine wave helper- returns a number 0-1 that oscillates with a `seconds`-long period and an optional phase, `offset`
   
 Saving / loading methods:
-* `pMapper.save([filename.json])`{:.javascript}
-* `pMapper.load([directory/filename.json])`{:.javascript}
+* `pMapper.save([filename.json])`
+* `pMapper.load([directory/filename.json])`
   
 Calibrating methods:
 * `pMapper.startCalibration()`
