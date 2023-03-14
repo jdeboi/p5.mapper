@@ -1,7 +1,8 @@
 
 class Draggable {
     
-    constructor(x=0, y=0) {
+    constructor(pInst, x=0, y=0) {
+        this.pInst = pInst;
         this.x = x;
         this.y = y;
         this.clickX = 0;
@@ -13,13 +14,13 @@ class Draggable {
     startDrag() {
         this.xStartDrag = this.x;
         this.yStartDrag = this.y;
-        this.clickX = mouseX;
-        this.clickY = mouseY;
+        this.clickX = this.pInst.mouseX;
+        this.clickY = this.pInst.mouseY;
     }
 
     moveTo() {
-        this.x = this.xStartDrag + mouseX - this.clickX;
-        this.y = this.yStartDrag + mouseY - this.clickY;
+        this.x = this.xStartDrag + this.pInst.mouseX - this.clickX;
+        this.y = this.yStartDrag + this.pInst.mouseY - this.clickY;
     }
 
 }

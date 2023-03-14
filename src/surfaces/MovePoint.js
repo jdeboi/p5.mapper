@@ -1,7 +1,8 @@
 import { isWEBGL } from '../helpers/helpers';
 class MovePoint {
 
-    constructor(parent, x, y) {
+    constructor(parent, x, y, pInst) {
+        this.pInst = pInst;
         this.x = x;
         this.type = "CPOINT";
         this.y = y;
@@ -14,19 +15,19 @@ class MovePoint {
         this.clickX = 0;
         this.clickY = 0;
 
-        this.col = color(0, 255, 255);
+        this.col = this.pInst.color(0, 255, 255);
     }
 
 
 
     isMouseOver() {
-        let mx = mouseX;
-        let my = mouseY;
-        if (isWEBGL()) {
-            mx -= width / 2;
-            my -= height / 2;
+        let mx = this.pInst.mouseX;
+        let my = this.pInst.mouseY;
+        if (isWEBGL(this.pInst)) {
+            mx -= this.pInst.width / 2;
+            my -= this.pInst.height / 2;
         }
-        let d = dist(mx, my, this.x + this.parent.x, this.y + this.parent.y);
+        let d = this.pInst.dist(mx, my, this.x + this.parent.x, this.y + this.parent.y);
         return (d < this.r);
     }
 
@@ -38,18 +39,18 @@ class MovePoint {
     startDrag() {
         this.xStartDrag = this.x;
         this.yStartDrag = this.y;
-        this.clickX = mouseX;
-        this.clickY = mouseY;
+        this.clickX = this.pInst.mouseX;
+        this.clickY = this.pInst.mouseY;
     }
 
     moveToMouse() {
-        this.x = mouseX - width / 2;
-        this.y = mouseY - height / 2;
+        this.x = this.pInst.mouseX - this.pInst.width / 2;
+        this.y = this.pInst.mouseY - this.pInst.height / 2;
     }
 
     moveTo() {
-        this.x = this.xStartDrag + mouseX - this.clickX;
-        this.y = this.yStartDrag + mouseY - this.clickY;
+        this.x = this.xStartDrag + this.pInst.mouseX - this.clickX;
+        this.y = this.yStartDrag + this.pInst.mouseY - this.clickY;
     }
 
     setControlPoint(cp) {
@@ -62,22 +63,28 @@ class MovePoint {
     }
 
     display(col = this.col) {
-        if (isMovingPoints()) {
+        if (this.pInst.isMovingPoints()) {
             let c = col;
             if (this.isMouseOver()) {
-                c = color(255);
+                c = this.pInst.color(255);
             }
-            // c = color(255);
-            push();
-            translate(0, 0, 5);
-            stroke(c);
-            strokeWeight(2);
-            noFill();
 
-            ellipse(this.x, this.y, this.r * 2);
-            fill(c);
-            ellipse(this.x, this.y, this.r);
-            pop();
+            let isLogo = false;
+            if (isLogo) {
+                c = this.pInst.color(255);
+                this.r = 20;
+            }
+
+            this.pInst.push();
+            this.pInst.translate(0, 0, 5);
+            this.pInst.stroke(c);
+            this.pInst.strokeWeight(2);
+            this.pInst.noFill();
+
+            this.pInst.ellipse(this.x, this.y, this.r * 2);
+            this.pInst.fill(c);
+            this.pInst.ellipse(this.x, this.y, this.r);
+            this.pInst.pop();
         }
 
     }

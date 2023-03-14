@@ -3,8 +3,8 @@ import CornerPinSurface from './CornerPinSurface';
 class TriMap extends CornerPinSurface {
 
 
-	constructor(id, w, h, res, buffer) {
-		super(id, w, h, res, "TRI", buffer);
+	constructor(id, w, h, res, buffer, pInst) {
+		super(id, w, h, res, "TRI", buffer, pInst);
 
 		this.setTriMesh();
 	}
@@ -14,8 +14,8 @@ class TriMap extends CornerPinSurface {
 	 * Returns true if the mouse is over this surface, false otherwise.
 	 */
 	isMouseOver() {
-		let mx = mouseX - width / 2;
-		let my = mouseY - height / 2;
+		let mx = this.pInst.mouseX - this.pInst.width / 2;
+		let my = this.pInst.mouseY - this.pInst.height / 2;
 		if (this.isPointInTriangle(mx - this.x, my - this.y, this.mesh[this.TP],
 			this.mesh[this.BL], this.mesh[this.BR]))
 			return true;
@@ -51,29 +51,29 @@ class TriMap extends CornerPinSurface {
 
 
 	displaySurface(isUV=true, tX = 0, tY = 0, tW = 1, tH = 1) {
-		beginShape();
+		this.pInst.beginShape();
 		let u = 0-tX;
 		let v = this.height*tH-tY;
 		// u *= this.width/tW;
 		// v *= this.height/tH;
-		if (isUV) vertex(this.mesh[this.BL].x, this.mesh[this.BL].y, u, v);
-		else vertex(this.mesh[this.BL].x, this.mesh[this.BL].y);
+		if (isUV) this.pInst.vertex(this.mesh[this.BL].x, this.mesh[this.BL].y, u, v);
+		else this.pInst.vertex(this.mesh[this.BL].x, this.mesh[this.BL].y);
 
 		u = this.width / 2*tW-tX;
 		v = 0-tY;
 		// u *= this.width/tW;
 		// v *= this.height/tH;
-		if (isUV) vertex(this.mesh[this.TP].x, this.mesh[this.TP].y, u, v);
-		else vertex(this.mesh[this.TP].x, this.mesh[this.TP].y);
+		if (isUV) this.pInst.vertex(this.mesh[this.TP].x, this.mesh[this.TP].y, u, v);
+		else this.pInst.vertex(this.mesh[this.TP].x, this.mesh[this.TP].y);
 
 		u = this.width*tW-tX;
 		v = this.height*tH-tY;
 		// u *= this.width/tW;
 		// v *= this.height/tH;
-		if (isUV) vertex(this.mesh[this.BR].x, this.mesh[this.BR].y, u, v);
-		else vertex(this.mesh[this.BR].x, this.mesh[this.BR].y);
+		if (isUV) this.pInst.vertex(this.mesh[this.BR].x, this.mesh[this.BR].y, u, v);
+		else this.pInst.vertex(this.mesh[this.BR].x, this.mesh[this.BR].y);
 
-		endShape(CLOSE);
+		this.pInst.endShape(this.pInst.CLOSE);
 
 		
 	}

@@ -9,28 +9,18 @@ import Surface from '../Surface';
 class BezierMap extends Surface {
 
 
-    constructor(id, numPoints, pInst, pMapper) {
-        super(id, 0, 0, 0, "BEZ", pInst.buffer);
-        this.pInst = pInst;
+    constructor(id, numPoints, pMapper, pInst) {
+        super(id, 0, 0, 0, "BEZ", pMapper.buffer, pInst);
         this.pMapper = pMapper;
         this.bufferSpace = 10;
 
         this.width = 100;
         this.height = 100;
-        // this.contentImg = createImage(this.width, this.height);
-        // this.maskImg = createImage(this.width, this.height);
-
-        // this.contentImg.drawingContext.willReadFrequently = true;
-        // this.maskImg.drawingContext.willReadFrequently = true;
-
+  
         this.initEmpty(numPoints);
 
         this.mode = "FREE";
         this.r = 8;
-
-        // let filePath = "../../src/surfaces/Bezier/shader."
-        // this.theShader = loadShader(filePath + "vert", filePath + "frag")
-
 
     }
 
@@ -41,33 +31,33 @@ class BezierMap extends Surface {
         let r = 100;
         let lineW = 50;
 
-        let x = r * cos(0);
-        let y = r * sin(0);
-        let x0 = lineW * cos(Math.PI / 2);
-        let y0 = -lineW * sin(Math.PI / 2);
+        let x = r * Math.cos(0);
+        let y = r * Math.sin(0);
+        let x0 = lineW * Math.cos(Math.PI / 2);
+        let y0 = -lineW * Math.sin(Math.PI / 2);
         let x1 = -x0;
         let y1 = -y0;
-        this.points.push(new BezierPoint(x, y, this));
-        this.points.push(new BezierPoint(x + x1, y + y1, this));
+        this.points.push(new BezierPoint(x, y, this, this.pInst));
+        this.points.push(new BezierPoint(x + x1, y + y1, this, this.pInst));
 
         for (let i = 1; i < numAnchors; i++) {
             let ang = i * 2 * Math.PI / numAnchors;
 
-            let x = r * cos(ang);
-            let y = r * sin(ang);
-            let x0 = -lineW * cos(Math.PI / 2 - ang);
-            let y0 = lineW * sin(Math.PI / 2 - ang);
+            let x = r * Math.cos(ang);
+            let y = r * Math.sin(ang);
+            let x0 = -lineW * Math.cos(Math.PI / 2 - ang);
+            let y0 = lineW * Math.sin(Math.PI / 2 - ang);
             let x1 = -x0;
             let y1 = -y0;
-            this.points.push(new BezierPoint(x + x1, y + y1, this));
-            this.points.push(new BezierPoint(x, y, this));
+            this.points.push(new BezierPoint(x + x1, y + y1, this, this.pInst));
+            this.points.push(new BezierPoint(x, y, this, this.pInst));
 
-            this.points.push(new BezierPoint(x + x0, y + y0, this));
+            this.points.push(new BezierPoint(x + x0, y + y0, this, this.pInst));
 
         }
-        this.points.push(new BezierPoint(x + x0, y + y0, this));
+        this.points.push(new BezierPoint(x + x0, y + y0, this, this.pInst));
         // 
-        // this.points.push(new BezierPoint( r * cos(ang2),  r * sin(ang2), this));
+        // this.points.push(new BezierPoint( r * Math.cos(ang2),  r * sin(ang2), this));
         // 
         this.closed = true;
         this.auto = false;
@@ -96,7 +86,6 @@ class BezierMap extends Surface {
     }
 
     isReady() {
-        // return this.pMapper.bezBuffer;
         return this.pMapper.bezBuffer && this.pMapper.bezierShaderLoaded;
     }
 
@@ -107,7 +96,7 @@ class BezierMap extends Surface {
         this.closed = json.closed;
         this.auto = json.auto;
         for (const p of json.points) {
-            this.points.push(new BezierPoint(p.x, p.y, this));
+            this.points.push(new BezierPoint(p.x, p.y, this, this.pInst));
         }
         this.setDimensions();
     }
@@ -191,9 +180,9 @@ class BezierMap extends Surface {
             const anchor2 = this.points[0].pos;
             const control2 = this.points[1].pos;
             const newControl1 = p5.Vector.lerp(anchor1, control1, -1);
-            const cp1 = new BezierPoint(newControl1.x, newControl1.y, this);
+            const cp1 = new BezierPoint(newControl1.x, newControl1.y, this, this.pInst);
             const newControl2 = p5.Vector.lerp(anchor2, control2, -1);
-            const cp2 = new BezierPoint(newControl2.x, newControl2.y, this)
+            const cp2 = new BezierPoint(newControl2.x, newControl2.y, this, this.pInst)
             this.points.push(cp1, cp2);
         }
 
@@ -212,7 +201,7 @@ class BezierMap extends Surface {
     }
 
     numSegments() {
-        return floor(this.points.length / 3);
+        return Math.floor(this.points.length / 3);
     }
 
     getSegment(i) {
@@ -228,10 +217,10 @@ class BezierMap extends Surface {
 
     addSegment(x, y) {
         if (!x) {
-            x = mouseX - width / 2 - this.x;
+            x = this.pInst.mouseX - this.pInst.width / 2 - this.x;
         }
         if (!y) {
-            y = mouseY - height / 2 - this.y;
+            y = this.pInst.mouseY - this.pInst.height / 2 - this.y;
         }
 
         let closestAnchorId = this.getClosestAnchor();
@@ -245,14 +234,14 @@ class BezierMap extends Surface {
         }
         const nextControl = this.points[nextControlID].pos;
 
-        const anchor = createVector(x, y);
-        const aP = new BezierPoint(anchor.x, anchor.y, this);
+        const anchor = this.pInst.createVector(x, y);
+        const aP = new BezierPoint(anchor.x, anchor.y, this, this.pInst);
 
         const control1 = p5.Vector.lerp(prevControl, anchor, 1 - .3);
         const control2 = p5.Vector.lerp(anchor, nextControl, 0.3);
 
-        const cp1 = new BezierPoint(control1.x, control1.y, this);
-        const cp2 = new BezierPoint(control2.x, control2.y, this);
+        const cp1 = new BezierPoint(control1.x, control1.y, this, this.pInst);
+        const cp2 = new BezierPoint(control2.x, control2.y, this, this.pInst);
 
 
         this.points.splice(closestAnchorId + 2, 0, cp1, aP, cp2);
@@ -273,8 +262,8 @@ class BezierMap extends Surface {
     }
 
     getClosestAnchor() {
-        let mx = mouseX - width / 2 - this.x;
-        let my = mouseY - height / 2 - this.y;
+        let mx = this.pInst.mouseX - this.pInst.width / 2 - this.x;
+        let my = this.pInst.mouseY - this.pInst.height / 2 - this.y;
         let minDis = Infinity;
         let index = 0;
         for (let i = 0; i < this.points.length; i += 3) {
@@ -286,8 +275,8 @@ class BezierMap extends Surface {
                 var p0 = this.points[i];
                 var p1 = this.points[i + 3];
             }
-            let d0 = dist(p0.pos.x, p0.pos.y, mx, my);
-            let d1 = dist(p1.pos.x, p1.pos.y, mx, my);
+            let d0 = this.pInst.dist(p0.pos.x, p0.pos.y, mx, my);
+            let d1 = this.pInst.dist(p1.pos.x, p1.pos.y, mx, my);
             if (d0 + d1 < minDis) {
                 minDis = d0 + d1;
                 index = i;
@@ -341,9 +330,9 @@ class BezierMap extends Surface {
     }
 
 
-    display(col = color('black')) {
-        noStroke();
-        fill(col);
+    display(col = this.pInst.color('black')) {
+        this.pInst.noStroke();
+        this.pInst.fill(col);
         this.displayBezier();
 
         this.displayCalib();
@@ -351,10 +340,10 @@ class BezierMap extends Surface {
     }
 
     displayCalib() {
-        if (isCalibratingMapper()) {
-            strokeWeight(3);
-            stroke(this.controlPointColor);
-            fill(this.getMutedControlColor());
+        if (this.pInst.isCalibratingMapper()) {
+            this.pInst.strokeWeight(3);
+            this.pInst.stroke(this.controlPointColor);
+            this.pInst.fill(this.getMutedControlColor());
             this.displayBezier();
         }
     }
@@ -408,26 +397,91 @@ class BezierMap extends Surface {
         // shape changes (this.setDimensions())
         this.setDimensions();
         let pMask = this.pMapper.bezBuffer;
-        let theShader = this.pMapper.bezShader;
+        // let theShader = this.pMapper.bezShader;
         let pOutput = this.pMapper.bufferWEBGL;
+
+        const frag = `// https://github.com/aferriss/p5jsShaderExamples 
+        #ifdef GL_ES
+        precision mediump float;
+        #endif
+        
+        // grab texcoords from vert shader
+        varying vec2 vTexCoord;
+        
+        // our texture coming from p5
+        uniform sampler2D texMask;
+        uniform sampler2D texImg;
+        
+        
+        void main() {
+          vec2 uv = vTexCoord;
+          
+          // the texture is loaded upside down and backwards by default so lets flip it
+          uv.y = 1.0 - uv.y;
+          
+          vec4 maskT = texture2D(texMask, uv);
+          vec4 imgT = texture2D(texImg, uv);
+          
+          float gray = (maskT.r + maskT.g + maskT.b) / 3.0;
+        
+          // mask
+          float threshR = imgT.r* gray ;
+          float threshG = imgT.g* gray ;
+          float threshB = imgT.b* gray ;
+          vec3 thresh = vec3(threshR, threshG, threshB);
+        
+          // render the output
+          gl_FragColor = vec4(thresh, gray);
+        }`;
+        const vert=`// vert file and comments from adam ferriss
+        // https://github.com/aferriss/p5jsShaderExamples
+        
+        #ifdef GL_ES
+        precision mediump float;
+        #endif
+        
+        // our vertex data
+        attribute vec3 aPosition;
+        attribute vec2 aTexCoord;
+        
+        // lets get texcoords just for fun! 
+        varying vec2 vTexCoord;
+        
+        void main() {
+          // copy the texcoords
+          vTexCoord = aTexCoord;
+        
+          // copy the position data into a vec4, using 1.0 as the w component
+          vec4 positionVec4 = vec4(aPosition, 1.0);
+          positionVec4.xy = positionVec4.xy * 2.0 - 1.0;
+        
+          // send the vertex information on to the fragment shader
+          gl_Position = positionVec4;
+        }`;
+       
+        // TODO - no need to create this every time... (?)
+        // for some reason didn't work in the ProjectionMapper class...
+        let theShader = pOutput.createShader(vert, frag);
 
         pOutput.setAttributes('alpha', true);
         pOutput.shader(theShader);
-        theShader.setUniform("resolution", [width, height]);
+        theShader.setUniform("resolution", [this.pInst.width, this.pInst.height]);
         theShader.setUniform("time", millis() / 1000.0);
-        theShader.setUniform("mouse", [mouseX, map(mouseY, 0, height, height, 0)]);
+        theShader.setUniform("mouse", [this.pInst.mouseX, this.pInst.map(this.pInst.mouseY, 0, this.pInst.height, this.pInst.height, 0)]);
         theShader.setUniform("texMask", pMask);
         theShader.setUniform("texImg", pBuffer);
 
-        pOutput.rect(0, 0, width, height);
+        pOutput.rect(0, 0, this.pInst.width, this.pInst.height);
 
 
         const { x, y } = this.getBounds();
-        push();
-        translate(this.x, this.y);
-        translate(x - this.bufferSpace, y - this.bufferSpace);
-        image(pOutput, 0, 0);
-        pop();
+        this.pInst.push();
+        this.pInst.translate(this.x, this.y);
+        this.pInst.translate(x - this.bufferSpace, y - this.bufferSpace);
+        this.pInst.image(pOutput, 0, 0);
+        
+        this.pInst.pop();
+
 
         this.displayCalib();
     }
@@ -467,42 +521,42 @@ class BezierMap extends Surface {
     }
 
     displayBezier() {
-        push();
-        translate(this.x, this.y);
-        beginShape();
-        vertex(this.points[0].pos.x, this.points[0].pos.y);
+        this.pInst.push();
+        this.pInst.translate(this.x, this.y);
+        this.pInst.beginShape();
+        this.pInst.vertex(this.points[0].pos.x, this.points[0].pos.y);
         for (let i = 0; i < this.numSegments(); i++) {
             const seg = this.getSegment(i);
-            bezierVertex(seg[1].pos.x, seg[1].pos.y, seg[2].pos.x, seg[2].pos.y, seg[3].pos.x, seg[3].pos.y);
+            this.pInst.bezierVertex(seg[1].pos.x, seg[1].pos.y, seg[2].pos.x, seg[2].pos.y, seg[3].pos.x, seg[3].pos.y);
         }
-        endShape();
+        this.pInst.endShape();
 
-        pop();
+        this.pInst.pop();
     }
 
 
 
     displayControlPoints() {
-        if (isMovingPoints()) {
+        if (this.pInst.isMovingPoints()) {
             let lineC = this.controlPointColor;
 
-            push();
-            translate(this.x, this.y);
+            this.pInst.push();
+            this.pInst.translate(this.x, this.y);
             if (!this.auto) {
                 this.displayControlLines(lineC);
             }
-            this.displayControlCircles(color('red'));
-            pop();
+            this.displayControlCircles(this.pInst.color('red'));
+            this.pInst.pop();
         }
     }
 
     displayControlLines(strokeC) {
-        strokeWeight(2);
+        this.pInst.strokeWeight(2);
         for (let i = 0; i < this.numSegments(); i++) {
             const seg = this.getSegment(i);
-            stroke(strokeC);
-            line(seg[0].pos.x, seg[0].pos.y, seg[1].pos.x, seg[1].pos.y);
-            line(seg[2].pos.x, seg[2].pos.y, seg[3].pos.x, seg[3].pos.y);
+            this.pInst.stroke(strokeC);
+            this.pInst.line(seg[0].pos.x, seg[0].pos.y, seg[1].pos.x, seg[1].pos.y);
+            this.pInst.line(seg[2].pos.x, seg[2].pos.y, seg[3].pos.x, seg[3].pos.y);
         }
     }
 
@@ -513,10 +567,10 @@ class BezierMap extends Surface {
         for (const p of this.points) {
             let col = anchorCol;
             if (i == index) {
-                col = color(255, 200, 200);
+                col = this.pInst.color(255, 200, 200);
             }
             else if (i == nextIndex) {
-                col = color(255, 200, 200);
+                col = this.pInst.color(255, 200, 200);
             }
             p.displayControlCircle(col);
             i++;
@@ -530,8 +584,8 @@ class BezierMap extends Surface {
             let steps = 4;
             for (let i = 0; i <= steps; i++) {
                 let t = i / steps;
-                let x = bezierPoint(seg[0].pos.x, seg[1].pos.x, seg[2].pos.x, seg[3].pos.x, t);
-                let y = bezierPoint(seg[0].pos.y, seg[1].pos.y, seg[2].pos.y, seg[3].pos.y, t);
+                let x = this.pInst.bezierPoint(seg[0].pos.x, seg[1].pos.x, seg[2].pos.x, seg[3].pos.x, t);
+                let y = this.pInst.bezierPoint(seg[0].pos.y, seg[1].pos.y, seg[2].pos.y, seg[3].pos.y, t);
                 polyline.push({ x, y });
             }
         }
@@ -541,8 +595,8 @@ class BezierMap extends Surface {
     //(x0,y0) is start point; (x1,y1),(x2,y2) is control points; (x3,y3) is end point.
     isMouseOver() {
         let polyline = this.getPolyline();
-        let mx = mouseX - width / 2 - this.x;
-        let my = mouseY - height / 2 - this.y;
+        let mx = this.pInst.mouseX - this.pInst.width / 2 - this.x;
+        let my = this.pInst.mouseY - this.pInst.height / 2 - this.y;
         return this.inside(mx, my, polyline);
     }
 

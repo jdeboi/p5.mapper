@@ -4,16 +4,16 @@ import CornerPinSurface from './CornerPinSurface';
 
 class QuadMap extends CornerPinSurface {
 
-    constructor(id, w, h, res, buffer) {
-        super(id, w, h, res, "QUAD", buffer);
+    constructor(id, w, h, res, buffer, pInst) {
+        super(id, w, h, res, "QUAD", buffer, pInst);
     }
 
     /**
      * Returns true if the mouse is over this surface, false otherwise.
      */
     isMouseOver() {
-        let x = mouseX - width / 2;
-        let y = mouseY - height / 2;
+        let x = this.pInst.mouseX - this.pInst.width / 2;
+        let y = this.pInst.mouseY - this.pInst.height / 2;
 
         if (this.isPointInTriangle(x - this.x, y - this.y, this.mesh[this.TL],
             this.mesh[this.TR], this.mesh[this.BL])
@@ -65,14 +65,14 @@ class QuadMap extends CornerPinSurface {
    
 
     displaySurface(isUV=true, tX = 0, tY = 0, tW = 1, tH = 1) {
-        beginShape(TRIANGLES);
+        this.pInst.beginShape(this.pInst.TRIANGLES);
         for (let x = 0; x < this.res - 1; x++) {
             for (let y = 0; y < this.res - 1; y++) {
                 if (isUV) this.getQuadTriangles(x, y, tX, tY, tW, tH);
                 else this.getQuadTrianglesOutline(x, y);
             }
         }
-        endShape(CLOSE);
+        this.pInst.endShape(this.pInst.CLOSE);
     }
 
     displayCalibration() {
@@ -81,18 +81,25 @@ class QuadMap extends CornerPinSurface {
 
 
     displayGrid(col = this.controlPointColor) {
-        strokeWeight(2);
-        stroke(col);
-        fill(this.getMutedControlColor(col));
+        this.pInst.strokeWeight(2); // 2
+        this.pInst.stroke(col); // col
+        this.pInst.fill(this.getMutedControlColor(col));
 
-        beginShape(TRIANGLES);
+        let isLogo = false;
+        if (isLogo) {
+            this.pInst.strokeWeight(6);
+            this.pInst.stroke("white");
+            this.pInst.fill(50);
+        }
+       
+        this.pInst.beginShape(this.pInst.TRIANGLES);
 
         for (let x = 0; x < this.res - 1; x++) {
             for (let y = 0; y < this.res - 1; y++) {
                 this.getQuadTrianglesOutline(x, y);
             }
         }
-        endShape(CLOSE);
+        this.pInst.endShape(this.pInst.CLOSE);
     }
 
     getQuadTriangles(x, y, tX, tY, tW, tH) {
@@ -125,27 +132,27 @@ class QuadMap extends CornerPinSurface {
 
     getQuadTrianglesOutline(x, y) {
         let mp = this.mesh[(x) + (y) * this.res];
-        vertex(mp.x, mp.y);
+        this.pInst.vertex(mp.x, mp.y);
 
         mp = this.mesh[(x + 1) + (y) * this.res];
-        vertex(mp.x, mp.y);
+        this.pInst.vertex(mp.x, mp.y);
 
 
         mp = this.mesh[(x + 1) + (y + 1) * this.res];
-        vertex(mp.x, mp.y);
+        this.pInst.vertex(mp.x, mp.y);
 
-        vertex(mp.x, mp.y);
+        this.pInst.vertex(mp.x, mp.y);
 
         mp = this.mesh[(x) + (y + 1) * this.res];
-        vertex(mp.x, mp.y);
+        this.pInst.vertex(mp.x, mp.y);
 
 
         mp = this.mesh[(x) + (y) * this.res];
-        vertex(mp.x, mp.y);
+        this.pInst.vertex(mp.x, mp.y);
     }
 
     getVertexUV(mp, tX, tY, tW, tH) {
-        vertex(mp.x, mp.y, mp.u*this.width*tW-tX, mp.v*this.height*tH-tY);
+        this.pInst.vertex(mp.x, mp.y, mp.u*this.width*tW-tX, mp.v*this.height*tH-tY);
     }
 }
 

@@ -6,29 +6,29 @@ class Surface extends Draggable {
 
 
     // since there's a limit on WEBGL context
-    constructor(id, w, h, res, type, buffer) {
-        super(0, 0);
+    constructor(id, w, h, res, type, buffer, pInst) {
+        super(pInst, 0, 0);
         // https://github.com/processing/p5.js/issues/3736
         // let g = p5.Graphics.call(this, w, h, WEBGL, pInst);
         // g.drawingContext.disable(g.drawingContext.DEPTH_TEST);
 
         // TODO - think about size of surface...
-        this.width = constrain(w, 0, width);
-        this.height = constrain(h, 0, height);
+        this.width = this.pInst.constrain(w, 0, this.pInst.width);
+        this.height = this.pInst.constrain(h, 0, this.pInst.height);
         this.id = id;
         this.res = Math.floor(res);
         this.type = type;
 
-        this.controlPointColor = getRandomizedColor(this.id, this.type);
+        this.controlPointColor = getRandomizedColor(this.id, this.type, this.pInst);
 
         this.buffer = buffer;
     }
 
     getMutedControlColor(col = this.controlPointColor) {
-        return color(red(col), green(col), blue(col), 50);
+        return this.pInst.color(this.pInst.red(col), this.pInst.green(col), this.pInst.blue(col), 50);
     }
 
-    display(col = color('black')) {
+    display(col = this.pInst.color('black')) {
         this.buffer.background(col);
         this.displayTexture(this.buffer);
     }
@@ -56,32 +56,32 @@ class Surface extends Draggable {
         const tW = tex.width / texW;
         const tH = tex.height / texH;
 
-        push();
-        translate(this.x, this.y);
-        textureMode(IMAGE);
-        texture(tex);
+        this.pInst.push();
+        this.pInst.translate(this.x, this.y);
+        this.pInst.textureMode(this.pInst.IMAGE);
+        this.pInst.texture(tex);
         this.displaySurface(true, tX, tY, tW, tH);
 
-        if (isCalibratingMapper()) {
+        if (this.pInst.isCalibratingMapper()) {
             this.displayCalibration();
         }
-        pop();
+        this.pInst.pop();
     }
 
     displayCalibration() {
-        push();
+        this.pInst.push();
         // TODO -
         // why translate??
         // to do with the way lines overlap in z dimension?
         // translate(0, 0, 3); 
         this.displayOutline();
-        pop();
+        this.pInst.pop();
     }
 
     displayOutline(col = this.controlPointColor) {
-        strokeWeight(3);
-        stroke(col);
-        fill(this.getMutedControlColor());
+        this.pInst.strokeWeight(3);
+        this.pInst.stroke(col);
+        this.pInst.fill(this.getMutedControlColor());
         this.displaySurface(false);
     }
 
