@@ -2,8 +2,8 @@ import MovePoint from './MovePoint';
 
 class MeshPoint extends MovePoint {
 
-    constructor(parent, x, y, u, v) {
-        super(parent, x, y);
+    constructor(parent, x, y, u, v, pInst) {
+        super(parent, x, y, pInst);
         this.u = u;
         this.v = v;
     }
@@ -28,7 +28,7 @@ class MeshPoint extends MovePoint {
     interpolateTo(p, f) {
         let nX = this.x + (p.x - this.x) * f;
         let nY = this.y + (p.y - this.y) * f;
-        return new MeshPoint(this.parent, nX, nY, 0, 0);
+        return new MeshPoint(this.parent, nX, nY, 0, 0, this.pInst);
     }
 
 }

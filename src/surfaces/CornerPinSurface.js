@@ -17,25 +17,25 @@ class CornerPinSurface extends Surface {
      * @param pInst
      *            p5 sketch instance
      */
-    constructor(id, w, h, res, type, buffer) {
-        super(id, w, h, res, type, buffer);
+    constructor(id, w, h, res, type, buffer, pInst) {
+        super(id, w, h, res, type, buffer, pInst);
         this.perspT = null;
         this.initMesh();
         this.calculateMesh();
     }
 
-    
+
 
 
     initMesh() {
         this.mesh = [];
         for (let y = 0; y < this.res; y++) {
             for (let x = 0; x < this.res; x++) {
-                let mx = Math.floor(map(x, 0, this.res, 0, this.width));
-                let my = Math.floor(map(y, 0, this.res, 0, this.height));
-                let u = map(x, 0, this.res, 0, 1);
-                let v = map(y, 0, this.res, 0, 1);
-                this.mesh[y * this.res + x] = new MeshPoint(this, mx, my, u, v);
+                let mx = Math.floor(this.pInst.map(x, 0, this.res, 0, this.width));
+                let my = Math.floor(this.pInst.map(y, 0, this.res, 0, this.height));
+                let u = this.pInst.map(x, 0, this.res, 0, 1);
+                let v = this.pInst.map(y, 0, this.res, 0, 1);
+                this.mesh[y * this.res + x] = new MeshPoint(this, mx, my, u, v, this.pInst);
             }
         }
 
@@ -49,7 +49,7 @@ class CornerPinSurface extends Surface {
         this.mesh[this.TR].setControlPoint(true);
         this.mesh[this.BR].setControlPoint(true);
         this.mesh[this.BL].setControlPoint(true);
-        
+
         this.controlPoints = [];
         this.controlPoints.push(this.mesh[this.TL]);
         this.controlPoints.push(this.mesh[this.TR]);
@@ -59,7 +59,7 @@ class CornerPinSurface extends Surface {
 
 
     // abstract
-    calculateMesh() {}
+    calculateMesh() { }
 
     load(json) {
         const { x, y, points } = json;
@@ -105,7 +105,7 @@ class CornerPinSurface extends Surface {
         return sJson;
     }
 
-   
+
     getControlPoints() {
         return this.controlPoints;
     }
@@ -128,7 +128,7 @@ class CornerPinSurface extends Surface {
     //     this.perspT = PerspT(srcCorners, dstCorners);
 
     //     let point = this.perspT.transform(x, y);
-    //     let mapped = createVector(point[0], point[1]);
+    //     let mapped = this.pInst.createVector(point[0], point[1]);
     //     return mapped;
     // }
 
@@ -169,7 +169,7 @@ class CornerPinSurface extends Surface {
         }
     }
 
-   
+
 
     isMouseOverControlPoints() {
         for (const cp of this.controlPoints) {
@@ -187,9 +187,9 @@ class CornerPinSurface extends Surface {
      */
     isPointInTriangle(x, y, a,
         b, c) {
-        let v0 = createVector(c.x - a.x, c.y - a.y);
-        let v1 = createVector(b.x - a.x, b.y - a.y);
-        let v2 = createVector(x - a.x, y - a.y);
+        let v0 = this.pInst.createVector(c.x - a.x, c.y - a.y);
+        let v1 = this.pInst.createVector(b.x - a.x, b.y - a.y);
+        let v2 = this.pInst.createVector(x - a.x, y - a.y);
 
         let dot00 = v0.dot(v0);
         let dot01 = v1.dot(v0);
@@ -208,11 +208,11 @@ class CornerPinSurface extends Surface {
 
 
     displayControlPoints() {
-        push();
-        translate(this.x, this.y);
+        this.pInst.push();
+        this.pInst.translate(this.x, this.y);
         for (const p of this.controlPoints)
             p.display(this.controlPointColor);
-        pop();
+        this.pInst.pop();
     }
 
 
@@ -226,12 +226,12 @@ class CornerPinSurface extends Surface {
 
     getTransformedCursor(cx, cy) {
         let point = this.perspT(cx - this.x, cy - this.y);
-        return createVector(point[0], point[1]);
+        return this.pInst.createVector(point[0], point[1]);
     }
 
 
     getTransformedMouse() {
-        return getTransformedCursor(mouseX, mouseY);
+        return getTransformedCursor(this.pInst.mouseX, this.pInst.mouseY);
     }
 
     // 2d cross product

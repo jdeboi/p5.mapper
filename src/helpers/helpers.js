@@ -18,32 +18,32 @@ export function inside(point, polyon, offset) {
     return inside;
 };
 
-export function getRandomizedColor(id, type) {
+export function getRandomizedColor(id, type, p5) {
     let shapeOffset = type ? type[0].charCodeAt(0) : 2;
     let offset = (1 + id) * 88 + shapeOffset * 80;
     // a kind of wack hash function (?) for randomized color
     // based on parent (so all 4 control points are same color)
-    colorMode(HSB, 255);
-    let col = color(offset % 255, 255, 255);
-    colorMode(RGB, 255);
+    p5.colorMode(p5.HSB, 255);
+    let col = p5.color(offset % 255, 255, 255);
+    p5.colorMode(p5.RGB, 255);
     return col;
 }
 
-export function getPercent(seconds = 1) {
-    seconds = constrain(seconds, .1, 100);
+export function getPercent( p5, seconds = 1) {
+    seconds = p5.constrain(seconds, .1, 100);
     // 60 frames / second
-    let per = frameCount / (60 * seconds) % 1;
+    let per = p5.frameCount / (60 * seconds) % 1;
     // console.log(frameCount / (60*seconds), per)
     return per;
 }
 
 
-export function getPercentWave(seconds = 1, offset = 0) {
-    seconds = constrain(seconds, .01, 100);
-    let per = .5 + .5 * sin(frameCount / (60 * seconds) * 2 * PI + offset);
+export function getPercentWave(p5, seconds = 1, offset = 0) {
+    seconds =  p5.constrain(seconds, .01, 100);
+    let per = .5 + .5 *  p5.sin( p5.frameCount / (60 * seconds) * 2 *  p5.PI + offset);
     return per;
 }
 
-export function isWEBGL() {
-    return (drawingContext instanceof WebGLRenderingContext);
+export function isWEBGL(p5) {
+    return (p5.drawingContext instanceof WebGLRenderingContext);
 }

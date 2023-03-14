@@ -7,20 +7,20 @@ import { inside, isWEBGL } from '../helpers/helpers';
 
 class PolyMap extends Surface {
 
-    constructor(id, numPoints, buffer) {
-        super(id, 0, 0, 0, "POLY", buffer);
+    constructor(id, numPoints, buffer, pInst) {
+        super(id, 0, 0, 0, "POLY", buffer, pInst);
 
         this.points = [];
 
         for (let i = 0; i < numPoints; i++) {
             let r = 200;
-            let x = r + r * cos(i / numPoints * 2 * PI);
-            let y = r + r * sin(i / numPoints * 2 * PI);
-            // if (!isWEBGL()) {
+            let x = r + r * Math.cos(i / numPoints * 2 * this.pInst.PI);
+            let y = r + r * Math.sin(i / numPoints * 2 * this.pInst.PI);
+            // if (!isWEBGL(this.pInst)) {
             //     x += width / 2;
             //     y += height / 2;
             // }
-            let cp = new MovePoint(this, x, y);
+            let cp = new MovePoint(this, x, y, this.pInst);
             cp.isControlPoint = true;
             this.points.push(cp);
         }
@@ -33,7 +33,7 @@ class PolyMap extends Surface {
     setPoints(pts) {
         this.points = [];
         for (const p of pts) {
-            let cp = new MovePoint(this, p.x, p.y);
+            let cp = new MovePoint(this, p.x, p.y, this.pInst);
             cp.isControlPoint = true;
             this.points.push(cp);
         }
@@ -42,34 +42,34 @@ class PolyMap extends Surface {
 
     displaySurface(isUV = true, tX = 0, tY = 0, tW = this.width, tH = this.height) {
         const { x, y } = this.getBounds(this.points);
-        beginShape();
+        this.pInst.beginShape();
         for (const point of this.points) {
             if (isUV) {
                 let dx = point.x - x;
                 let dy = point.y - y;
-                vertex(point.x, point.y, dx*tW-tX,dy*tH-tY);
+                this.pInst.vertex(point.x, point.y, dx*tW-tX,dy*tH-tY);
             }
 
             else
-                vertex(point.x, point.y);
+            this.pInst.vertex(point.x, point.y);
         }
-        endShape(CLOSE);
+        this.pInst.endShape(this.pInst.CLOSE);
     }
 
     displayControlPoints() {
-        push();
-        translate(this.x, this.y, 2);
+        this.pInst.push();
+        this.pInst.translate(this.x, this.y, 2);
         for (const p of this.points) {
             p.display(this.controlPointColor);
         }
-        pop();
+        this.pInst.pop();
     }
 
     isMouseOver() {
-        let p = { x: mouseX, y: mouseY };
-        if (isWEBGL()) {
-            p.x -= width / 2;
-            p.y -= height / 2
+        let p = { x: this.pInst.mouseX, y: this.pInst.mouseY };
+        if (isWEBGL(this.pInst)) {
+            p.x -= this.pInst.width / 2;
+            p.y -= this.pInst.height / 2
         };
         let ins = inside(p, this.points, { x: this.x, y: this.y });
         return ins;

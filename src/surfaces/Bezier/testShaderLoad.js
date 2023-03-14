@@ -35,7 +35,7 @@ class ProjectionMapper {
     init(w, h) {
         if (this.bezBuffer == null) {
 
-            this.bufferWEBGL = this.pInst.createGraphics(w, h, this.pInst.WEBGL);
+            this.bufferWEBGL = this.pInst.createGraphics(w, h, WEBGL);
 
             // TODO
             // should these be WEBGL??
@@ -44,15 +44,11 @@ class ProjectionMapper {
             this.buffer = this.pInst.createGraphics(w, h);
             this.bezBuffer = this.pInst.createGraphics(w, h);
 
-            this.initPMapperShaderStr();
+            this.initPMapperShader();
         }
     }
 
-    // TODO - doesn't work for some reason?
-    // I'm honestly very confused; seems to need this and 
-    // redefining in BezierMap.js?
-    // https://github.com/processing/p5.js/issues/4899
-    initPMapperShaderStr() {
+    initPMapperShader() {
         const frag = `// https://github.com/aferriss/p5jsShaderExamples 
         #ifdef GL_ES
         precision mediump float;
@@ -112,8 +108,9 @@ class ProjectionMapper {
           gl_Position = positionVec4;
         }`;
        
-        this.bezShader = this.bufferWEBGL.createShader(vert, frag);
+        this.bezShader = this.pInst.createShader(vert, frag);
         this.bezierShaderLoaded = true;
+        console.log(this.bezShader);
     }
 
     ////////////////////////////////////////
@@ -128,7 +125,7 @@ class ProjectionMapper {
      * @return
      */
     createQuadMap(w, h, res = 20) {
-        const s = new QuadMap(this.surfaces.length, w, h, res, this.buffer, this.pInst);
+        const s = new QuadMap(this.surfaces.length, w, h, res, this.buffer);
         this.surfaces.push(s);
         return s;
     }
@@ -142,7 +139,7 @@ class ProjectionMapper {
      * @return
      */
     createTriMap(w, h, res = 20) {
-        const s = new TriMap(this.surfaces.length, w, h, res, this.buffer, this.pInst);
+        const s = new TriMap(this.surfaces.length, w, h, res, this.buffer);
         this.surfaces.push(s);
         return s;
     }
@@ -153,7 +150,7 @@ class ProjectionMapper {
             y0 = 30 * this.lines.length;
             y1 = 30 * this.lines.length;
         }
-        const l = new LineMap(x0, y0, x1, y1, this.lines.length, this.pInst);
+        const l = new LineMap(x0, y0, x1, y1, this.lines.length);
         this.lines.push(l);
         return l;
     }
@@ -162,14 +159,14 @@ class ProjectionMapper {
         if (numPoints < 3)
             numPoints = 3;
 
-        let s = new PolyMap(this.surfaces.length, numPoints, this.buffer, this.pInst);
+        let s = new PolyMap(this.surfaces.length, numPoints, this.buffer);
         this.surfaces.push(s);
         return s;
     }
 
     createBezierMap(numPoints = 5) {
         // why was it calling this twice??
-        let bez = new BezierMap(this.surfaces.length, numPoints, this, this.pInst);
+        let bez = new BezierMap(this.surfaces.length, numPoints, this.pInst, this);
         this.surfaces.push(bez);
         return bez;
     }
@@ -538,17 +535,6 @@ p5.prototype.isDragging = function (surface) {
     return pMapper.isDragging(surface);
 };
 
-
-p5.prototype.initPMapperShader = function () {
-    // TODO - is there a better way to do this?
-    // const filePath = "../../src/surfaces/Bezier/shader";
-    // const filePath = "https://cdn.jsdelivr.net/gh/jdeboi/p5.mapper/src/surfaces/Bezier/shader"
-    const filePath = "https://cdn.statically.io/gh/jdeboi/p5.mapper/main/src/surfaces/Bezier/shader"
-    this.loadShader(filePath + ".vert", filePath + ".frag", (bezShader) => pMapper.preload(bezShader));
-}
-
-// p5.prototype.registerMethod('init', p5.prototype.initPMapperShader);
-// p5.prototype.registerMethod('pre', () => pMapper.beginSurfaces());
 p5.prototype.registerMethod('post', () => pMapper.displayControlPoints());
 p5.prototype.registerMethod('post', () => pMapper.updateEvents());
 

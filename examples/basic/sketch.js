@@ -56,17 +56,17 @@ function draw() {
             quadMap.display(color('red'));
             triMap.display(color('blue'));
             bezMap.display(color('orange'));
-            polyMap.display(color('black'));
+            polyMap.display(color('purple'));
             break;
         case "image":
-            lineMap.display(color('black'));
+            lineMap.display(color('white'));
             quadMap.displayTexture(img);
             triMap.displayTexture(img);
             bezMap.displayTexture(img);
             polyMap.displayTexture(img);
             break;
         case "sketch":
-            lineMap.display(color('black'));
+            lineMap.display(color('white'));
             quadMap.displaySketch(drawCoords);
             triMap.displaySketch(drawCoords);
             bezMap.displaySketch(drawCoords);
@@ -141,6 +141,7 @@ function initSelection() {
     mode = "all"
     sel = createSelect();
     sel.position(10, 10);
+    sel.option('all');
     sel.option('solid');
     sel.option('image');
     sel.option('sketch');
