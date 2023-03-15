@@ -57,6 +57,7 @@ class Surface extends Draggable {
         const tH = tex.height / texH;
 
         this.pInst.push();
+        this.pInst.noStroke();
         this.pInst.translate(this.x, this.y);
         this.pInst.textureMode(this.pInst.IMAGE);
         this.pInst.texture(tex);
