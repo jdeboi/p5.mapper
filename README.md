@@ -23,7 +23,7 @@ You'll find the library, `p5.mapper.min.js`, in the dist folder of this repo. In
 <script type="text/javascript" src="p5.mapper.min.js"></script>
 ```
   
-Alternatively, you can get the library through cdn:  
+Alternatively, you can get the library through cdn (assuming changes have propagated if I've made any edits...):  
   
 ```html
 <script src="https://cdn.statically.io/gh/jdeboi/p5.mapper/main/dist/p5.mapper.min.js"></script>
