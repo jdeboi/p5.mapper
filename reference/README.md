@@ -20,7 +20,7 @@ Methods to create mapping surfaces:
 
 Get the value of an oscillator (useful for LineMap animations):
 * `pMapper.getOscillator(seconds, [offset])`
-  * (bascially a sine wave helper- returns a number 0-1 that oscillates with a `seconds`-long period and an optional phase, `offset`
+  * (basically a sine wave helper- returns a number 0-1 that oscillates with a `seconds`-long period and an optional phase, `offset`
   
 Saving / loading methods:
 * `pMapper.save([filename.json])`
