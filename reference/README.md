@@ -100,4 +100,25 @@ The following display methods can optionally take a color object:
   * currently super expensive.. TODO..
 * `lineMap.displayNumber()`
   * a helper when the line order matters and you need to visualize the line id
+* `lineMap.OnMouseOverCallback(callback)`
+  * useful if you want to call a function if a line has been clicked, for example to set the line thickness
+
+```javascript
+function mousePressed() {
+  for (const lineMap of lineMaps) {
+    lineMap.isMouseOverCallback(lineClickedCallback);
+  }
+}
+
+function lineClickedCallback(line) {
+  selectedLine = line;
+}
+
+function setLineThickness(increment) {
+  if (selectedLine != null) {
+    selectedLine.setLineThickness(selectedLine.lineW + increment);
+  }
+}
+```
+
 
