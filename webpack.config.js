@@ -1,7 +1,7 @@
-const path = require("path")
+const path = require("path");
 
 module.exports = {
-  entry: path.resolve(__dirname, "src/index.js"),
+  entry: path.resolve(__dirname, "src/index.js"), // Point to your TypeScript entry file
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "p5.mapper.min.js",
@@ -11,14 +11,17 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(js)$/,
+        test: /\.(js|ts)$/, // Use Babel for both .js and .ts files
         exclude: /node_modules/,
         use: "babel-loader",
       },
     ],
   },
-  optimization: {
-    minimize: false
+  resolve: {
+    extensions: [".ts", ".js"], // Resolve both .ts and .js files
   },
-  mode: "production"
-}
+  optimization: {
+    minimize: false,
+  },
+  mode: "production",
+};

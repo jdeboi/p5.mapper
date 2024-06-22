@@ -34,13 +34,14 @@ var LineMap = /** @class */ (function (_super) {
         _this.lastChecked = 0;
         _this.lineC = _this.pInst.color(255);
         _this.highlightColor = _this.pInst.color(0, 255, 0);
-        _this.controlPointColor = _this.getLinearIdColor(_this.id);
+        // this.controlPointColor = this.getLinearIdColor(this.id);
         _this.p0 = new MovePoint_1.default(_this, x0, y0, _this.pInst);
         _this.p1 = new MovePoint_1.default(_this, x1, y1, _this.pInst);
         _this.leftToRight();
         _this.ang = _this.pInst.atan2(_this.p0.y - _this.p1.y, _this.p0.x - _this.p1.x);
         if (_this.ang > _this.pInst.PI / 2)
             _this.ang -= 2 * _this.pInst.PI;
+        _this.pInst.strokeCap(_this.pInst.SQUARE);
         return _this;
     }
     //////////////////////////////////////////////
@@ -53,6 +54,9 @@ var LineMap = /** @class */ (function (_super) {
         this.p0.y = json.y0;
         this.p1.x = json.x1;
         this.p1.y = json.y1;
+        this.lineW =
+            json.lineW !== undefined && json.lineW !== null ? json.lineW : 10;
+        this.endCapsOn = json.endCapsOn !== undefined ? json.endCapsOn : true;
     };
     LineMap.prototype.getJson = function () {
         return {
@@ -63,6 +67,8 @@ var LineMap = /** @class */ (function (_super) {
             y0: this.p0.y,
             x1: this.p1.x,
             y1: this.p1.y,
+            lineW: this.lineW,
+            endCapsOn: this.endCapsOn,
         };
     };
     //////////////////////////////////////////////
@@ -75,6 +81,7 @@ var LineMap = /** @class */ (function (_super) {
         this.pInst.stroke(col);
         this.pInst.push();
         this.pInst.translate(this.x, this.y);
+        this.setOGEndCaps();
         this.pInst.line(this.p0.x, this.p0.y, this.p1.x, this.p1.y);
         this.drawEndCaps(this.p0, this.p1, col, col);
         this.pInst.pop();
@@ -92,6 +99,7 @@ var LineMap = /** @class */ (function (_super) {
         this.pInst.stroke(col);
         this.pInst.push();
         this.pInst.translate(this.x, this.y);
+        this.setOGEndCaps();
         this.pInst.line(x0, y0, x1, y1);
         this.drawEndCaps({ x: x0, y: y0 }, { x: x1, y: y1 }, col, col);
         this.pInst.pop();
@@ -107,6 +115,7 @@ var LineMap = /** @class */ (function (_super) {
         this.pInst.stroke(col);
         this.pInst.push();
         this.pInst.translate(this.x, this.y);
+        this.setOGEndCaps();
         this.pInst.line(this.p0.x, this.p0.y, pTemp.x, pTemp.y);
         this.drawEndCaps(p0, pTemp, col, col);
         this.pInst.pop();
@@ -119,6 +128,7 @@ var LineMap = /** @class */ (function (_super) {
         this.pInst.stroke(col);
         this.pInst.push();
         this.pInst.translate(this.x, this.y);
+        this.setOGEndCaps();
         this.pInst.line(this.p0.x, this.p0.y, this.p1.x, this.p1.y);
         this.drawEndCaps(this.p0, this.p1, col, col, sw);
         this.pInst.pop();
@@ -144,16 +154,19 @@ var LineMap = /** @class */ (function (_super) {
             this.displaySegment(i, spacing, col);
         }
     };
-    LineMap.prototype.getCalibrationColor = function () {
+    LineMap.prototype.getCalibrationHue = function () {
+        return (this.id * 15) % 255;
+    };
+    LineMap.prototype.getControlPointColor = function () {
         this.pInst.colorMode(this.pInst.HSB, 255);
-        var h = this.pInst.hue(this.controlPointColor);
-        var col = this.pInst.color(h, 180, 255);
+        var h = this.getCalibrationHue();
+        var col = this.pInst.color(h, 80, 255);
         this.pInst.colorMode(this.pInst.RGB);
         return col;
     };
-    LineMap.prototype.getLinearIdColor = function (id) {
+    LineMap.prototype.getCalibrationColor = function () {
         this.pInst.colorMode(this.pInst.HSB, 255);
-        var h = (id * 15) % 255;
+        var h = this.getCalibrationHue();
         var col = this.pInst.color(h, 255, 255);
         this.pInst.colorMode(this.pInst.RGB);
         return col;
@@ -163,7 +176,7 @@ var LineMap = /** @class */ (function (_super) {
     //////////////////////////////////////////////
     LineMap.prototype.displayCalibration = function () {
         if (this.isMouseOver()) {
-            this.display(this.pInst.color(255));
+            this.display(this.pInst.color(200));
         }
         else {
             this.display(this.getCalibrationColor());
@@ -172,8 +185,8 @@ var LineMap = /** @class */ (function (_super) {
     LineMap.prototype.displayControlPoints = function () {
         this.pInst.push();
         this.pInst.translate(this.x, this.y);
-        this.p0.display(this.controlPointColor);
-        this.p1.display(this.controlPointColor);
+        this.p0.display(this.getControlPointColor());
+        this.p1.display(this.getControlPointColor());
         this.pInst.pop();
     };
     LineMap.prototype.setEndCapsOn = function () {
@@ -208,6 +221,7 @@ var LineMap = /** @class */ (function (_super) {
         this.pInst.push();
         this.pInst.translate(this.x, this.y);
         var pTempEnd = p5_1.default.Vector.lerp(pTemp, p1, startPer + sizePer);
+        this.setOGEndCaps();
         this.pInst.line(pTemp.x, pTemp.y, pTempEnd.x, pTempEnd.y);
         this.drawEndCaps(pTemp, pTempEnd, col, col);
         this.pInst.pop();
@@ -215,6 +229,14 @@ var LineMap = /** @class */ (function (_super) {
     //////////////////////////////////////////////
     // COLOR HELPERS
     //////////////////////////////////////////////
+    LineMap.prototype.setOGEndCaps = function () {
+        if (this.endCapsOn) {
+            // this.pInst.strokeCap(this.pInst.ROUND);
+        }
+        else {
+            this.pInst.strokeCap(this.pInst.SQUARE);
+        }
+    };
     LineMap.prototype.get2CycleColor = function (c1, c2, per) {
         per = this.pInst.constrain(per, 0, 1);
         per *= 2;
@@ -305,10 +327,19 @@ var LineMap = /** @class */ (function (_super) {
     };
     LineMap.prototype.displayNumber = function () {
         this.pInst.push();
+        this.pInst.translate(this.x + this.p1.x + 20, this.y + this.p1.y + 5, 2);
+        this.pInst.textAlign(this.pInst.CENTER, this.pInst.CENTER);
         this.pInst.noStroke();
+        this.pInst.fill(255, 0, 0);
+        this.pInst.ellipse(0, 0, 10, 10);
         this.pInst.fill(255);
-        this.pInst.text(this.id.toString(), this.p0.x + this.p1.x + 20, this.y);
+        this.pInst.text(this.id.toString(), 0, 0);
         this.pInst.pop();
+    };
+    LineMap.prototype.setLineThickness = function (thickness) {
+        this.lineW = thickness;
+        if (this.lineW < 0)
+            this.lineW = 0;
     };
     return LineMap;
 }(Draggable_1.default));

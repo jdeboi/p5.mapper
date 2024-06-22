@@ -24,7 +24,11 @@ Get the value of an oscillator (useful for LineMap animations):
   
 Saving / loading methods:
 * `pMapper.save([filename.json])`
-* `pMapper.load([directory/filename.json])`
+* `pMapper.load([directory/filename.json], [callback])`
+
+```javascript
+  pMapper.load("maps/map.json", () => console.log("done loading json"));
+```
   
 Calibrating methods:
 * `pMapper.startCalibration()`
@@ -94,4 +98,6 @@ The following display methods can optionally take a color object:
 * `lineMap.displayRainbowCycle()`
 * `lineMap.displayGradientLine(color0, color1, percent, [phase])`
   * currently super expensive.. TODO..
+* `lineMap.displayNumber()`
+  * a helper when the line order matters and you need to visualize the line id
 

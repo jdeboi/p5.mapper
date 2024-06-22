@@ -4,17 +4,22 @@
   "description": "",
   "main": "dist/p5.mapper.min.js",
   "scripts": {
-    "build": "webpack"
+    "build": "tsc && webpack"
   },
   "keywords": [],
   "author": "Jenna deBoisblanc",
   "license": "ISC",
-  "dependencies": {},
   "devDependencies": {
     "@babel/core": "^7.16.0",
     "@babel/preset-env": "^7.16.0",
+    "@babel/preset-typescript": "^7.24.7",
+    "@types/p5": "^1.7.6",
     "babel-loader": "^8.2.3",
+    "typescript": "^5.5.2",
     "webpack": "^5.62.1",
     "webpack-cli": "^4.9.1"
+  },
+  "dependencies": {
+    "p5": "^1.9.4"
   }
 }

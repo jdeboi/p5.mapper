@@ -317,13 +317,17 @@ class ProjectionMapper {
   ////////////////////////////////////////
   // LOADING / SAVING
   ////////////////////////////////////////
-  load(filepath = "maps/map.json") {
+  load(filepath = "maps/map.json", callback = null) {
     console.log(`loading json file: ${filepath}`);
     let mainThis = this;
     let error = (err) => console.log(`error loading ${filepath}`, err);
     this.pInst.loadJSON(
       `${filepath}`,
-      mainThis.loadedJson.bind(mainThis),
+      (json) => {
+        mainThis.loadedJson.bind(mainThis)(json);
+        if (callback) callback();
+      },
+
       error
     );
   }
