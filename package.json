@@ -1,25 +1,27 @@
 {
   "name": "p5.mapper",
-  "version": "1.1.0",
-  "description": "",
-  "main": "dist/p5.mapper.min.js",
+  "version": "2.1.0",
+  "description": "a projection mapping library for p5.js",
+  "main": "dist/p5.mapper.js",
+  "unpkg": "dist/p5.mapper.min.js",
+  "jsdelivr": "dist/p5.mapper.min.js",
   "scripts": {
-    "build": "tsc && webpack"
+    "typecheck": "tsc",
+    "build": "webpack --config webpack.config.js"
   },
-  "keywords": [],
   "author": "Jenna deBoisblanc",
   "license": "ISC",
   "devDependencies": {
-    "@babel/core": "^7.16.0",
-    "@babel/preset-env": "^7.16.0",
-    "@babel/preset-typescript": "^7.24.7",
-    "@types/p5": "^1.7.6",
-    "babel-loader": "^8.2.3",
-    "typescript": "^5.5.2",
-    "webpack": "^5.62.1",
-    "webpack-cli": "^4.9.1"
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
+    "@types/p5": "^1.7.7",
+    "babel-loader": "^10.0.0",
+    "typescript": "^5.9.3",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1"
   },
   "dependencies": {
-    "p5": "^1.9.4"
+    "p5": "^2.0.5"
   }
 }

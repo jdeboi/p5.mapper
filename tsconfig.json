@@ -1,14 +1,18 @@
 {
-    "compilerOptions": {
-      "target": "es5",
-      "module": "commonjs",
-      "strict": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "allowJs": true,
-      "outDir": "./dist",
-      "typeRoots": ["./node_modules/@types", "./typings"]
-    },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules"]
-  }
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "noEmit": true,                 // <-- we don't output JS or d.ts (webpack does the JS)
+    "skipLibCheck": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": ["p5"],                // <-- keeps Node types out (prevents AbortSignal clashes)
+    "baseUrl": ".",
+    "paths": {
+      "*": ["src/*", "*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}

@@ -1,116 +1,142 @@
-import p5 from "p5";
+// MovePoint.ts
+import Draggable, { DraggableJSON, Point } from "./Draggable";
 
-import Draggable from "./Draggable";
+type MovePointOpts = {
+  radius?: number; // visual radius in px
+  hitScale?: number; // enlarge hit area, e.g. 1.5 = 150%
+  color?: any; // p5 color or anything p5.color() accepts
+};
 
-class MovePoint {
-  x: number;
-  pInst: p5;
-  y: number;
-  type: string;
-  r: number;
-  isControlPoint: boolean;
-  parent: Draggable;
-  xStartDrag: number;
-  yStartDrag: number;
-  clickX: number;
-  clickY: number;
-  col: p5.Color;
+export default class MovePoint extends Draggable {
+  public type = "CPOINT";
+  public r: number;
+  public isControlPoint = false;
 
-  constructor(parent: Draggable, x: number, y: number, pInst: p5) {
-    this.pInst = pInst;
-    this.x = x;
-    this.y = y;
-    this.type = "CPOINT";
-    this.r = 8;
-    this.isControlPoint = false;
+  protected parent: any;
+  protected col: any;
+  protected hitScale: number;
+
+  constructor(
+    parent: any,
+    x: number,
+    y: number,
+    pInst: any,
+    opts: MovePointOpts = {}
+  ) {
+    super(pInst, x, y);
     this.parent = parent;
-
-    this.xStartDrag = this.x;
-    this.yStartDrag = this.y;
-    this.clickX = 0;
-    this.clickY = 0;
-
-    this.col = this.pInst.color(0, 255, 255);
+    this.r = opts.radius ?? 8;
+    this.hitScale = Math.max(1, opts.hitScale ?? 1);
+    this.col = opts.color ?? pInst.color(0, 255, 255);
   }
 
-  isMouseOver(): boolean {
-    let mx = this.pInst.mouseX;
-    let my = this.pInst.mouseY;
-
-    // updated for p5.js 1.9
-    mx -= this.pInst.width / 2;
-    my -= this.pInst.height / 2;
-
-    let d = this.pInst.dist(
-      mx,
-      my,
-      this.x + this.parent.x,
-      this.y + this.parent.y
-    );
-
-    return d < this.r;
+  /** Set x/y from another point-like object */
+  set(point: Point): this {
+    if (typeof point.x === "number") this.x = point.x;
+    if (typeof point.y === "number") this.y = point.y;
+    return this;
   }
 
-  set(point: { x: number; y: number }): void {
-    this.x = point.x;
-    this.y = point.y;
+  /** Back-compat: move this point to current mouse (in parent's local space) */
+  moveToMouse(): this {
+    const { mxLocal, myLocal } = this.getLocalMouse();
+    this.moveTo(mxLocal, myLocal);
+    return this;
   }
 
-  startDrag(): void {
-    this.xStartDrag = this.x;
-    this.yStartDrag = this.y;
-    this.clickX = this.pInst.mouseX;
-    this.clickY = this.pInst.mouseY;
+  /** Mark/unmark as a control point */
+  setControlPoint(cp: boolean): this {
+    this.isControlPoint = !!cp;
+    return this;
   }
 
-  moveToMouse(): void {
-    this.x = this.pInst.mouseX - this.pInst.width / 2;
-    this.y = this.pInst.mouseY - this.pInst.height / 2;
+  setRadius(r: number): this {
+    this.r = Math.max(1, r);
+    return this;
   }
 
-  moveTo(): void {
-    this.x = this.xStartDrag + this.pInst.mouseX - this.clickX;
-    this.y = this.yStartDrag + this.pInst.mouseY - this.clickY;
+  setColor(c: any): this {
+    this.col = c;
+    return this;
   }
 
-  setControlPoint(cp: boolean): void {
-    this.isControlPoint = cp;
+  setHitScale(scale: number): this {
+    this.hitScale = Math.max(1, scale);
+    return this;
   }
 
-  interpolateBetween(
-    start: { x: number; y: number },
-    end: { x: number; y: number },
-    f: number
-  ): void {
+  /** Fast hit test in parent's local coordinates */
+  isMouseOver(
+    mx: number = this.pInst.mouseX,
+    my: number = this.pInst.mouseY
+  ): boolean {
+    const { mxLocal, myLocal } = this.toLocal(mx, my);
+    const dx = mxLocal - this.x;
+    const dy = myLocal - this.y;
+    const rr = (this.r * this.hitScale) ** 2;
+    return dx * dx + dy * dy <= rr;
+  }
+
+  /** Interpolate (in-place) between two points by factor f in [0,1] */
+  interpolateBetween(start: Point, end: Point, f: number): this {
     this.x = start.x + (end.x - start.x) * f;
     this.y = start.y + (end.y - start.y) * f;
+    return this;
   }
 
-  display(col: p5.Color = this.col): void {
-    if ((this.pInst as any).isMovingPoints()) {
-      let c = col;
-      if (this.isMouseOver()) {
-        c = this.pInst.color(255);
-      }
+  /** Draw the handle; assume caller already translated by parent.x/parent.y */
+  display(col: any = this.col) {
+    const p = this.pInst;
+    if (typeof p.isMovingPoints === "function" && !p.isMovingPoints()) return;
 
-      let isLogo = false;
-      if (isLogo) {
-        c = this.pInst.color(255);
-        this.r = 20;
-      }
+    let c = col;
+    if (this.isMouseOver()) c = p.color(255);
 
-      this.pInst.push();
-      this.pInst.translate(0, 0, 5);
-      this.pInst.stroke(c);
-      this.pInst.strokeWeight(2);
-      this.pInst.noFill();
+    p.push();
+    // Slight z offset helps in WEBGL to avoid z-fighting if you need it:
+    // p.translate(0, 0, 5);
+    p.stroke(c);
+    p.strokeWeight(2);
+    p.noFill();
+    p.ellipse(this.x, this.y, this.r * 2);
 
-      this.pInst.ellipse(this.x, this.y, this.r * 2);
-      this.pInst.fill(c);
-      this.pInst.ellipse(this.x, this.y, this.r);
-      this.pInst.pop();
-    }
+    p.fill(c);
+    p.noStroke();
+    p.ellipse(this.x, this.y, this.r);
+    p.pop();
+  }
+
+  /** JSON snapshot */
+  toJSON(): DraggableJSON & { isControlPoint: boolean; r: number } {
+    return {
+      x: this.x,
+      y: this.y,
+      dragging: this.getIsDragging(),
+      enabled: this.getIsEnabled(),
+      isControlPoint: this.isControlPoint,
+      r: this.r,
+    };
+  }
+
+  // --- helpers -------------------------------------------------------------
+
+  /** Convert a canvas-space point to this point's parent-local space */
+  private toLocal(mx: number, my: number) {
+    const p = this.pInst;
+    const isWEBGL = !!(p as any)?._renderer?.isP3D; // p5 WEBGL flag
+    const px = this.parent?.x ?? 0;
+    const py = this.parent?.y ?? 0;
+
+    // For WEBGL renderer p5 positions mouse in canvas coords with origin top-left,
+    // but your scene coordinates are typically centered; when drawing handles you
+    // usually translate(parent.x, parent.y). To test hits in local space, offset by parent:
+    const mxLocal = (isWEBGL ? mx - p.width / 2 : mx) - px;
+    const myLocal = (isWEBGL ? my - p.height / 2 : my) - py;
+
+    return { mxLocal, myLocal };
+  }
+
+  private getLocalMouse() {
+    return this.toLocal(this.pInst.mouseX, this.pInst.mouseY);
   }
 }
-
-export default MovePoint;

@@ -6,7 +6,7 @@ examples/__test
 *logo_maker
 *sketchpalette.js
 
-linesMegan
+examples/linesMegan
 
 notes.md
 Notes.md
@@ -14,3 +14,7 @@ Notes.md
 Mask2D*
 
 chapel*
+
+test*
+
+p5.mapperTest*

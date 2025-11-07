@@ -27,7 +27,7 @@ function setup() {
 
   // create mapper object
   pMapper = createProjectionMapper(this);
-  console.log(this);
+
   polyMap = pMapper.createPolyMap(5);
   triMap = pMapper.createTriMap(300, 300);
   quadMap = pMapper.createQuadMap(400, 400);

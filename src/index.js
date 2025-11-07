@@ -1,2 +1,0 @@
-
-import ProjectionMapper from './ProjectionMapper';

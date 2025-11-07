@@ -1,27 +1,50 @@
+// webpack.config.js
 const path = require("path");
+const TerserPlugin = require("terser-webpack-plugin");
 
-module.exports = {
-  entry: path.resolve(__dirname, "src/index.js"), // Point to your TypeScript entry file
-  output: {
-    path: path.resolve(__dirname, "dist"),
-    filename: "p5.mapper.min.js",
-    library: "p5.mapper",
-    libraryTarget: "umd",
-  },
-  module: {
-    rules: [
-      {
-        test: /\.(js|ts)$/, // Use Babel for both .js and .ts files
-        exclude: /node_modules/,
-        use: "babel-loader",
+/** @param {boolean} min */
+function makeConfig(min) {
+  return {
+    entry: path.resolve(__dirname, "src/ProjectionMapper.ts"),
+    output: {
+      path: path.resolve(__dirname, "dist"),
+      filename: min ? "p5.mapper.min.js" : "p5.mapper.js",
+      library: {
+        name: "p5.mapper",
+        type: "umd",
+        export: "default",
       },
-    ],
-  },
-  resolve: {
-    extensions: [".ts", ".js"], // Resolve both .ts and .js files
-  },
-  optimization: {
-    minimize: false,
-  },
-  mode: "production",
-};
+      globalObject: "this", // safer UMD on workers/node
+      clean: !min, // clean once on the first build
+    },
+    module: {
+      rules: [
+        {
+          test: /\.(ts|js)$/,
+          exclude: /node_modules/,
+          use: "babel-loader",
+        },
+      ],
+    },
+    resolve: { extensions: [".ts", ".js"] },
+    externals: { p5: "p5" }, // expect global p5
+    devtool: min ? false : "source-map",
+    mode: "production",
+    optimization: {
+      minimize: min,
+      minimizer: min
+        ? [
+            new TerserPlugin({
+              extractComments: false,
+              terserOptions: {
+                format: { comments: false },
+                compress: { passes: 2 },
+              },
+            }),
+          ]
+        : [],
+    },
+  };
+}
+
+module.exports = [makeConfig(false), makeConfig(true)];
