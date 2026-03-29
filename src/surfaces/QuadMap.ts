@@ -197,29 +197,24 @@ export default class QuadMap extends CornerPinSurface {
     u1: number,
     v1: number
   ): void {
-    const i00 = y * this.res + x; // (x,   y)
-    const i10 = y * this.res + (x + 1); // (x+1, y)
-    const i11 = (y + 1) * this.res + (x + 1); // (x+1, y+1)
-    const i01 = (y + 1) * this.res + x; // (x,   y+1)
+    const i00 = y * this.res + x;
+    const i10 = y * this.res + (x + 1);
+    const i11 = (y + 1) * this.res + (x + 1);
+    const i01 = (y + 1) * this.res + x;
 
-    // Interpolate UV per-vertex from the quad UV rect
-    // mp.u/mp.v are 0..1 over the original rect; re-map into [u0..u1]/[v0..v1]
-    const put = (i: number) => {
-      const mp = this.mesh[i];
-      const uu = u0 + mp.u * (u1 - u0);
-      const vv = v0 + mp.v * (v1 - v0);
-      this.pInst.vertex(mp.x, mp.y, uu, vv);
-    };
+    // Precompute UV scale factors once per cell; inline vertex calls to avoid
+    // creating a closure (put = (i) => {...}) on every one of the 361 cell calls per frame.
+    const du = u1 - u0;
+    const dv = v1 - v0;
+    const p = this.pInst;
+    const mesh = this.mesh;
 
-    // Triangle 1: (x,y) → (x+1,y) → (x+1,y+1)
-    put(i00);
-    put(i10);
-    put(i11);
-
-    // Triangle 2: (x,y) → (x+1,y+1) → (x,y+1)
-    put(i00);
-    put(i11);
-    put(i01);
+    let mp = mesh[i00]; p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
+        mp = mesh[i10]; p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
+        mp = mesh[i11]; p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
+        mp = mesh[i00]; p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
+        mp = mesh[i11]; p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
+        mp = mesh[i01]; p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
   }
 
   /** Emit two triangles for outline/fill only (no UVs). */
@@ -229,20 +224,15 @@ export default class QuadMap extends CornerPinSurface {
     const i11 = (y + 1) * this.res + (x + 1);
     const i01 = (y + 1) * this.res + x;
 
-    const v = (i: number) => {
-      const mp = this.mesh[i];
-      this.pInst.vertex(mp.x, mp.y);
-    };
-
-    // Triangle 1
-    v(i00);
-    v(i10);
-    v(i11);
-
-    // Triangle 2
-    v(i00);
-    v(i11);
-    v(i01);
+    // Inline to avoid closure allocation per cell call
+    const p = this.pInst;
+    const mesh = this.mesh;
+    p.vertex(mesh[i00].x, mesh[i00].y);
+    p.vertex(mesh[i10].x, mesh[i10].y);
+    p.vertex(mesh[i11].x, mesh[i11].y);
+    p.vertex(mesh[i00].x, mesh[i00].y);
+    p.vertex(mesh[i11].x, mesh[i11].y);
+    p.vertex(mesh[i01].x, mesh[i01].y);
   }
 
   // --- Optional: if you ever want to change tessellation dynamically ----

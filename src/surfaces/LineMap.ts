@@ -164,15 +164,28 @@ export default class LineMap extends Draggable {
     phase = 1,
     flip = false
   ): void {
-    // 'flip' kept for API compatibility (could invert gradient if desired)
-    let t = (per + phase) % 1;
-    const spacing = 1.0 / Math.max(1, this.pInst.height); // density guard
+    const t = (per + phase) % 1;
+    const spacing = 1.0 / Math.max(1, this.pInst.height);
+    const x0 = this.p0.x, y0 = this.p0.y;
+    const dx = this.p1.x - x0, dy = this.p1.y - y0;
+
+    // Hoist push/translate/strokeWeight out of the loop — previously each of the
+    // ~height iterations called displaySegment() which had its own push/pop/translate
+    // and drawEndCaps (2 ellipses each), totalling ~600 push/pop pairs per frame.
+    this.pInst.push();
+    this.pInst.translate(this.x, this.y);
+    this.pInst.strokeWeight(this.lineW);
 
     for (let i = 0; i < 1.0; i += spacing) {
       const grad = (i / 2 + t) % 1;
       const col = this.get2CycleColor(c1, c2, flip ? 1 - grad : grad);
-      this.displaySegment(i, spacing, col);
+      const t0 = i < 0 ? 0 : i > 1 ? 1 : i;
+      const t1 = i + spacing > 1 ? 1 : i + spacing;
+      this.pInst.stroke(col);
+      this.pInst.line(x0 + t0 * dx, y0 + t0 * dy, x0 + t1 * dx, y0 + t1 * dy);
     }
+
+    this.pInst.pop();
   }
 
   getCalibrationColor(): any {
@@ -224,7 +237,8 @@ export default class LineMap extends Draggable {
     sw = this.lineW
   ): void {
     if (!this.endCapsOn) return;
-    if (this.pInst.dist(p0.x, p0.y, p1.x, p1.y) <= 1) return;
+    const ex = p1.x - p0.x, ey = p1.y - p0.y;
+    if (ex * ex + ey * ey <= 1) return; // squared distance avoids Math.sqrt
 
     this.pInst.noStroke();
     this.pInst.fill(col0);

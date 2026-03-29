@@ -133,6 +133,7 @@ export default class BezierMap extends Surface {
 
     this.closed = true;
     this.auto = false;
+    this._updatePointIndices();
     this.setDimensions();
   }
 
@@ -172,6 +173,7 @@ export default class BezierMap extends Surface {
     for (const p of json.points || []) {
       this.points.push(new BezierPoint(p.x, p.y, this, this.pInst));
     }
+    this._updatePointIndices();
     this.setDimensions();
   }
 
@@ -237,6 +239,13 @@ export default class BezierMap extends Surface {
     return (i + this.points.length) % this.points.length;
   }
 
+  /** Sync each BezierPoint's cached index after any mutation of this.points. */
+  private _updatePointIndices(): void {
+    for (let i = 0; i < this.points.length; i++) {
+      this.points[i].index = i;
+    }
+  }
+
   public toggleClosed(): void {
     if (this.closed) {
       this.closed = false;
@@ -278,6 +287,7 @@ export default class BezierMap extends Surface {
       this.points.push(cp1, cp2);
     }
 
+    this._updatePointIndices();
     this.setDimensions();
   }
 
@@ -343,6 +353,7 @@ export default class BezierMap extends Surface {
     const cp2 = new BezierPoint(control2.x, control2.y, this, this.pInst);
 
     this.points.splice(closestAnchorId + 2, 0, cp1, aP, cp2);
+    this._updatePointIndices();
     this.setDimensions();
   }
 
@@ -354,6 +365,7 @@ export default class BezierMap extends Surface {
     for (let i = 0; i < this.points.length; i += 3) {
       if (this.points[i].isMouseOver()) {
         this.points.splice(i, 3);
+        this._updatePointIndices();
         this.setDimensions();
         return;
       }

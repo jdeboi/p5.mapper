@@ -67,6 +67,9 @@ export default class BezierPoint extends Draggable {
   public type = "CPOINT";
   public r = 8;
 
+  /** Index in parentPath.points — kept current by BezierMap._updatePointIndices(). */
+  public index = 0;
+
   /** Local position (mirrors Draggable.x/y) */
   public pos: P5Vec;
 
@@ -103,7 +106,7 @@ export default class BezierPoint extends Draggable {
 
     const closed = true;
     const path = this.parentPath;
-    const i = path.points.indexOf(this);
+    const i = this.index; // cached — avoids O(n) indexOf scan
 
     if (i % 3 == 0) {
       // anchor (red) points
@@ -144,12 +147,11 @@ export default class BezierPoint extends Draggable {
   }
 
   isAnchor() {
-    const i = this.parentPath.points.indexOf(this);
-    return i % 3 == 0;
+    return this.index % 3 === 0;
   }
 
   displayControlCircle(anchorCol: any, lighterCol: any) {
-    const i = this.parentPath.points.indexOf(this);
+    const i = this.index; // cached — avoids O(n) indexOf scan
     let colAnchor = anchorCol;
     let colSelect = lighterCol;
     if (this.isMouseOver()) {

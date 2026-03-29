@@ -1881,55 +1881,49 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
   }, {
     key: "emitQuadAsTrianglesUV",
     value: function emitQuadAsTrianglesUV(x, y, u0, v0, u1, v1) {
-      var _this2 = this;
-      var i00 = y * this.res + x; // (x,   y)
-      var i10 = y * this.res + (x + 1); // (x+1, y)
-      var i11 = (y + 1) * this.res + (x + 1); // (x+1, y+1)
-      var i01 = (y + 1) * this.res + x; // (x,   y+1)
+      var i00 = y * this.res + x;
+      var i10 = y * this.res + (x + 1);
+      var i11 = (y + 1) * this.res + (x + 1);
+      var i01 = (y + 1) * this.res + x;
 
-      // Interpolate UV per-vertex from the quad UV rect
-      // mp.u/mp.v are 0..1 over the original rect; re-map into [u0..u1]/[v0..v1]
-      var put = function put(i) {
-        var mp = _this2.mesh[i];
-        var uu = u0 + mp.u * (u1 - u0);
-        var vv = v0 + mp.v * (v1 - v0);
-        _this2.pInst.vertex(mp.x, mp.y, uu, vv);
-      };
-
-      // Triangle 1: (x,y) → (x+1,y) → (x+1,y+1)
-      put(i00);
-      put(i10);
-      put(i11);
-
-      // Triangle 2: (x,y) → (x+1,y+1) → (x,y+1)
-      put(i00);
-      put(i11);
-      put(i01);
+      // Precompute UV scale factors once per cell; inline vertex calls to avoid
+      // creating a closure (put = (i) => {...}) on every one of the 361 cell calls per frame.
+      var du = u1 - u0;
+      var dv = v1 - v0;
+      var p = this.pInst;
+      var mesh = this.mesh;
+      var mp = mesh[i00];
+      p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
+      mp = mesh[i10];
+      p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
+      mp = mesh[i11];
+      p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
+      mp = mesh[i00];
+      p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
+      mp = mesh[i11];
+      p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
+      mp = mesh[i01];
+      p.vertex(mp.x, mp.y, u0 + mp.u * du, v0 + mp.v * dv);
     }
 
     /** Emit two triangles for outline/fill only (no UVs). */
   }, {
     key: "emitQuadAsTrianglesOutline",
     value: function emitQuadAsTrianglesOutline(x, y) {
-      var _this3 = this;
       var i00 = y * this.res + x;
       var i10 = y * this.res + (x + 1);
       var i11 = (y + 1) * this.res + (x + 1);
       var i01 = (y + 1) * this.res + x;
-      var v = function v(i) {
-        var mp = _this3.mesh[i];
-        _this3.pInst.vertex(mp.x, mp.y);
-      };
 
-      // Triangle 1
-      v(i00);
-      v(i10);
-      v(i11);
-
-      // Triangle 2
-      v(i00);
-      v(i11);
-      v(i01);
+      // Inline to avoid closure allocation per cell call
+      var p = this.pInst;
+      var mesh = this.mesh;
+      p.vertex(mesh[i00].x, mesh[i00].y);
+      p.vertex(mesh[i10].x, mesh[i10].y);
+      p.vertex(mesh[i11].x, mesh[i11].y);
+      p.vertex(mesh[i00].x, mesh[i00].y);
+      p.vertex(mesh[i11].x, mesh[i11].y);
+      p.vertex(mesh[i01].x, mesh[i01].y);
     }
 
     // --- Optional: if you ever want to change tessellation dynamically ----
@@ -2035,18 +2029,12 @@ var TriMap = /*#__PURE__*/function (_CornerPinSurface) {
       var bl = this.mesh[this.BL];
       var br = this.mesh[this.BR];
 
-      // Choose UVs: BL → (u0,v1), TP → mid-top ((u0+u1)/2, v0), BR → (u1,v1)
-      var uv = {
-        u0: u0,
-        v0: v0,
-        u1: u1,
-        v1: v1
-      };
-      var uMid = (uv.u0 + uv.u1) * 0.5;
+      // Use params directly — avoids allocating a UVRect object every frame
+      var uMid = (u0 + u1) * 0.5;
       p.beginShape(p.TRIANGLES);
-      if (isUV) p.vertex(bl.x, bl.y, uv.u0, uv.v1);else p.vertex(bl.x, bl.y);
-      if (isUV) p.vertex(apex.x, apex.y, uMid, uv.v0);else p.vertex(apex.x, apex.y);
-      if (isUV) p.vertex(br.x, br.y, uv.u1, uv.v1);else p.vertex(br.x, br.y);
+      if (isUV) p.vertex(bl.x, bl.y, u0, v1);else p.vertex(bl.x, bl.y);
+      if (isUV) p.vertex(apex.x, apex.y, uMid, v0);else p.vertex(apex.x, apex.y);
+      if (isUV) p.vertex(br.x, br.y, u1, v1);else p.vertex(br.x, br.y);
       p.endShape(p.CLOSE);
     }
 
@@ -2355,6 +2343,8 @@ var BezierPoint = /*#__PURE__*/function (_Draggable) {
     // super(pInst, x, y);
     BezierPoint_defineProperty(_this, "type", "CPOINT");
     BezierPoint_defineProperty(_this, "r", 8);
+    /** Index in parentPath.points — kept current by BezierMap._updatePointIndices(). */
+    BezierPoint_defineProperty(_this, "index", 0);
     _this.pInst = pInst;
     _this.pos = pInst.createVector(x, y);
     _this.parentPath = parentPath;
@@ -2390,7 +2380,8 @@ var BezierPoint = /*#__PURE__*/function (_Draggable) {
       var y = this.pInst.mouseY - this.pInst.height / 2 - this.parentPath.y;
       var closed = true;
       var path = this.parentPath;
-      var i = path.points.indexOf(this);
+      var i = this.index; // cached — avoids O(n) indexOf scan
+
       if (i % 3 == 0) {
         // anchor (red) points
         var dx = x - this.pos.x;
@@ -2424,13 +2415,12 @@ var BezierPoint = /*#__PURE__*/function (_Draggable) {
   }, {
     key: "isAnchor",
     value: function isAnchor() {
-      var i = this.parentPath.points.indexOf(this);
-      return i % 3 == 0;
+      return this.index % 3 === 0;
     }
   }, {
     key: "displayControlCircle",
     value: function displayControlCircle(anchorCol, lighterCol) {
-      var i = this.parentPath.points.indexOf(this);
+      var i = this.index; // cached — avoids O(n) indexOf scan
       var colAnchor = anchorCol;
       var colSelect = lighterCol;
       if (this.isMouseOver()) {
@@ -2571,6 +2561,7 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       }
       this.closed = true;
       this.auto = false;
+      this._updatePointIndices();
       this.setDimensions();
     }
 
@@ -2632,6 +2623,7 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       } finally {
         _iterator.f();
       }
+      this._updatePointIndices();
       this.setDimensions();
     }
   }, {
@@ -2718,6 +2710,15 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
     value: function loopIndex(i) {
       return (i + this.points.length) % this.points.length;
     }
+
+    /** Sync each BezierPoint's cached index after any mutation of this.points. */
+  }, {
+    key: "_updatePointIndices",
+    value: function _updatePointIndices() {
+      for (var i = 0; i < this.points.length; i++) {
+        this.points[i].index = i;
+      }
+    }
   }, {
     key: "toggleClosed",
     value: function toggleClosed() {
@@ -2738,6 +2739,7 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
         var cp2 = new BezierPoint(newControl2.x, newControl2.y, this, this.pInst);
         this.points.push(cp1, cp2);
       }
+      this._updatePointIndices();
       this.setDimensions();
     }
   }, {
@@ -2788,6 +2790,7 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       var cp1 = new BezierPoint(control1.x, control1.y, this, this.pInst);
       var cp2 = new BezierPoint(control2.x, control2.y, this, this.pInst);
       this.points.splice(closestAnchorId + 2, 0, cp1, aP, cp2);
+      this._updatePointIndices();
       this.setDimensions();
     }
   }, {
@@ -2800,6 +2803,7 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       for (var i = 0; i < this.points.length; i += 3) {
         if (this.points[i].isMouseOver()) {
           this.points.splice(i, 3);
+          this._updatePointIndices();
           this.setDimensions();
           return;
         }
@@ -3289,15 +3293,28 @@ var LineMap = /*#__PURE__*/function (_Draggable) {
     value: function displayGradientLine(c1, c2, per) {
       var phase = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 1;
       var flip = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
-      // 'flip' kept for API compatibility (could invert gradient if desired)
       var t = (per + phase) % 1;
-      var spacing = 1.0 / Math.max(1, this.pInst.height); // density guard
+      var spacing = 1.0 / Math.max(1, this.pInst.height);
+      var x0 = this.p0.x,
+        y0 = this.p0.y;
+      var dx = this.p1.x - x0,
+        dy = this.p1.y - y0;
 
+      // Hoist push/translate/strokeWeight out of the loop — previously each of the
+      // ~height iterations called displaySegment() which had its own push/pop/translate
+      // and drawEndCaps (2 ellipses each), totalling ~600 push/pop pairs per frame.
+      this.pInst.push();
+      this.pInst.translate(this.x, this.y);
+      this.pInst.strokeWeight(this.lineW);
       for (var i = 0; i < 1.0; i += spacing) {
         var grad = (i / 2 + t) % 1;
         var col = this.get2CycleColor(c1, c2, flip ? 1 - grad : grad);
-        this.displaySegment(i, spacing, col);
+        var t0 = i < 0 ? 0 : i > 1 ? 1 : i;
+        var t1 = i + spacing > 1 ? 1 : i + spacing;
+        this.pInst.stroke(col);
+        this.pInst.line(x0 + t0 * dx, y0 + t0 * dy, x0 + t1 * dx, y0 + t1 * dy);
       }
+      this.pInst.pop();
     }
   }, {
     key: "getCalibrationColor",
@@ -3353,7 +3370,10 @@ var LineMap = /*#__PURE__*/function (_Draggable) {
       var col1 = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : this.lineC;
       var sw = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : this.lineW;
       if (!this.endCapsOn) return;
-      if (this.pInst.dist(p0.x, p0.y, p1.x, p1.y) <= 1) return;
+      var ex = p1.x - p0.x,
+        ey = p1.y - p0.y;
+      if (ex * ex + ey * ey <= 1) return; // squared distance avoids Math.sqrt
+
       this.pInst.noStroke();
       this.pInst.fill(col0);
       this.pInst.ellipse(p0.x, p0.y, sw);

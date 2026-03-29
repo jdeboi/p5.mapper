@@ -1,8 +1,6 @@
 // TriMap.ts
 import CornerPinSurface from "./CornerPinSurface";
 
-type UVRect = { u0: number; v0: number; u1: number; v1: number };
-
 export default class TriMap extends CornerPinSurface {
   /** Index of the top apex point in the base mesh */
   private TP!: number;
@@ -73,19 +71,18 @@ export default class TriMap extends CornerPinSurface {
     const bl = this.mesh[this.BL];
     const br = this.mesh[this.BR];
 
-    // Choose UVs: BL → (u0,v1), TP → mid-top ((u0+u1)/2, v0), BR → (u1,v1)
-    const uv: UVRect = { u0, v0, u1, v1 };
-    const uMid = (uv.u0 + uv.u1) * 0.5;
+    // Use params directly — avoids allocating a UVRect object every frame
+    const uMid = (u0 + u1) * 0.5;
 
     p.beginShape(p.TRIANGLES);
 
-    if (isUV) p.vertex(bl.x, bl.y, uv.u0, uv.v1);
+    if (isUV) p.vertex(bl.x, bl.y, u0, v1);
     else p.vertex(bl.x, bl.y);
 
-    if (isUV) p.vertex(apex.x, apex.y, uMid, uv.v0);
+    if (isUV) p.vertex(apex.x, apex.y, uMid, v0);
     else p.vertex(apex.x, apex.y);
 
-    if (isUV) p.vertex(br.x, br.y, uv.u1, uv.v1);
+    if (isUV) p.vertex(br.x, br.y, u1, v1);
     else p.vertex(br.x, br.y);
 
     p.endShape(p.CLOSE);
