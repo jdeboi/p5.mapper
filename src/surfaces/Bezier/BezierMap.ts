@@ -62,6 +62,10 @@ export default class BezierMap extends Surface {
   /** Cached shader (mask + image compose) */
   private shaderProg: any | null = null;
 
+  /** Per-instance mask buffer — avoids the shared pMapper.bezBuffer being overwritten
+   *  by one BezierMap and corrupting another's rendering in the same frame. */
+  private _bezBuffer: any | null = null;
+
   /** Cached polyline approximation; invalidated when points change */
   private _polylineCache: Array<{ x: number; y: number }> | null = null;
   /** Cached bounding box derived from the polyline */
@@ -75,6 +79,10 @@ export default class BezierMap extends Surface {
   ) {
     super(id, /*w*/ 0, /*h*/ 0, /*res*/ 2, "BEZ", pMapper.buffer, pInst);
     this.pMapper = pMapper;
+
+    // Each instance gets its own mask buffer so multiple BezierMaps don't
+    // overwrite each other's mask when setDimensions() is called.
+    this._bezBuffer = pInst.createGraphics(pInst.width, pInst.height);
 
     // give a nominal size; setDimensions() will update from bounds
     this.width = 100;
@@ -154,12 +162,12 @@ export default class BezierMap extends Surface {
 
   /** p5 setting passthrough for curve quality */
   public setBezierDetail(num = 20) {
-    this.pMapper.bezBuffer?.bezierDetail?.(num);
+    this._bezBuffer?.bezierDetail?.(num);
     this.pMapper.buffer?.bezierDetail?.(num);
   }
 
   public isReady(): boolean {
-    return Boolean(this.pMapper.bezBuffer && this.pMapper.bezierShaderLoaded);
+    return Boolean(this._bezBuffer && this.pMapper.bezierShaderLoaded);
   }
 
   // --- Persistence -------------------------------------------------------
@@ -300,9 +308,8 @@ export default class BezierMap extends Surface {
     this.width = w + this.bufferSpace * 2;
     this.height = h + this.bufferSpace * 2;
 
-    // update the white mask into bezBuffer when shape changes
-    const bezBuffer = this.pMapper.bezBuffer;
-    this.displayBezierPG(bezBuffer);
+    // update the white mask into this instance's own buffer when shape changes
+    this.displayBezierPG(this._bezBuffer);
   }
 
   public numSegments(): number {
@@ -520,7 +527,7 @@ export default class BezierMap extends Surface {
   private displayGraphicsTexture(pBuffer: any): void {
     if (!this.isReady()) return;
 
-    const pMask = this.pMapper.bezBuffer;
+    const pMask = this._bezBuffer;
     const pOutput = this.pMapper.bufferWEBGL;
 
     // Lazily create and cache the shader

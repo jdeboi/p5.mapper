@@ -2497,11 +2497,18 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
     BezierMap_defineProperty(_this, "bufferSpace", 10);
     /** Cached shader (mask + image compose) */
     BezierMap_defineProperty(_this, "shaderProg", null);
+    /** Per-instance mask buffer — avoids the shared pMapper.bezBuffer being overwritten
+     *  by one BezierMap and corrupting another's rendering in the same frame. */
+    BezierMap_defineProperty(_this, "_bezBuffer", null);
     /** Cached polyline approximation; invalidated when points change */
     BezierMap_defineProperty(_this, "_polylineCache", null);
     /** Cached bounding box derived from the polyline */
     BezierMap_defineProperty(_this, "_boundsCache", null);
     _this.pMapper = pMapper;
+
+    // Each instance gets its own mask buffer so multiple BezierMaps don't
+    // overwrite each other's mask when setDimensions() is called.
+    _this._bezBuffer = pInst.createGraphics(pInst.width, pInst.height);
 
     // give a nominal size; setDimensions() will update from bounds
     _this.width = 100;
@@ -2591,15 +2598,15 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
   }, {
     key: "setBezierDetail",
     value: function setBezierDetail() {
-      var _this$pMapper$bezBuff, _this$pMapper$bezBuff2, _this$pMapper$buffer, _this$pMapper$buffer$;
+      var _this$_bezBuffer, _this$_bezBuffer$bezi, _this$pMapper$buffer, _this$pMapper$buffer$;
       var num = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 20;
-      (_this$pMapper$bezBuff = this.pMapper.bezBuffer) === null || _this$pMapper$bezBuff === void 0 || (_this$pMapper$bezBuff2 = _this$pMapper$bezBuff.bezierDetail) === null || _this$pMapper$bezBuff2 === void 0 || _this$pMapper$bezBuff2.call(_this$pMapper$bezBuff, num);
+      (_this$_bezBuffer = this._bezBuffer) === null || _this$_bezBuffer === void 0 || (_this$_bezBuffer$bezi = _this$_bezBuffer.bezierDetail) === null || _this$_bezBuffer$bezi === void 0 || _this$_bezBuffer$bezi.call(_this$_bezBuffer, num);
       (_this$pMapper$buffer = this.pMapper.buffer) === null || _this$pMapper$buffer === void 0 || (_this$pMapper$buffer$ = _this$pMapper$buffer.bezierDetail) === null || _this$pMapper$buffer$ === void 0 || _this$pMapper$buffer$.call(_this$pMapper$buffer, num);
     }
   }, {
     key: "isReady",
     value: function isReady() {
-      return Boolean(this.pMapper.bezBuffer && this.pMapper.bezierShaderLoaded);
+      return Boolean(this._bezBuffer && this.pMapper.bezierShaderLoaded);
     }
 
     // --- Persistence -------------------------------------------------------
@@ -2754,9 +2761,8 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       this.width = w + this.bufferSpace * 2;
       this.height = h + this.bufferSpace * 2;
 
-      // update the white mask into bezBuffer when shape changes
-      var bezBuffer = this.pMapper.bezBuffer;
-      this.displayBezierPG(bezBuffer);
+      // update the white mask into this instance's own buffer when shape changes
+      this.displayBezierPG(this._bezBuffer);
     }
   }, {
     key: "numSegments",
@@ -2962,7 +2968,7 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
     key: "displayGraphicsTexture",
     value: function displayGraphicsTexture(pBuffer) {
       if (!this.isReady()) return;
-      var pMask = this.pMapper.bezBuffer;
+      var pMask = this._bezBuffer;
       var pOutput = this.pMapper.bufferWEBGL;
 
       // Lazily create and cache the shader
