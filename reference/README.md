@@ -1,15 +1,16 @@
 - [Reference](#reference)
   - [QuadMap](#quadmap)
+  - [TriMap](#trimap)
   - [BezierMap](#beziermap)
   - [LineMap](#linemap)
 
 ---
-# Reference 
+# Reference
 
 ```javascript
 const pMapper = createProjectionMapper(this);
 ```
-  
+
 Methods to create mapping surfaces:
 * `pMapper.createQuadMap(width, height, [resolution])`
 * `pMapper.createTriMap(width, height, [resolution])`
@@ -20,63 +21,65 @@ Methods to create mapping surfaces:
 
 Get the value of an oscillator (useful for LineMap animations):
 * `pMapper.getOscillator(seconds, [offset])`
-  * (basically a sine wave helper- returns a number 0-1 that oscillates with a `seconds`-long period and an optional phase, `offset`
-  
+  * Returns a number 0–1 that oscillates with a `seconds`-long period and an optional phase `offset` (sine wave helper)
+
 Saving / loading methods:
 * `pMapper.save([filename.json])`
 * `pMapper.load([directory/filename.json], [callback])`
 
 ```javascript
-  pMapper.load("maps/map.json", () => console.log("done loading json"));
+pMapper.load("maps/map.json", () => console.log("done loading json"));
 ```
-  
+
 Calibrating methods:
 * `pMapper.startCalibration()`
 * `pMapper.stopCalibration()`
 * `pMapper.toggleCalibration()`
-  
-In calibration mode, it's possible to limit dragging to surfaces / control points:
+
+In calibration mode, dragging can be restricted:
 * `pMapper.moveAll()`
-  * sets dragging to surfaces or control points
+  * allows dragging surfaces or control points
 * `pMapper.moveSurfaces()`
   * limits movement to dragging surfaces (not control points)
 * `pMapper.moveControlPoints()`
-  * limits movement to control points
-  
+  * limits movement to control points only
+
 ## QuadMap
-Quads do perspective matrix transformation of visuals (unlike the other surface objects). Quads have the following methods:
+Quads perform a perspective matrix transform of visuals (unlike the other surface objects). The following methods are available:
 * `display([color])`
 * `displayTexture(img, [x], [y], [w], [h])`
-  * *img* - a p5.Image|p5.Element|p5.Texture
-  * *x* - the x-coordinate of the top-left corner of the image
-  * *y* - the y-coordinate of the top-left corner of the image
-  * *w* - the width of the image
-  * *h* - the height of the image
-* `displaySketch(function, [x], [y], [w], [h])`
-  * *function* - a function that has a graphics parameter and draws on the graphics object 
+  * *img* — a `p5.Image`, `p5.Element`, or `p5.Texture`
+  * *x*, *y* — top-left corner of the source image (default: 0, 0)
+  * *w*, *h* — source dimensions (default: image size)
+* `displaySketch(fn, [x], [y], [w], [h])`
+  * *fn* — a function that receives a `p5.Graphics` object and draws on it
+
+## TriMap
+A triangular surface with three control points (apex, bottom-left, bottom-right). Extends QuadMap and shares the same display interface:
+* `display([color])`
+* `displayTexture(img, [x], [y], [w], [h])`
+* `displaySketch(fn, [x], [y], [w], [h])`
 
 ## BezierMap
 
 ```javascript
 const bezMap = pMapper.createBezierMap([numPoints]);
 ```
-  
-Bezier objects have the following methods:
+
+Bezier objects have the following display methods:
 * `bezMap.display([color])`
 * `bezMap.displayTexture(img, [x], [y], [w], [h])`
-  * *img* - a p5.Image|p5.Element|p5.Texture
-  * *x* - the x-coordinate of the top-left corner of the image
-  * *y* - the y-coordinate of the top-left corner of the image
-  * *w* - the width of the image
-  * *h* - the height of the image
-* `bezMap.displaySketch(function, [x], [y], [w], [h])`
-  * *function* - a function that has a graphics parameter and draws on the graphics object 
+  * *img* — a `p5.Image`, `p5.Element`, or `p5.Texture`
+  * *x*, *y* — top-left corner of the source image (default: 0, 0)
+  * *w*, *h* — source dimensions (default: image size)
+* `bezMap.displaySketch(fn, [x], [y], [w], [h])`
+  * *fn* — a function that receives a `p5.Graphics` object and draws on it
 
 To add / remove points to a bezier map:
 * `bezMap.addSegment([x], [y])`
-  * x and y default to location of the mouse; otherwise, specify coordinates
+  * *x*, *y* default to mouse position; otherwise specify coordinates
 * `bezMap.removeSegment([x], [y])`
-  * x and y default to location of the mouse (delete by clicking on anchor point); otherwise, specify coordinates
+  * *x*, *y* default to mouse position (deletes closest anchor); otherwise specify coordinates
 
 ## LineMap
 
@@ -85,23 +88,41 @@ To create a line map:
 const lineMap = pMapper.createLineMap();
 ```
 
-It's also possible to initialize with x y values:
+Initialize with explicit coordinates:
 ```javascript
 const lineMap = pMapper.createLineMap(-200, 0, 100, 100);
 ```
 
-The following display methods can optionally take a color object:
-* `lineMap.display([color])`
-* `lineMap.displayPercent(percent, [color])`
-* `lineMap.displayCenterPulse(percent, [color])`
+Display methods (all accept an optional color and stroke weight):
+* `lineMap.display([color], [strokeWeight])`
+* `lineMap.displayNone()`
+  * draws the line in black (hides it on a black background)
+* `lineMap.displayPercent(percent, [color], [strokeWeight])`
+  * draws from `p0` to a point `percent` of the way toward `p1`
+* `lineMap.displayCenterPulse(percent, [color], [strokeWeight])`
+  * pulses outward from the center toward both endpoints
 * `lineMap.displayPercentWidth(percent, [color])`
+  * keeps the full line but scales stroke width by `percent`
+* `lineMap.displaySegment(startPercent, sizePercent, [color], [strokeWeight])`
+  * draws a segment of the line starting at `startPercent` with length `sizePercent`
 * `lineMap.displayRainbowCycle()`
-* `lineMap.displayGradientLine(color0, color1, percent, [phase])`
-  * currently super expensive.. TODO..
+  * HSB hue cycle tied to `frameCount`
+* `lineMap.displayGradientLine(color0, color1, percent, [phase], [flip])`
+  * swept two-color gradient along the line
 * `lineMap.displayNumber()`
-  * a helper when the line order matters and you need to visualize the line id
-* `lineMap.OnMouseOverCallback(callback)`
-  * useful if you want to call a function if a line has been clicked, for example to set the line thickness
+  * renders the line's id at its midpoint — helpful when line order matters
+
+End cap control:
+* `lineMap.setEndCapsOn()` (default)
+* `lineMap.setEndCapsOff()`
+
+Setting line width — set the property directly:
+```javascript
+lineMap.lineW = 20;
+```
+
+Mouse-over callback (useful for click interactions):
+* `lineMap.isMouseOverCallback(callback)`
 
 ```javascript
 function mousePressed() {
@@ -116,9 +137,7 @@ function lineClickedCallback(line) {
 
 function setLineThickness(increment) {
   if (selectedLine != null) {
-    selectedLine.setLineThickness(selectedLine.lineW + increment);
+    selectedLine.lineW += increment;
   }
 }
 ```
-
-
