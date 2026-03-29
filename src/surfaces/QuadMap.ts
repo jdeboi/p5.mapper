@@ -8,7 +8,11 @@ export default class QuadMap extends CornerPinSurface {
   private resX: number;
   private resY: number;
 
-  /** Homography mapping src → dst (x,y) */
+  /** Cached calibration grid — only rebuilt when the mesh changes */
+  private _calibGfx: any | null = null;
+  private _calibGfxOffX = 0;
+  private _calibGfxOffY = 0;
+  private _calibDirty = true;
 
   constructor(
     id: string | number,
@@ -58,6 +62,7 @@ export default class QuadMap extends CornerPinSurface {
    * then maps every interior grid point.
    */
   protected calculateMesh(): void {
+    this._calibDirty = true;
     const srcCorners = [
       0,
       0,
@@ -124,24 +129,63 @@ export default class QuadMap extends CornerPinSurface {
     p.endShape();
   }
 
-  /** Calibration draw (grid without texture) */
+  /** Calibration draw: blit a cached grid image instead of re-tessellating every frame */
   public displayCalibration(): void {
-    this.displayGrid();
+    if (this._calibDirty || !this._calibGfx) {
+      this._rebuildCalibGfx();
+    }
+    if (this._calibGfx) {
+      this.pInst.image(this._calibGfx, this._calibGfxOffX, this._calibGfxOffY);
+    }
   }
 
-  private displayGrid(col: any = this.controlPointColor): void {
-    const p = this.pInst;
-    p.strokeWeight(2);
-    p.stroke(col);
-    p.fill(this.getMutedControlColor(col));
+  /** Render the grid mesh into an offscreen 2D buffer once; reused until mesh changes. */
+  private _rebuildCalibGfx(): void {
+    // Compute surface-local bounding box of all mesh points
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const mp of this.mesh) {
+      if (mp.x < minX) minX = mp.x;
+      if (mp.y < minY) minY = mp.y;
+      if (mp.x > maxX) maxX = mp.x;
+      if (mp.y > maxY) maxY = mp.y;
+    }
+    const pad = 4; // extra pixels to accommodate stroke width
+    const ox = Math.floor(minX) - pad;
+    const oy = Math.floor(minY) - pad;
+    const gw = Math.max(1, Math.ceil(maxX - minX) + pad * 2);
+    const gh = Math.max(1, Math.ceil(maxY - minY) + pad * 2);
 
-    p.beginShape(p.TRIANGLES);
+    if (!this._calibGfx || this._calibGfx.width !== gw || this._calibGfx.height !== gh) {
+      if (this._calibGfx) this._calibGfx.remove();
+      this._calibGfx = this.pInst.createGraphics(gw, gh);
+    }
+
+    const g = this._calibGfx;
+    g.clear();
+    g.strokeWeight(2);
+    g.stroke(this.controlPointColor);
+    g.fill(this.getMutedControlColor(this.controlPointColor));
+
+    g.beginShape(g.TRIANGLES);
     for (let x = 0; x < this.resX - 1; x++) {
       for (let y = 0; y < this.resY - 1; y++) {
-        this.emitQuadAsTrianglesOutline(x, y);
+        const i00 = y * this.res + x;
+        const i10 = y * this.res + (x + 1);
+        const i11 = (y + 1) * this.res + (x + 1);
+        const i01 = (y + 1) * this.res + x;
+        g.vertex(this.mesh[i00].x - ox, this.mesh[i00].y - oy);
+        g.vertex(this.mesh[i10].x - ox, this.mesh[i10].y - oy);
+        g.vertex(this.mesh[i11].x - ox, this.mesh[i11].y - oy);
+        g.vertex(this.mesh[i00].x - ox, this.mesh[i00].y - oy);
+        g.vertex(this.mesh[i11].x - ox, this.mesh[i11].y - oy);
+        g.vertex(this.mesh[i01].x - ox, this.mesh[i01].y - oy);
       }
     }
-    p.endShape();
+    g.endShape();
+
+    this._calibGfxOffX = ox;
+    this._calibGfxOffY = oy;
+    this._calibDirty = false;
   }
 
   /** Emit two triangles for a cell with proper UVs (normalized 0..1). */

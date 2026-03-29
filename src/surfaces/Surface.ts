@@ -31,6 +31,7 @@ export default class Surface extends Draggable {
 
   protected pInst: P5;
   private rafHandle: number | null = null;
+  private _mutedColor: any | null = null;
 
   /**
    * @param id        Identifier for the surface
@@ -86,11 +87,18 @@ export default class Surface extends Draggable {
     return g;
   }
 
-  /** Muted version of a p5 color (alpha default 50) */
+  /** Muted version of a p5 color (alpha default 50). Cached for the common default call. */
   public getMutedControlColor(
     col: any = this.controlPointColor,
     alpha = 50
   ): any {
+    if (col === this.controlPointColor && alpha === 50) {
+      if (!this._mutedColor) {
+        const p = this.pInst;
+        this._mutedColor = p.color(p.red(col), p.green(col), p.blue(col), alpha);
+      }
+      return this._mutedColor;
+    }
     const p = this.pInst;
     return p.color(p.red(col), p.green(col), p.blue(col), alpha);
   }

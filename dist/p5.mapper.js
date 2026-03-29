@@ -322,18 +322,22 @@ function PerspT(srcPts, dstPts) {
   this.coeffsInv = getNormalizationCoefficients(this.srcPts, this.dstPts, true);
   return this;
 }
+
+// Reusable result buffers — avoids allocating a new array on every transform call
+var _transformResult = [0, 0];
+var _transformInverseResult = [0, 0];
 PerspT.prototype = {
   transform: function transform(x, y) {
-    var coordinates = [];
-    coordinates[0] = (this.coeffs[0] * x + this.coeffs[1] * y + this.coeffs[2]) / (this.coeffs[6] * x + this.coeffs[7] * y + 1);
-    coordinates[1] = (this.coeffs[3] * x + this.coeffs[4] * y + this.coeffs[5]) / (this.coeffs[6] * x + this.coeffs[7] * y + 1);
-    return coordinates;
+    var w = this.coeffs[6] * x + this.coeffs[7] * y + 1;
+    _transformResult[0] = (this.coeffs[0] * x + this.coeffs[1] * y + this.coeffs[2]) / w;
+    _transformResult[1] = (this.coeffs[3] * x + this.coeffs[4] * y + this.coeffs[5]) / w;
+    return _transformResult;
   },
   transformInverse: function transformInverse(x, y) {
-    var coordinates = [];
-    coordinates[0] = (this.coeffsInv[0] * x + this.coeffsInv[1] * y + this.coeffsInv[2]) / (this.coeffsInv[6] * x + this.coeffsInv[7] * y + 1);
-    coordinates[1] = (this.coeffsInv[3] * x + this.coeffsInv[4] * y + this.coeffsInv[5]) / (this.coeffsInv[6] * x + this.coeffsInv[7] * y + 1);
-    return coordinates;
+    var w = this.coeffsInv[6] * x + this.coeffsInv[7] * y + 1;
+    _transformInverseResult[0] = (this.coeffsInv[0] * x + this.coeffsInv[1] * y + this.coeffsInv[2]) / w;
+    _transformInverseResult[1] = (this.coeffsInv[3] * x + this.coeffsInv[4] * y + this.coeffsInv[5]) / w;
+    return _transformInverseResult;
   }
 };
 /* harmony default export */ const perspective_PerspT = (PerspT);
@@ -1076,6 +1080,7 @@ var Surface = /*#__PURE__*/function (_Draggable) {
     // usually p5.Color
     // p5.Graphics
     Surface_defineProperty(_this, "rafHandle", null);
+    Surface_defineProperty(_this, "_mutedColor", null);
     _this.pInst = pInst;
     if (!Number.isInteger(res) || res < 2) {
       throw new Error("Surface: res must be an integer >= 2 (got ".concat(res, ")"));
@@ -1106,12 +1111,19 @@ var Surface = /*#__PURE__*/function (_Draggable) {
       return g;
     }
 
-    /** Muted version of a p5 color (alpha default 50) */
+    /** Muted version of a p5 color (alpha default 50). Cached for the common default call. */
   }, {
     key: "getMutedControlColor",
     value: function getMutedControlColor() {
       var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.controlPointColor;
       var alpha = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 50;
+      if (col === this.controlPointColor && alpha === 50) {
+        if (!this._mutedColor) {
+          var _p = this.pInst;
+          this._mutedColor = _p.color(_p.red(col), _p.green(col), _p.blue(col), alpha);
+        }
+        return this._mutedColor;
+      }
       var p = this.pInst;
       return p.color(p.red(col), p.green(col), p.blue(col), alpha);
     }
@@ -1674,6 +1686,7 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
 
 ;// ./src/surfaces/QuadMap.ts
 function QuadMap_typeof(o) { "@babel/helpers - typeof"; return QuadMap_typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, QuadMap_typeof(o); }
+function QuadMap_createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = QuadMap_unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t["return"] || t["return"](); } finally { if (u) throw o; } } }; }
 function QuadMap_slicedToArray(r, e) { return QuadMap_arrayWithHoles(r) || QuadMap_iterableToArrayLimit(r, e) || QuadMap_unsupportedIterableToArray(r, e) || QuadMap_nonIterableRest(); }
 function QuadMap_nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function QuadMap_unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return QuadMap_arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? QuadMap_arrayLikeToArray(r, a) : void 0; } }
@@ -1683,8 +1696,6 @@ function QuadMap_arrayWithHoles(r) { if (Array.isArray(r)) return r; }
 function QuadMap_classCallCheck(a, n) { if (!(a instanceof n)) throw new TypeError("Cannot call a class as a function"); }
 function QuadMap_defineProperties(e, r) { for (var t = 0; t < r.length; t++) { var o = r[t]; o.enumerable = o.enumerable || !1, o.configurable = !0, "value" in o && (o.writable = !0), Object.defineProperty(e, QuadMap_toPropertyKey(o.key), o); } }
 function QuadMap_createClass(e, r, t) { return r && QuadMap_defineProperties(e.prototype, r), t && QuadMap_defineProperties(e, t), Object.defineProperty(e, "prototype", { writable: !1 }), e; }
-function QuadMap_toPropertyKey(t) { var i = QuadMap_toPrimitive(t, "string"); return "symbol" == QuadMap_typeof(i) ? i : i + ""; }
-function QuadMap_toPrimitive(t, r) { if ("object" != QuadMap_typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != QuadMap_typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 function QuadMap_callSuper(t, o, e) { return o = QuadMap_getPrototypeOf(o), QuadMap_possibleConstructorReturn(t, QuadMap_isNativeReflectConstruct() ? Reflect.construct(o, e || [], QuadMap_getPrototypeOf(t).constructor) : o.apply(t, e)); }
 function QuadMap_possibleConstructorReturn(t, e) { if (e && ("object" == QuadMap_typeof(e) || "function" == typeof e)) return e; if (void 0 !== e) throw new TypeError("Derived constructors may only return object or undefined"); return QuadMap_assertThisInitialized(t); }
 function QuadMap_assertThisInitialized(e) { if (void 0 === e) throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); return e; }
@@ -1692,21 +1703,26 @@ function QuadMap_isNativeReflectConstruct() { try { var t = !Boolean.prototype.v
 function QuadMap_getPrototypeOf(t) { return QuadMap_getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf.bind() : function (t) { return t.__proto__ || Object.getPrototypeOf(t); }, QuadMap_getPrototypeOf(t); }
 function QuadMap_inherits(t, e) { if ("function" != typeof e && null !== e) throw new TypeError("Super expression must either be null or a function"); t.prototype = Object.create(e && e.prototype, { constructor: { value: t, writable: !0, configurable: !0 } }), Object.defineProperty(t, "prototype", { writable: !1 }), e && QuadMap_setPrototypeOf(t, e); }
 function QuadMap_setPrototypeOf(t, e) { return QuadMap_setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function (t, e) { return t.__proto__ = e, t; }, QuadMap_setPrototypeOf(t, e); }
+function QuadMap_defineProperty(e, r, t) { return (r = QuadMap_toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
+function QuadMap_toPropertyKey(t) { var i = QuadMap_toPrimitive(t, "string"); return "symbol" == QuadMap_typeof(i) ? i : i + ""; }
+function QuadMap_toPrimitive(t, r) { if ("object" != QuadMap_typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != QuadMap_typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 
 
 
 // type PerspectiveFn = (x: number, y: number) => [number, number];
 var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
-  /** We keep resX/resY mirrored to base `res` so the mesh stays consistent. */
-
-  /** Homography mapping src → dst (x,y) */
-
   function QuadMap(id, w, h, res, buffer, pInst) {
     var _this;
     QuadMap_classCallCheck(this, QuadMap);
     _this = QuadMap_callSuper(this, QuadMap, [id, w, h, res, "QUAD", buffer, pInst]);
 
     // Keep internal axes in sync with base resolution
+    /** We keep resX/resY mirrored to base `res` so the mesh stays consistent. */
+    /** Cached calibration grid — only rebuilt when the mesh changes */
+    QuadMap_defineProperty(_this, "_calibGfx", null);
+    QuadMap_defineProperty(_this, "_calibGfxOffX", 0);
+    QuadMap_defineProperty(_this, "_calibGfxOffY", 0);
+    QuadMap_defineProperty(_this, "_calibDirty", true);
     _this.resX = _this.res;
     _this.resY = _this.res;
     return _this;
@@ -1737,6 +1753,7 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
   }, {
     key: "calculateMesh",
     value: function calculateMesh() {
+      this._calibDirty = true;
       var srcCorners = [0, 0, this.width, 0, this.width, this.height, 0, this.height];
       var dstCorners = [this.mesh[this.TL].x, this.mesh[this.TL].y, this.mesh[this.TR].x, this.mesh[this.TR].y, this.mesh[this.BR].x, this.mesh[this.BR].y, this.mesh[this.BL].x, this.mesh[this.BL].y];
 
@@ -1789,27 +1806,75 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       p.endShape();
     }
 
-    /** Calibration draw (grid without texture) */
+    /** Calibration draw: blit a cached grid image instead of re-tessellating every frame */
   }, {
     key: "displayCalibration",
     value: function displayCalibration() {
-      this.displayGrid();
+      if (this._calibDirty || !this._calibGfx) {
+        this._rebuildCalibGfx();
+      }
+      if (this._calibGfx) {
+        this.pInst.image(this._calibGfx, this._calibGfxOffX, this._calibGfxOffY);
+      }
     }
+
+    /** Render the grid mesh into an offscreen 2D buffer once; reused until mesh changes. */
   }, {
-    key: "displayGrid",
-    value: function displayGrid() {
-      var col = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.controlPointColor;
-      var p = this.pInst;
-      p.strokeWeight(2);
-      p.stroke(col);
-      p.fill(this.getMutedControlColor(col));
-      p.beginShape(p.TRIANGLES);
+    key: "_rebuildCalibGfx",
+    value: function _rebuildCalibGfx() {
+      // Compute surface-local bounding box of all mesh points
+      var minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
+      var _iterator = QuadMap_createForOfIteratorHelper(this.mesh),
+        _step;
+      try {
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
+          var mp = _step.value;
+          if (mp.x < minX) minX = mp.x;
+          if (mp.y < minY) minY = mp.y;
+          if (mp.x > maxX) maxX = mp.x;
+          if (mp.y > maxY) maxY = mp.y;
+        }
+      } catch (err) {
+        _iterator.e(err);
+      } finally {
+        _iterator.f();
+      }
+      var pad = 4; // extra pixels to accommodate stroke width
+      var ox = Math.floor(minX) - pad;
+      var oy = Math.floor(minY) - pad;
+      var gw = Math.max(1, Math.ceil(maxX - minX) + pad * 2);
+      var gh = Math.max(1, Math.ceil(maxY - minY) + pad * 2);
+      if (!this._calibGfx || this._calibGfx.width !== gw || this._calibGfx.height !== gh) {
+        if (this._calibGfx) this._calibGfx.remove();
+        this._calibGfx = this.pInst.createGraphics(gw, gh);
+      }
+      var g = this._calibGfx;
+      g.clear();
+      g.strokeWeight(2);
+      g.stroke(this.controlPointColor);
+      g.fill(this.getMutedControlColor(this.controlPointColor));
+      g.beginShape(g.TRIANGLES);
       for (var x = 0; x < this.resX - 1; x++) {
         for (var y = 0; y < this.resY - 1; y++) {
-          this.emitQuadAsTrianglesOutline(x, y);
+          var i00 = y * this.res + x;
+          var i10 = y * this.res + (x + 1);
+          var i11 = (y + 1) * this.res + (x + 1);
+          var i01 = (y + 1) * this.res + x;
+          g.vertex(this.mesh[i00].x - ox, this.mesh[i00].y - oy);
+          g.vertex(this.mesh[i10].x - ox, this.mesh[i10].y - oy);
+          g.vertex(this.mesh[i11].x - ox, this.mesh[i11].y - oy);
+          g.vertex(this.mesh[i00].x - ox, this.mesh[i00].y - oy);
+          g.vertex(this.mesh[i11].x - ox, this.mesh[i11].y - oy);
+          g.vertex(this.mesh[i01].x - ox, this.mesh[i01].y - oy);
         }
       }
-      p.endShape();
+      g.endShape();
+      this._calibGfxOffX = ox;
+      this._calibGfxOffY = oy;
+      this._calibDirty = false;
     }
 
     /** Emit two triangles for a cell with proper UVs (normalized 0..1). */
@@ -2314,14 +2379,9 @@ var BezierPoint = /*#__PURE__*/function (_Draggable) {
   }, {
     key: "isMouseOver",
     value: function isMouseOver() {
-      var px = this.pos.x + this.parentPath.x;
-      var py = this.pos.y + this.parentPath.y;
-      var mx = this.pInst.mouseX - this.pInst.width / 2;
-      var my = this.pInst.mouseY - this.pInst.height / 2;
-      if (this.pInst.dist(px, py, mx, my) < 5) {
-        return true;
-      }
-      return false;
+      var dx = this.pos.x + this.parentPath.x - (this.pInst.mouseX - this.pInst.width / 2);
+      var dy = this.pos.y + this.parentPath.y - (this.pInst.mouseY - this.pInst.height / 2);
+      return dx * dx + dy * dy < 25; // 5² = 25, avoids Math.sqrt
     }
   }, {
     key: "moveTo",
@@ -2447,6 +2507,10 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
     BezierMap_defineProperty(_this, "bufferSpace", 10);
     /** Cached shader (mask + image compose) */
     BezierMap_defineProperty(_this, "shaderProg", null);
+    /** Cached polyline approximation; invalidated when points change */
+    BezierMap_defineProperty(_this, "_polylineCache", null);
+    /** Cached bounding box derived from the polyline */
+    BezierMap_defineProperty(_this, "_boundsCache", null);
     _this.pMapper = pMapper;
 
     // give a nominal size; setDimensions() will update from bounds
@@ -2644,8 +2708,10 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
   }, {
     key: "getBounds",
     value: function getBounds() {
+      if (this._boundsCache) return this._boundsCache;
       var polyline = this.getPolyline();
-      return BezierMap_superPropGet(BezierMap, "getBounds", this, 3)([polyline]);
+      this._boundsCache = BezierMap_superPropGet(BezierMap, "getBounds", this, 3)([polyline]);
+      return this._boundsCache;
     }
   }, {
     key: "loopIndex",
@@ -2677,6 +2743,9 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
   }, {
     key: "setDimensions",
     value: function setDimensions() {
+      // Invalidate caches whenever the shape changes
+      this._polylineCache = null;
+      this._boundsCache = null;
       var _this$getBounds = this.getBounds(),
         w = _this$getBounds.w,
         h = _this$getBounds.h;
@@ -2776,19 +2845,42 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       var anchor = this.points[anchorI].pos;
       var anchorLeft = this.points[anchorLeftI].pos;
       var anchorRight = this.points[anchorRightI].pos;
-      var V = this.pInst.constructor.Vector;
-      var dispLeft = V.sub(V.copy(anchorLeft), anchor);
-      var dispRight = V.sub(V.copy(anchorRight), anchor);
-      var magLeft = dispLeft.mag();
-      var magRight = dispRight.mag();
-      dispLeft.normalize();
-      dispRight.normalize();
-      var dirLeft = V.sub(dispLeft, dispRight);
-      var dirRight = V.sub(dispRight, dispLeft);
-      dirLeft.setMag(magLeft * controlSpacing);
-      dirRight.setMag(magRight * controlSpacing);
-      this.points[this.loopIndex(anchorI - 1)].set(V.add(V.copy(anchor), dirLeft));
-      this.points[this.loopIndex(anchorI + 1)].set(V.add(V.copy(anchor), dirRight));
+
+      // Scalar math — avoids allocating ~10 temporary p5.Vector objects per call
+      var lx = anchorLeft.x - anchor.x,
+        ly = anchorLeft.y - anchor.y;
+      var rx = anchorRight.x - anchor.x,
+        ry = anchorRight.y - anchor.y;
+      var magLeft = Math.hypot(lx, ly) || 1;
+      var magRight = Math.hypot(rx, ry) || 1;
+
+      // Normalized displacements
+      var lnx = lx / magLeft,
+        lny = ly / magLeft;
+      var rnx = rx / magRight,
+        rny = ry / magRight;
+
+      // dirLeft  = normalize(lnorm - rnorm) * magLeft  * controlSpacing
+      // dirRight = normalize(rnorm - lnorm) * magRight * controlSpacing
+      var dlx = lnx - rnx,
+        dly = lny - rny;
+      var dLMag = Math.hypot(dlx, dly) || 1;
+      var scaleL = magLeft * controlSpacing / dLMag;
+      dlx *= scaleL;
+      dly *= scaleL;
+
+      // dirRight is the negation direction with different scale
+      var scaleR = magRight * controlSpacing / dLMag;
+      var drx = (rnx - lnx) * scaleR;
+      var dry = (rny - lny) * scaleR;
+      this.points[this.loopIndex(anchorI - 1)].set({
+        x: anchor.x + dlx,
+        y: anchor.y + dly
+      });
+      this.points[this.loopIndex(anchorI + 1)].set({
+        x: anchor.x + drx,
+        y: anchor.y + dry
+      });
     }
   }, {
     key: "autoSetEdgePoints",
@@ -2866,9 +2958,6 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
     key: "displayGraphicsTexture",
     value: function displayGraphicsTexture(pBuffer) {
       if (!this.isReady()) return;
-
-      // update mask for current shape
-      this.setDimensions();
       var pMask = this.pMapper.bezBuffer;
       var pOutput = this.pMapper.bufferWEBGL;
 
@@ -2978,18 +3067,12 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
   }, {
     key: "displayControlCircles",
     value: function displayControlCircles(anchorCol, lighterCol) {
-      var i = 0;
-      var index = this.getClosestAnchor();
-      var nextIndex = this.getNextClosestAnchor();
       var _iterator3 = BezierMap_createForOfIteratorHelper(this.points),
         _step3;
       try {
         for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
           var p = _step3.value;
-          //   let col = anchorCol;
-          //   if (i === index || i === nextIndex) col = this.pInst.color(255, 200, 200);
           p.displayControlCircle(anchorCol, lighterCol);
-          i++;
         }
       } catch (err) {
         _iterator3.e(err);
@@ -2998,10 +3081,11 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       }
     }
 
-    /** Polyline approximation of the curve, in local coords */
+    /** Polyline approximation of the curve, in local coords (cached until shape changes) */
   }, {
     key: "getPolyline",
     value: function getPolyline() {
+      if (this._polylineCache) return this._polylineCache;
       var polyline = [];
       for (var i = 0; i < this.numSegments(); i++) {
         var seg = this.getSegment(i);
@@ -3016,6 +3100,7 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
           });
         }
       }
+      this._polylineCache = polyline;
       return polyline;
     }
 
@@ -3063,6 +3148,13 @@ var LineMap = /*#__PURE__*/function (_Draggable) {
     // p5.Color
     LineMap_defineProperty(_this, "lastChecked", 0);
     LineMap_defineProperty(_this, "ang", 0);
+    LineMap_defineProperty(_this, "_calibrationColor", null);
+    /** Cached line length; recomputed lazily when endpoints change */
+    LineMap_defineProperty(_this, "_lineLen", 0);
+    LineMap_defineProperty(_this, "_cachedP0x", NaN);
+    LineMap_defineProperty(_this, "_cachedP0y", NaN);
+    LineMap_defineProperty(_this, "_cachedP1x", NaN);
+    LineMap_defineProperty(_this, "_cachedP1y", NaN);
     _this.id = id;
     _this.lineC = _this.pInst.color(255);
     _this.highlightColor = _this.pInst.color(0, 255, 0);
@@ -3210,11 +3302,13 @@ var LineMap = /*#__PURE__*/function (_Draggable) {
   }, {
     key: "getCalibrationColor",
     value: function getCalibrationColor() {
-      this.pInst.colorMode(this.pInst.HSB, 255);
-      var h = this.pInst.hue(this.controlPointColor);
-      var col = this.pInst.color(h, 180, 255);
-      this.pInst.colorMode(this.pInst.RGB);
-      return col;
+      if (!this._calibrationColor) {
+        var p = this.pInst;
+        p.colorMode(p.HSB, 255);
+        this._calibrationColor = p.color(p.hue(this.controlPointColor), 180, 255);
+        p.colorMode(p.RGB);
+      }
+      return this._calibrationColor;
     }
   }, {
     key: "getLinearIdColor",
@@ -3323,28 +3417,34 @@ var LineMap = /*#__PURE__*/function (_Draggable) {
   }, {
     key: "isMouseOver",
     value: function isMouseOver() {
+      var x1 = this.p0.x,
+        y1 = this.p0.y;
+      var x2 = this.p1.x,
+        y2 = this.p1.y;
+
+      // Recompute line length only when endpoints have moved
+      if (x1 !== this._cachedP0x || y1 !== this._cachedP0y || x2 !== this._cachedP1x || y2 !== this._cachedP1y) {
+        var _dx = x2 - x1,
+          _dy = y2 - y1;
+        this._lineLen = Math.sqrt(_dx * _dx + _dy * _dy);
+        this._cachedP0x = x1;
+        this._cachedP0y = y1;
+        this._cachedP1x = x2;
+        this._cachedP1y = y2;
+      }
+      if (this._lineLen < 1e-6) return false;
       var _this$getMouseCoords = this.getMouseCoords(),
         mx = _this$getMouseCoords.x,
         my = _this$getMouseCoords.y;
       var px = mx - this.x;
       var py = my - this.y;
-      var x1 = this.p0.x,
-        y1 = this.p0.y;
-      var x2 = this.p1.x,
-        y2 = this.p1.y;
-      var lineLen = this.pInst.dist(x1, y1, x2, y2);
-      if (lineLen < 1e-6) return false;
-
-      // project point onto segment and clamp
       var t = this.clamp(this.projectParam(px, py, x1, y1, x2, y2), 0, 1);
-      var cx = this.pInst.lerp(x1, x2, t);
-      var cy = this.pInst.lerp(y1, y2, t);
-
-      // tolerance scales with lineW
+      var cx = x1 + t * (x2 - x1);
+      var cy = y1 + t * (y2 - y1);
       var tol = Math.max(2, this.lineW * 0.6);
-      var distToLine = this.pInst.dist(px, py, cx, cy);
-      var isOver = distToLine <= tol;
-      return isOver;
+      var dx = px - cx,
+        dy = py - cy;
+      return dx * dx + dy * dy <= tol * tol;
     }
   }, {
     key: "isMouseOverCallback",

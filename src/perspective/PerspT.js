@@ -128,27 +128,23 @@ function PerspT(srcPts, dstPts) {
   return this;
 }
 
+// Reusable result buffers — avoids allocating a new array on every transform call
+var _transformResult = [0, 0];
+var _transformInverseResult = [0, 0];
+
 PerspT.prototype = {
   transform: function (x, y) {
-    var coordinates = [];
-    coordinates[0] =
-      (this.coeffs[0] * x + this.coeffs[1] * y + this.coeffs[2]) /
-      (this.coeffs[6] * x + this.coeffs[7] * y + 1);
-    coordinates[1] =
-      (this.coeffs[3] * x + this.coeffs[4] * y + this.coeffs[5]) /
-      (this.coeffs[6] * x + this.coeffs[7] * y + 1);
-    return coordinates;
+    var w = this.coeffs[6] * x + this.coeffs[7] * y + 1;
+    _transformResult[0] = (this.coeffs[0] * x + this.coeffs[1] * y + this.coeffs[2]) / w;
+    _transformResult[1] = (this.coeffs[3] * x + this.coeffs[4] * y + this.coeffs[5]) / w;
+    return _transformResult;
   },
 
   transformInverse: function (x, y) {
-    var coordinates = [];
-    coordinates[0] =
-      (this.coeffsInv[0] * x + this.coeffsInv[1] * y + this.coeffsInv[2]) /
-      (this.coeffsInv[6] * x + this.coeffsInv[7] * y + 1);
-    coordinates[1] =
-      (this.coeffsInv[3] * x + this.coeffsInv[4] * y + this.coeffsInv[5]) /
-      (this.coeffsInv[6] * x + this.coeffsInv[7] * y + 1);
-    return coordinates;
+    var w = this.coeffsInv[6] * x + this.coeffsInv[7] * y + 1;
+    _transformInverseResult[0] = (this.coeffsInv[0] * x + this.coeffsInv[1] * y + this.coeffsInv[2]) / w;
+    _transformInverseResult[1] = (this.coeffsInv[3] * x + this.coeffsInv[4] * y + this.coeffsInv[5]) / w;
+    return _transformInverseResult;
   },
 };
 

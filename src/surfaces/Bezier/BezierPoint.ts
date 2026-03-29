@@ -92,14 +92,9 @@ export default class BezierPoint extends Draggable {
   }
 
   isMouseOver() {
-    let px = this.pos.x + this.parentPath.x;
-    let py = this.pos.y + this.parentPath.y;
-    let mx = this.pInst.mouseX - this.pInst.width / 2;
-    let my = this.pInst.mouseY - this.pInst.height / 2;
-    if (this.pInst.dist(px, py, mx, my) < 5) {
-      return true;
-    }
-    return false;
+    const dx = this.pos.x + this.parentPath.x - (this.pInst.mouseX - this.pInst.width / 2);
+    const dy = this.pos.y + this.parentPath.y - (this.pInst.mouseY - this.pInst.height / 2);
+    return dx * dx + dy * dy < 25; // 5² = 25, avoids Math.sqrt
   }
 
   moveTo() {

@@ -31,6 +31,13 @@ export default class LineMap extends Draggable {
 
   private lastChecked = 0;
   private ang = 0;
+  private _calibrationColor: any | null = null;
+  /** Cached line length; recomputed lazily when endpoints change */
+  private _lineLen = 0;
+  private _cachedP0x = NaN;
+  private _cachedP0y = NaN;
+  private _cachedP1x = NaN;
+  private _cachedP1y = NaN;
 
   constructor(
     x0: number,
@@ -169,11 +176,13 @@ export default class LineMap extends Draggable {
   }
 
   getCalibrationColor(): any {
-    this.pInst.colorMode(this.pInst.HSB, 255);
-    const h = this.pInst.hue(this.controlPointColor);
-    const col = this.pInst.color(h, 180, 255);
-    this.pInst.colorMode(this.pInst.RGB);
-    return col;
+    if (!this._calibrationColor) {
+      const p = this.pInst;
+      p.colorMode(p.HSB, 255);
+      this._calibrationColor = p.color(p.hue(this.controlPointColor), 180, 255);
+      p.colorMode(p.RGB);
+    }
+    return this._calibrationColor;
   }
 
   private getLinearIdColor(id: string | number): any {
@@ -274,28 +283,30 @@ export default class LineMap extends Draggable {
 
   /** Local-space hit test against the line (distance-to-segment) */
   isMouseOver(): boolean {
+    const x1 = this.p0.x, y1 = this.p0.y;
+    const x2 = this.p1.x, y2 = this.p1.y;
+
+    // Recompute line length only when endpoints have moved
+    if (x1 !== this._cachedP0x || y1 !== this._cachedP0y ||
+        x2 !== this._cachedP1x || y2 !== this._cachedP1y) {
+      const dx = x2 - x1, dy = y2 - y1;
+      this._lineLen = Math.sqrt(dx * dx + dy * dy);
+      this._cachedP0x = x1; this._cachedP0y = y1;
+      this._cachedP1x = x2; this._cachedP1y = y2;
+    }
+    if (this._lineLen < 1e-6) return false;
+
     const { x: mx, y: my } = this.getMouseCoords();
     const px = mx - this.x;
     const py = my - this.y;
 
-    const x1 = this.p0.x,
-      y1 = this.p0.y;
-    const x2 = this.p1.x,
-      y2 = this.p1.y;
-
-    const lineLen = this.pInst.dist(x1, y1, x2, y2);
-    if (lineLen < 1e-6) return false;
-
-    // project point onto segment and clamp
     const t = this.clamp(this.projectParam(px, py, x1, y1, x2, y2), 0, 1);
-    const cx = this.pInst.lerp(x1, x2, t);
-    const cy = this.pInst.lerp(y1, y2, t);
+    const cx = x1 + t * (x2 - x1);
+    const cy = y1 + t * (y2 - y1);
 
-    // tolerance scales with lineW
     const tol = Math.max(2, this.lineW * 0.6);
-    const distToLine = this.pInst.dist(px, py, cx, cy);
-    const isOver = distToLine <= tol;
-    return isOver;
+    const dx = px - cx, dy = py - cy;
+    return dx * dx + dy * dy <= tol * tol;
   }
 
   isMouseOverCallback(callback: (self: LineMap) => void): void {

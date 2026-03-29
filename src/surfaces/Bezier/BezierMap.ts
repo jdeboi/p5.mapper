@@ -1,7 +1,7 @@
 // BezierMap.ts
 // Credit: https://geeksoutofthebox.com/2020/11/23/simons-bezier-editor-in-p5-js/
 
-import Surface from "../Surface";
+import Surface, { Bounds } from "../Surface";
 import BezierPoint from "./BezierPoint";
 import { inside } from "../../helpers/helpers"; // assumes your typed helper
 import { DraggableJSON } from "../Draggable";
@@ -61,6 +61,11 @@ export default class BezierMap extends Surface {
 
   /** Cached shader (mask + image compose) */
   private shaderProg: any | null = null;
+
+  /** Cached polyline approximation; invalidated when points change */
+  private _polylineCache: Array<{ x: number; y: number }> | null = null;
+  /** Cached bounding box derived from the polyline */
+  private _boundsCache: Bounds | null = null;
 
   constructor(
     id: string | number,
@@ -221,9 +226,11 @@ export default class BezierMap extends Surface {
   // --- Geometry helpers --------------------------------------------------
 
   /** Axis-aligned bounds of the *polyline* approximation (in local coords) */
-  public override getBounds(): { x: number; y: number; w: number; h: number } {
+  public override getBounds(): Bounds {
+    if (this._boundsCache) return this._boundsCache;
     const polyline = this.getPolyline();
-    return super.getBounds(polyline);
+    this._boundsCache = super.getBounds(polyline);
+    return this._boundsCache;
   }
 
   public loopIndex(i: number): number {
@@ -275,6 +282,10 @@ export default class BezierMap extends Surface {
   }
 
   public setDimensions(): void {
+    // Invalidate caches whenever the shape changes
+    this._polylineCache = null;
+    this._boundsCache = null;
+
     const { w, h } = this.getBounds();
     this.width = w + this.bufferSpace * 2;
     this.height = h + this.bufferSpace * 2;
@@ -391,29 +402,37 @@ export default class BezierMap extends Surface {
     const anchorLeft = this.points[anchorLeftI].pos as P5Vec;
     const anchorRight = this.points[anchorRightI].pos as P5Vec;
 
-    const V = this.pInst.constructor.Vector;
+    // Scalar math — avoids allocating ~10 temporary p5.Vector objects per call
+    const lx = anchorLeft.x - anchor.x, ly = anchorLeft.y - anchor.y;
+    const rx = anchorRight.x - anchor.x, ry = anchorRight.y - anchor.y;
 
-    const dispLeft = V.sub(V.copy(anchorLeft), anchor);
-    const dispRight = V.sub(V.copy(anchorRight), anchor);
+    const magLeft = Math.hypot(lx, ly) || 1;
+    const magRight = Math.hypot(rx, ry) || 1;
 
-    const magLeft = dispLeft.mag();
-    const magRight = dispRight.mag();
+    // Normalized displacements
+    const lnx = lx / magLeft, lny = ly / magLeft;
+    const rnx = rx / magRight, rny = ry / magRight;
 
-    dispLeft.normalize();
-    dispRight.normalize();
+    // dirLeft  = normalize(lnorm - rnorm) * magLeft  * controlSpacing
+    // dirRight = normalize(rnorm - lnorm) * magRight * controlSpacing
+    let dlx = lnx - rnx, dly = lny - rny;
+    const dLMag = Math.hypot(dlx, dly) || 1;
+    const scaleL = (magLeft * controlSpacing) / dLMag;
+    dlx *= scaleL; dly *= scaleL;
 
-    const dirLeft = V.sub(dispLeft, dispRight);
-    const dirRight = V.sub(dispRight, dispLeft);
+    // dirRight is the negation direction with different scale
+    const scaleR = (magRight * controlSpacing) / dLMag;
+    const drx = (rnx - lnx) * scaleR;
+    const dry = (rny - lny) * scaleR;
 
-    dirLeft.setMag(magLeft * controlSpacing);
-    dirRight.setMag(magRight * controlSpacing);
-
-    this.points[this.loopIndex(anchorI - 1)].set(
-      V.add(V.copy(anchor), dirLeft)
-    );
-    this.points[this.loopIndex(anchorI + 1)].set(
-      V.add(V.copy(anchor), dirRight)
-    );
+    this.points[this.loopIndex(anchorI - 1)].set({
+      x: anchor.x + dlx,
+      y: anchor.y + dly,
+    });
+    this.points[this.loopIndex(anchorI + 1)].set({
+      x: anchor.x + drx,
+      y: anchor.y + dry,
+    });
   }
 
   public autoSetEdgePoints(controlSpacing: number): void {
@@ -488,9 +507,6 @@ export default class BezierMap extends Surface {
   /** Apply mask (bezBuffer) to pBuffer via shader, draw to screen */
   private displayGraphicsTexture(pBuffer: any): void {
     if (!this.isReady()) return;
-
-    // update mask for current shape
-    this.setDimensions();
 
     const pMask = this.pMapper.bezBuffer;
     const pOutput = this.pMapper.bufferWEBGL;
@@ -638,19 +654,14 @@ void main() {
   }
 
   private displayControlCircles(anchorCol: any, lighterCol: any): void {
-    let i = 0;
-    const index = this.getClosestAnchor();
-    const nextIndex = this.getNextClosestAnchor();
     for (const p of this.points) {
-      //   let col = anchorCol;
-      //   if (i === index || i === nextIndex) col = this.pInst.color(255, 200, 200);
       p.displayControlCircle(anchorCol, lighterCol);
-      i++;
     }
   }
 
-  /** Polyline approximation of the curve, in local coords */
+  /** Polyline approximation of the curve, in local coords (cached until shape changes) */
   private getPolyline(): Array<{ x: number; y: number }> {
+    if (this._polylineCache) return this._polylineCache;
     const polyline: Array<{ x: number; y: number }> = [];
     for (let i = 0; i < this.numSegments(); i++) {
       const seg = this.getSegment(i);
@@ -674,6 +685,7 @@ void main() {
         polyline.push({ x, y });
       }
     }
+    this._polylineCache = polyline;
     return polyline;
   }
 
