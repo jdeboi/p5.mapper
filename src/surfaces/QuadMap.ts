@@ -237,7 +237,13 @@ export default class QuadMap extends CornerPinSurface {
 
   // --- Optional: if you ever want to change tessellation dynamically ----
 
-  /** Set a new (square) resolution and rebuild the base mesh accordingly. */
+  /**
+   * Set a new (square) resolution and rebuild the base mesh accordingly.
+   * Higher values give a smoother perspective warp under heavy keystoning
+   * (matters most for displayTexture/displaySketch content); lower values
+   * cost fewer vertices per frame. A solid-color display() fill looks the
+   * same at any resolution, so it's a good place to drop this toward 2.
+   */
   public setResolution(res: number): void {
     const r = Math.max(2, Math.floor(res));
     if (r === this.res) return;
