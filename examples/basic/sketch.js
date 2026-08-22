@@ -157,6 +157,8 @@ function windowResized() {
 }
 
 function displayFrameRate() {
+  if (!myFont) return; // font hasn't finished loading yet
+
   fill(255);
   noStroke();
   text(round(frameRate()), -width / 2 + 15, -height / 2 + 50);

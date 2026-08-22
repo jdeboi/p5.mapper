@@ -290,7 +290,9 @@ class ProjectionMapper {
   private loadSurfaces(jSurfaces: JsonSurface[]) {
     if (jSurfaces.length !== this.surfaces.length) {
       console.warn(
-        `json has ${jSurfaces.length} surfaces but memory has ${this.surfaces.length} surfaces`
+        `p5.mapper: map.json has ${jSurfaces.length} surface(s) but only ${this.surfaces.length} exist in memory, so the saved calibration can't be fully applied. ` +
+          `Make sure every createQuadMap/createTriMap/createBezierMap/createPolyMap call finishes before pMapper.load() runs ` +
+          `(e.g. if a surface is created inside an async callback like createVideo or loadImage, call load() from inside that same callback).`
       );
     }
 
@@ -323,7 +325,8 @@ class ProjectionMapper {
   private loadLines(jLines: LineJson[]) {
     if (jLines.length !== this.lines.length) {
       console.warn(
-        `json has ${jLines.length} lines but memory has ${this.lines.length} lines`
+        `p5.mapper: map.json has ${jLines.length} line(s) but only ${this.lines.length} exist in memory, so the saved calibration can't be fully applied. ` +
+          `Make sure every createLineMap call finishes before pMapper.load() runs.`
       );
     }
     for (let i = 0; i < Math.min(jLines.length, this.lines.length); i++) {

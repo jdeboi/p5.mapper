@@ -15,12 +15,6 @@
             <td><a href="https://github.com/jdeboi/p5.mapper/blob/main/examples/lines/sketch.js">code</a></td>
         </tr>
         <tr>
-            <td><img src="../images/windows.png" width="200px" /></td>
-            <td>Quads</td>
-            <td><a href="https://jdeboi.com/p5.mapper/examples/quads/index.html">demo</a></td>
-            <td><a href="https://github.com/jdeboi/p5.mapper/blob/main/examples/quads/sketch.js">code</a></td>
-        </tr>
-        <tr>
             <td><img src="../images/video.png" width="200px" /></td>
             <td>Video</td>
             <td><a href="https://jdeboi.com/p5.mapper/examples/video/index.html">demo</a></td>

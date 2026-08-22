@@ -75,6 +75,8 @@ new p5((p5) => {
   };
 
   p5.displayFrameRate = () => {
+    if (!font) return; // font hasn't finished loading yet
+
     p5.fill(255);
     p5.noStroke();
     p5.textSize(18);

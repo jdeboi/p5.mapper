@@ -568,7 +568,6 @@ void main() {
     }
 
     pOutput.clear();
-    pOutput.setAttributes("alpha", true);
     pOutput.shader(this.shaderProg);
     this.shaderProg.setUniform("texMask", pMask);
     this.shaderProg.setUniform("texImg", pBuffer);

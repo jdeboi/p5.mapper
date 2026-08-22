@@ -2980,7 +2980,6 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
         this.shaderProg = pOutput.createShader(vert, frag);
       }
       pOutput.clear();
-      pOutput.setAttributes("alpha", true);
       pOutput.shader(this.shaderProg);
       this.shaderProg.setUniform("texMask", pMask);
       this.shaderProg.setUniform("texImg", pBuffer);
@@ -3835,7 +3834,7 @@ var ProjectionMapper = /*#__PURE__*/function () {
     value: function loadSurfaces(jSurfaces) {
       var _this2 = this;
       if (jSurfaces.length !== this.surfaces.length) {
-        console.warn("json has ".concat(jSurfaces.length, " surfaces but memory has ").concat(this.surfaces.length, " surfaces"));
+        console.warn("p5.mapper: map.json has ".concat(jSurfaces.length, " surface(s) but only ").concat(this.surfaces.length, " exist in memory, so the saved calibration can't be fully applied. ") + "Make sure every createQuadMap/createTriMap/createBezierMap/createPolyMap call finishes before pMapper.load() runs " + "(e.g. if a surface is created inside an async callback like createVideo or loadImage, call load() from inside that same callback).");
       }
       var filterBy = function filterBy(t) {
         return jSurfaces.filter(function (s) {
@@ -3872,7 +3871,7 @@ var ProjectionMapper = /*#__PURE__*/function () {
     key: "loadLines",
     value: function loadLines(jLines) {
       if (jLines.length !== this.lines.length) {
-        console.warn("json has ".concat(jLines.length, " lines but memory has ").concat(this.lines.length, " lines"));
+        console.warn("p5.mapper: map.json has ".concat(jLines.length, " line(s) but only ").concat(this.lines.length, " exist in memory, so the saved calibration can't be fully applied. ") + "Make sure every createLineMap call finishes before pMapper.load() runs.");
       }
       for (var i = 0; i < Math.min(jLines.length, this.lines.length); i++) {
         this.lines[i].load(jLines[i]);

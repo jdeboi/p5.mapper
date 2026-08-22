@@ -134,6 +134,8 @@ function windowResized() {
 }
 
 function displayFrameRate() {
+  if (!myFont) return;
+
   fill(255);
   noStroke();
   text(round(frameRate()), -width / 2 + 50, -height / 2 + 50);
