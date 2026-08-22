@@ -8,11 +8,33 @@ export default class QuadMap extends CornerPinSurface {
   private resX: number;
   private resY: number;
 
+  /**
+   * Hard ceiling on the calibration overlay's offscreen buffer, in pixels per
+   * axis. Well under every GPU's real MAX_TEXTURE_SIZE/MAX_RENDERBUFFER_SIZE
+   * floor (even old/software renderers), and far larger than any canvas the
+   * overlay actually needs to cover.
+   */
+  private static readonly MAX_CALIB_GFX_DIM = 4096;
+
   /** Cached calibration grid — only rebuilt when the mesh changes */
   private _calibGfx: any | null = null;
+  private _calibGfxCapW = 0;
+  private _calibGfxCapH = 0;
   private _calibGfxOffX = 0;
   private _calibGfxOffY = 0;
   private _calibDirty = true;
+
+  /**
+   * Cached render mesh (WEBGL only — buildGeometry/model aren't available in P2D).
+   * Rebuilt when the mesh changes or the requested UV rect differs from last time.
+   */
+  private _geom: any | null = null;
+  private _geomDirty = true;
+  private _geomIsUV = false;
+  private _geomU0 = 0;
+  private _geomV0 = 0;
+  private _geomU1 = 1;
+  private _geomV1 = 1;
 
   constructor(
     id: string | number,
@@ -63,6 +85,7 @@ export default class QuadMap extends CornerPinSurface {
    */
   protected calculateMesh(): void {
     this._calibDirty = true;
+    this._geomDirty = true;
     const srcCorners = [
       0,
       0,
@@ -101,8 +124,20 @@ export default class QuadMap extends CornerPinSurface {
         const sy = y * stepY;
 
         const [dx, dy] = persp.transform(sx, sy);
-        this.mesh[i].x = dx;
-        this.mesh[i].y = dy;
+
+        // A self-intersecting ("bowtie") quad — e.g. a corner dragged across
+        // the diagonal formed by the other two — puts the homography's
+        // vanishing line through the source rect, so `w` in transform() goes
+        // to ~0 for interior points near that line and dx/dy blow up to
+        // +/-Infinity or NaN. Left unguarded that garbage corrupts both the
+        // render mesh and the calibration overlay's bounding box, which is
+        // what was crashing the WebGL context. Just leave the point at its
+        // last valid position for this one frame instead — it self-corrects
+        // as soon as the corner moves back out of the degenerate config.
+        if (Number.isFinite(dx) && Number.isFinite(dy)) {
+          this.mesh[i].x = dx;
+          this.mesh[i].y = dy;
+        }
       }
     }
   }
@@ -111,22 +146,68 @@ export default class QuadMap extends CornerPinSurface {
    * Draw the tessellated quad as two triangles per cell.
    * When `isUV` is true we pass normalized UVs in [0,1] (Surface sets `textureMode(NORMAL)`).
    * The four extra params are interpreted as [u0, v0, u1, v1].
+   *
+   * In WEBGL mode the mesh is cached as a p5.Geometry and redrawn with `model()`;
+   * it's only rebuilt when the control points moved (`_geomDirty`) or the requested
+   * UV rect changed. `buildGeometry`/`model` don't exist in P2D, so that renderer
+   * falls back to the original per-frame vertex() immediate-mode path.
    */
   protected displaySurface(isUV = true, u0 = 0, v0 = 0, u1 = 1, v1 = 1): void {
     const p = this.pInst;
-    p.beginShape(p.TRIANGLES);
 
-    for (let x = 0; x < this.resX - 1; x++) {
-      for (let y = 0; y < this.resY - 1; y++) {
-        if (isUV) {
-          this.emitQuadAsTrianglesUV(x, y, u0, v0, u1, v1);
-        } else {
-          this.emitQuadAsTrianglesOutline(x, y);
+    if (p.webglVersion === "p2d") {
+      p.beginShape(p.TRIANGLES);
+      for (let x = 0; x < this.resX - 1; x++) {
+        for (let y = 0; y < this.resY - 1; y++) {
+          if (isUV) {
+            this.emitQuadAsTrianglesUV(x, y, u0, v0, u1, v1);
+          } else {
+            this.emitQuadAsTrianglesOutline(x, y);
+          }
         }
       }
+      p.endShape();
+      return;
     }
 
-    p.endShape();
+    const needsRebuild =
+      this._geomDirty ||
+      !this._geom ||
+      this._geomIsUV !== isUV ||
+      (isUV &&
+        (this._geomU0 !== u0 ||
+          this._geomV0 !== v0 ||
+          this._geomU1 !== u1 ||
+          this._geomV1 !== v1));
+
+    if (needsRebuild) {
+      // buildGeometry() registers new GPU buffers every call; free the previous
+      // geometry's buffers first or they leak (e.g. while actively dragging a
+      // control point, which rebuilds every frame) and can exhaust the GPU
+      // context. See p5's own freeGeometry() docs for this exact pattern.
+      if (this._geom) p.freeGeometry(this._geom);
+      this._geom = p.buildGeometry(() => {
+        p.beginShape(p.TRIANGLES);
+        for (let x = 0; x < this.resX - 1; x++) {
+          for (let y = 0; y < this.resY - 1; y++) {
+            if (isUV) {
+              this.emitQuadAsTrianglesUV(x, y, u0, v0, u1, v1);
+            } else {
+              this.emitQuadAsTrianglesOutline(x, y);
+            }
+          }
+        }
+        p.endShape();
+      });
+      this._geomIsUV = isUV;
+      this._geomU0 = u0;
+      this._geomV0 = v0;
+      this._geomU1 = u1;
+      this._geomV1 = v1;
+      this._geomDirty = false;
+    }
+
+    p.model(this._geom);
   }
 
   /** Calibration draw: blit a cached grid image instead of re-tessellating every frame */
@@ -152,12 +233,44 @@ export default class QuadMap extends CornerPinSurface {
     const pad = 4; // extra pixels to accommodate stroke width
     const ox = Math.floor(minX) - pad;
     const oy = Math.floor(minY) - pad;
-    const gw = Math.max(1, Math.ceil(maxX - minX) + pad * 2);
-    const gh = Math.max(1, Math.ceil(maxY - minY) + pad * 2);
 
-    if (!this._calibGfx || this._calibGfx.width !== gw || this._calibGfx.height !== gh) {
+    // Cap the overlay size. A control point dragged far off the surface blows
+    // up the mesh's bounding box arbitrarily, and asking the GPU to allocate a
+    // texture/renderbuffer that large fails outright (GL_INVALID_OPERATION on
+    // renderbufferStorage), leaving a broken graphics object that then throws
+    // on every subsequent frame it's blitted. Nothing useful is lost by
+    // capping — the overlay only needs to cover what's actually visible,
+    // which is bounded by the canvas itself; anything beyond the cap is
+    // simply clipped instead of crashing the WebGL context.
+    const gw = Math.min(
+      QuadMap.MAX_CALIB_GFX_DIM,
+      Math.max(1, Math.ceil(maxX - minX) + pad * 2)
+    );
+    const gh = Math.min(
+      QuadMap.MAX_CALIB_GFX_DIM,
+      Math.max(1, Math.ceil(maxY - minY) + pad * 2)
+    );
+
+    // Grow-only: reallocating this canvas every frame is what starves the GPU
+    // while a corner is being dragged, since the bounding box (and therefore
+    // gw/gh) changes on nearly every frame of the drag. Only recreate when the
+    // request exceeds current capacity (with slack so we don't flap right at
+    // the boundary), and blit the possibly-larger buffer at its actual size —
+    // the clear() below wipes any stale content in the extra margin.
+    if (!this._calibGfx || gw > this._calibGfxCapW || gh > this._calibGfxCapH) {
       if (this._calibGfx) this._calibGfx.remove();
-      this._calibGfx = this.pInst.createGraphics(gw, gh);
+      this._calibGfxCapW = Math.min(
+        QuadMap.MAX_CALIB_GFX_DIM,
+        Math.ceil(gw * 1.25)
+      );
+      this._calibGfxCapH = Math.min(
+        QuadMap.MAX_CALIB_GFX_DIM,
+        Math.ceil(gh * 1.25)
+      );
+      this._calibGfx = this.pInst.createGraphics(
+        this._calibGfxCapW,
+        this._calibGfxCapH
+      );
     }
 
     const g = this._calibGfx;
