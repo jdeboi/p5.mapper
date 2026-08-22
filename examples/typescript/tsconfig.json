@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "lib": ["ES2020", "DOM"],
+    "outDir": "out"
+  },
+  "include": ["sketch.ts"]
+}

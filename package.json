@@ -3,11 +3,12 @@
   "version": "2.2.0",
   "description": "a projection mapping library for p5.js",
   "main": "dist/p5.mapper.js",
+  "types": "dist/types/ProjectionMapper.d.ts",
   "unpkg": "dist/p5.mapper.min.js",
   "jsdelivr": "dist/p5.mapper.min.js",
   "scripts": {
     "typecheck": "tsc",
-    "build": "webpack --config webpack.config.js"
+    "build": "webpack --config webpack.config.js && tsc --project tsconfig.build.json && node scripts/patch-declarations.js"
   },
   "author": "Jenna deBoisblanc",
   "license": "ISC",

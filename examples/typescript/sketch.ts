@@ -1,0 +1,56 @@
+// TypeScript example for p5.mapper
+//
+// The side-effect import of p5.mapper loads the library and applies
+// the global p5 interface augmentation (createProjectionMapper, etc.)
+import p5 from "p5";
+import "p5.mapper";
+
+const sketch = (p: p5) => {
+  let pMapper: ReturnType<p5["createProjectionMapper"]>;
+  let quad: ReturnType<typeof pMapper.createQuadMap>;
+  let bez: ReturnType<typeof pMapper.createBezierMap>;
+
+  p.setup = () => {
+    p.createCanvas(800, 600, p.WEBGL);
+    pMapper = p.createProjectionMapper(p);
+
+    quad = pMapper.createQuadMap(300, 200);
+    bez = pMapper.createBezierMap(5);
+  };
+
+  p.draw = () => {
+    p.background(0);
+
+    // Display a procedural sketch on the quad surface
+    quad.displaySketch((g: p5.Graphics) => {
+      g.background(20, 20, 80);
+      g.fill(255);
+      g.noStroke();
+      g.textSize(24);
+      g.textAlign(g.CENTER, g.CENTER);
+      g.text("p5.mapper + TypeScript", g.width / 2, g.height / 2);
+    });
+
+    // Display a solid color on the bezier surface
+    bez.display(p.color(200, 50, 50));
+  };
+
+  p.keyPressed = () => {
+    if (p.key === "c") pMapper.toggleCalibration();
+    if (p.key === "s") pMapper.save("map.json");
+  };
+
+  p.mousePressed = () => {
+    pMapper.onClick();
+  };
+
+  p.mouseDragged = () => {
+    pMapper.onDrag();
+  };
+
+  p.mouseReleased = () => {
+    pMapper.onRelease();
+  };
+};
+
+new p5(sketch);

@@ -13,12 +13,14 @@ let lastClickedBez = null;
 
 let myFont;
 
-function preload() {
-  myFont = loadFont("assets/Roboto.ttf");
-}
-
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
+
+  // p5.js 2.0 removed preload(), so the font is loaded here with a callback
+  loadFont("assets/Roboto.ttf", (font) => {
+    myFont = font;
+    textFont(myFont);
+  });
 
   pMapper = createProjectionMapper(this);
 
@@ -26,8 +28,6 @@ function setup() {
   bez2 = pMapper.createBezierMap(5);
 
   lastClickedBez = bez1;
-
-  textFont(myFont);
 
   pMapper.load("maps/map.json");
   pMapper.toggleCalibration();

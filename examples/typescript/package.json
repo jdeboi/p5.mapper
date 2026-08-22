@@ -1,0 +1,22 @@
+{
+  "name": "p5-mapper-typescript-example",
+  "private": true,
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "p5": "^2.0.5",
+    "p5.mapper": "file:../.."
+  },
+  "devDependencies": {
+    "@babel/core": "^7.0.0",
+    "@babel/preset-env": "^7.0.0",
+    "@babel/preset-typescript": "^7.0.0",
+    "@types/p5": "^1.7.7",
+    "babel-loader": "^10.0.0",
+    "typescript": "^5.0.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^6.0.0"
+  }
+}

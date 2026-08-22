@@ -22,12 +22,14 @@ let startC, endC;
 
 let myFont;
 
-function preload() {
-  myFont = loadFont("assets/Roboto.ttf");
-}
-
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
+
+  // p5.js 2.0 removed preload(), so the font is loaded here with a callback
+  loadFont("assets/Roboto.ttf", (font) => {
+    myFont = font;
+    textFont(myFont);
+  });
 
   pMapper = createProjectionMapper(this);
 
@@ -38,8 +40,6 @@ function setup() {
 
     // decrease line width for higher stairs (farther away)
     lineMap.lineW = map(i, 0, 9, 20, 70);
-
-    textFont(myFont);
 
     // end cap display
     // lineMap.setEndCapsOff();

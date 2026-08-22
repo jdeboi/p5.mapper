@@ -391,6 +391,9 @@ declare global {
   }
 }
 
+// Legacy global augmentation for @types/p5 consumers.
+// p5 v2 module consumers get the same methods via the declare module "p5"
+// block appended to dist/types/ProjectionMapper.d.ts by scripts/patch-declarations.js.
 declare global {
   interface p5 {
     createProjectionMapper(pInst: P5, w?: number, h?: number): ProjectionMapper;

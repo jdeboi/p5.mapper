@@ -12,12 +12,14 @@ let surfaces = [];
 
 let myFont;
 
-function preload() {
-  myFont = loadFont("assets/Roboto.ttf");
-}
-
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
+
+  // p5.js 2.0 removed preload(), so the font is loaded here with a callback
+  loadFont("assets/Roboto.ttf", (font) => {
+    myFont = font;
+    textFont(myFont);
+  });
 
   // initialize map surfaces
   pMapper = createProjectionMapper(this);
@@ -27,8 +29,6 @@ function setup() {
   }
   // load maps
   pMapper.load("maps/map.json");
-
-  textFont(myFont);
 
   // HSB color for rainbow effect
   colorMode(HSB, 255);

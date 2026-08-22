@@ -14,14 +14,17 @@ let font;
 let img;
 
 new p5((p5) => {
-  p5.preload = () => {
-    font = p5.loadFont("./assets/Roboto.ttf");
-    img = p5.loadImage("./assets/catnap.jpg");
-  };
-
   p5.setup = () => {
     p5.createCanvas(p5.windowWidth, p5.windowHeight, p5.WEBGL);
-    p5.textFont(font);
+
+    // p5.js 2.0 removed preload(), so assets are loaded here with callbacks
+    p5.loadFont("./assets/Roboto.ttf", (loadedFont) => {
+      font = loadedFont;
+      p5.textFont(font);
+    });
+    p5.loadImage("./assets/catnap.jpg", (loadedImg) => {
+      img = loadedImg;
+    });
 
     // create mapper object
     pMapper = p5.createProjectionMapper(p5);
@@ -72,7 +75,6 @@ new p5((p5) => {
   };
 
   p5.displayFrameRate = () => {
-    p5.textFont(font);
     p5.fill(255);
     p5.noStroke();
     p5.textSize(18);

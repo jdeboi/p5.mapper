@@ -15,15 +15,18 @@ let mode;
 let myFont;
 let img;
 
-function preload() {
-  img = loadImage("assets/catnap.jpg");
-  myFont = loadFont("assets/Roboto.ttf");
-}
-
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
-  textFont(myFont);
   initSelection();
+
+  // p5.js 2.0 removed preload(), so assets are loaded here with callbacks
+  loadFont("assets/Roboto.ttf", (font) => {
+    myFont = font;
+    textFont(myFont);
+  });
+  loadImage("assets/catnap.jpg", (loadedImg) => {
+    img = loadedImg;
+  });
 
   // create mapper object
   pMapper = createProjectionMapper(this);

@@ -3954,6 +3954,10 @@ var pMapper = new ProjectionMapper();
 
 // --------------------------- p5 Integration ---------------------------
 
+// Legacy global augmentation for @types/p5 consumers.
+// p5 v2 module consumers get the same methods via the declare module "p5"
+// block appended to dist/types/ProjectionMapper.d.ts by scripts/patch-declarations.js.
+
 p5.prototype.createProjectionMapper = function (pInst, w, h) {
   var W = w !== null && w !== void 0 ? w : pInst.width;
   var H = h !== null && h !== void 0 ? h : pInst.height;

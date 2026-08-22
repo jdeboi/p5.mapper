@@ -16,20 +16,24 @@ let isPlaying = false;
 let myFont;
 
 
-function preload() {
-    myFont = loadFont('assets/Roboto.ttf');
-    video = createVideo(['assets/fingers.mov', 'assets/fingers.webm']);
-    video.hide();
-}
-
 function setup() {
     createCanvas(windowWidth, windowHeight, WEBGL);
 
-    textFont(myFont);
-
     pMapper = createProjectionMapper(this);
-    quadMap = pMapper.createQuadMap(video.width, video.height);
     pMapper.load("maps/map.json");
+
+    // p5.js 2.0 removed preload(), so assets are loaded here with callbacks
+    loadFont('assets/Roboto.ttf', (font) => {
+        myFont = font;
+        textFont(myFont);
+    });
+
+    // the video's width/height aren't known until it's loaded, so the
+    // quadMap that displays it is created inside this callback
+    video = createVideo(['assets/fingers.mov', 'assets/fingers.webm'], () => {
+        video.hide();
+        quadMap = pMapper.createQuadMap(video.width, video.height);
+    });
 }
 
 function draw() {
@@ -38,7 +42,7 @@ function draw() {
     displayFrameRate();
 
     
-    if (isPlaying) {
+    if (isPlaying && quadMap) {
         quadMap.displayTexture(video);
     }
     else {
