@@ -39,7 +39,7 @@ export default class Surface extends Draggable {
     private createBuffer;
     /** Muted version of a p5 color (alpha default 50). Cached for the common default call. */
     getMutedControlColor(col?: any, alpha?: number): any;
-    /** Clear buffer to a color and then draw the textured surface using that buffer */
+    /** Fill the surface's mesh directly with a solid color (no offscreen buffer/texture needed) */
     display(col?: any): void;
     /**
      * Override in subclasses to issue the actual geometry draw calls, e.g.:

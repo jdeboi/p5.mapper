@@ -103,17 +103,16 @@ export default class Surface extends Draggable {
     return p.color(p.red(col), p.green(col), p.blue(col), alpha);
   }
 
-  /** Clear buffer to a color and then draw the textured surface using that buffer */
+  /** Fill the surface's mesh directly with a solid color (no offscreen buffer/texture needed) */
   public display(col: any = this.pInst.color("black")): void {
-    if (!this.buffer || this.buffer.width <= 0 || this.buffer.height <= 0)
-      return;
-
-    this.buffer.push();
-    this.buffer.clear();
-    this.buffer.background(col);
-    this.buffer.pop();
-
-    this.displayTexture(this.buffer);
+    const p = this.pInst;
+    p.push();
+    p.noStroke();
+    p.fill(col);
+    p.translate(this.x, this.y);
+    this.displaySurface(false);
+    if (p.isCalibratingMapper()) this.displayCalibration();
+    p.pop();
   }
 
   /**
