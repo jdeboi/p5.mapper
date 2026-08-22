@@ -123,7 +123,9 @@ export default class MovePoint extends Draggable {
   /** Convert a canvas-space point to this point's parent-local space */
   private toLocal(mx: number, my: number) {
     const p = this.pInst;
-    const isWEBGL = !!(p as any)?._renderer?.isP3D; // p5 WEBGL flag
+    // `_renderer` is stripped when p5 binds instance properties onto `window`
+    // in global mode, so check the public `webglVersion` property instead.
+    const isWEBGL = p.webglVersion !== "p2d";
     const px = this.parent?.x ?? 0;
     const py = this.parent?.y ?? 0;
 

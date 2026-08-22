@@ -799,9 +799,11 @@ var MovePoint = /*#__PURE__*/function (_Draggable) {
   }, {
     key: "toLocal",
     value: function toLocal(mx, my) {
-      var _renderer, _this$parent$x, _this$parent, _this$parent$y, _this$parent2;
+      var _this$parent$x, _this$parent, _this$parent$y, _this$parent2;
       var p = this.pInst;
-      var isWEBGL = !!(p !== null && p !== void 0 && (_renderer = p._renderer) !== null && _renderer !== void 0 && _renderer.isP3D); // p5 WEBGL flag
+      // `_renderer` is stripped when p5 binds instance properties onto `window`
+      // in global mode, so check the public `webglVersion` property instead.
+      var isWEBGL = p.webglVersion !== "p2d";
       var px = (_this$parent$x = (_this$parent = this.parent) === null || _this$parent === void 0 ? void 0 : _this$parent.x) !== null && _this$parent$x !== void 0 ? _this$parent$x : 0;
       var py = (_this$parent$y = (_this$parent2 = this.parent) === null || _this$parent2 === void 0 ? void 0 : _this$parent2.y) !== null && _this$parent$y !== void 0 ? _this$parent$y : 0;
 
