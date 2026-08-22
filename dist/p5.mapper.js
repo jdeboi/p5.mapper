@@ -3028,7 +3028,11 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       pg.vertex(this.points[0].pos.x, this.points[0].pos.y);
       for (var i = 0; i < this.numSegments(); i++) {
         var seg = this.getSegment(i);
-        pg.bezierVertex(seg[1].pos.x, seg[1].pos.y, seg[2].pos.x, seg[2].pos.y, seg[3].pos.x, seg[3].pos.y);
+        // p5.js 2.x: bezierVertex() adds one point per call; a cubic
+        // segment needs three calls (control1, control2, anchor).
+        pg.bezierVertex(seg[1].pos.x, seg[1].pos.y);
+        pg.bezierVertex(seg[2].pos.x, seg[2].pos.y);
+        pg.bezierVertex(seg[3].pos.x, seg[3].pos.y);
       }
       pg.endShape();
       pg.pop();
@@ -3044,7 +3048,11 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       this.pInst.vertex(this.points[0].pos.x, this.points[0].pos.y);
       for (var i = 0; i < this.numSegments(); i++) {
         var seg = this.getSegment(i);
-        this.pInst.bezierVertex(seg[1].pos.x, seg[1].pos.y, seg[2].pos.x, seg[2].pos.y, seg[3].pos.x, seg[3].pos.y);
+        // p5.js 2.x: bezierVertex() adds one point per call; a cubic
+        // segment needs three calls (control1, control2, anchor).
+        this.pInst.bezierVertex(seg[1].pos.x, seg[1].pos.y);
+        this.pInst.bezierVertex(seg[2].pos.x, seg[2].pos.y);
+        this.pInst.bezierVertex(seg[3].pos.x, seg[3].pos.y);
       }
       this.pInst.endShape();
       this.pInst.pop();
@@ -3981,10 +3989,13 @@ p5.prototype.initPMapperShader = function () {
   });
 };
 
-// Use a single 'post' hook to avoid overriding each other
-p5.prototype.registerMethod("post", function () {
-  pMapper.displayControlPoints();
-  pMapper.updateEvents();
+// Use a single 'postdraw' lifecycle hook to avoid overriding each other.
+// p5.js 2.x replaced the old registerMethod("post", ...) API with registerAddon.
+p5.registerAddon(function (_p5, _fn, lifecycles) {
+  lifecycles.postdraw = function () {
+    pMapper.displayControlPoints();
+    pMapper.updateEvents();
+  };
 });
 /* harmony default export */ const src_ProjectionMapper = (pMapper);
 __webpack_exports__ = __webpack_exports__["default"];

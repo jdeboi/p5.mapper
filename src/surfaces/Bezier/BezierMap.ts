@@ -611,14 +611,11 @@ void main() {
     pg.vertex(this.points[0].pos.x, this.points[0].pos.y);
     for (let i = 0; i < this.numSegments(); i++) {
       const seg = this.getSegment(i);
-      pg.bezierVertex(
-        seg[1].pos.x,
-        seg[1].pos.y,
-        seg[2].pos.x,
-        seg[2].pos.y,
-        seg[3].pos.x,
-        seg[3].pos.y
-      );
+      // p5.js 2.x: bezierVertex() adds one point per call; a cubic
+      // segment needs three calls (control1, control2, anchor).
+      pg.bezierVertex(seg[1].pos.x, seg[1].pos.y);
+      pg.bezierVertex(seg[2].pos.x, seg[2].pos.y);
+      pg.bezierVertex(seg[3].pos.x, seg[3].pos.y);
     }
     pg.endShape();
     pg.pop();
@@ -632,14 +629,11 @@ void main() {
     this.pInst.vertex(this.points[0].pos.x, this.points[0].pos.y);
     for (let i = 0; i < this.numSegments(); i++) {
       const seg = this.getSegment(i);
-      this.pInst.bezierVertex(
-        seg[1].pos.x,
-        seg[1].pos.y,
-        seg[2].pos.x,
-        seg[2].pos.y,
-        seg[3].pos.x,
-        seg[3].pos.y
-      );
+      // p5.js 2.x: bezierVertex() adds one point per call; a cubic
+      // segment needs three calls (control1, control2, anchor).
+      this.pInst.bezierVertex(seg[1].pos.x, seg[1].pos.y);
+      this.pInst.bezierVertex(seg[2].pos.x, seg[2].pos.y);
+      this.pInst.bezierVertex(seg[3].pos.x, seg[3].pos.y);
     }
     this.pInst.endShape();
     this.pInst.pop();

@@ -1,0 +1,17 @@
+name: Purge jsDelivr cache
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dist/**"
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Purge dist files from jsDelivr
+        run: |
+          for f in p5.mapper.js p5.mapper.js.map p5.mapper.min.js; do
+            curl -sf "https://purge.jsdelivr.net/gh/jdeboi/p5.mapper@main/dist/$f" || true
+          done

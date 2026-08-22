@@ -30,7 +30,7 @@ The built library is in the `dist/` folder. Include it in your `index.html` afte
 Or served directly from GitHub (updates within minutes of a push, no publish step needed):
 
 ```html
-<script src="https://raw.githubusercontent.com/jdeboi/p5.mapper/main/dist/p5.mapper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/jdeboi/p5.mapper@main/dist/p5.mapper.min.js"></script>
 ```
 
 ## Building from source

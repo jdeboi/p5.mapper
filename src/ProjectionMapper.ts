@@ -436,10 +436,13 @@ p5.prototype.initPMapperShader = function () {
   );
 };
 
-// Use a single 'post' hook to avoid overriding each other
-p5.prototype.registerMethod("post", () => {
-  pMapper.displayControlPoints();
-  pMapper.updateEvents();
+// Use a single 'postdraw' lifecycle hook to avoid overriding each other.
+// p5.js 2.x replaced the old registerMethod("post", ...) API with registerAddon.
+p5.registerAddon((_p5: any, _fn: any, lifecycles: any) => {
+  lifecycles.postdraw = () => {
+    pMapper.displayControlPoints();
+    pMapper.updateEvents();
+  };
 });
 
 export default pMapper;
