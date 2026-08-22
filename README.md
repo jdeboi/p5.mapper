@@ -27,7 +27,7 @@ The built library is in the `dist/` folder. Include it in your `index.html` afte
 <script type="text/javascript" src="p5.mapper.min.js"></script>
 ```
 
-Or served directly from GitHub (updates within minutes of a push, no publish step needed):
+Or served directly from GitHub (jsDelivr caches for up to 24 hours):
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/jdeboi/p5.mapper@main/dist/p5.mapper.min.js"></script>
