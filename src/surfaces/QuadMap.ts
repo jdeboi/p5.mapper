@@ -110,6 +110,15 @@ export default class QuadMap extends CornerPinSurface {
     // PerspT is expected to return an object with transform(x,y) → [x', y']
     const persp = PerspT(srcCorners, dstCorners);
 
+    // Wire this frame's homography up for getTransformedCursor/getTransformedMouse.
+    // getTransformedCursor maps canvas-space -> local pre-warp space, which is the
+    // *inverse* of persp.transform (local -> canvas, used below to place mesh
+    // points), so it needs transformInverse here, not transform.
+    // (CornerPinSurface's PerspectiveTransform interface takes a single [x,y] pair.)
+    this.setPerspectiveTransform({
+      transform: ([x, y]: [number, number]) => persp.transformInverse(x, y),
+    });
+
     const stepX = this.width / (this.resX - 1);
     const stepY = this.height / (this.resY - 1);
 
