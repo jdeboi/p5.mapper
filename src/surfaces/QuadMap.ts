@@ -337,6 +337,21 @@ export default class QuadMap extends CornerPinSurface {
       }
     }
     g.endShape();
+
+    // The interior grid lines above are triangle edges, not the surface's
+    // true outer boundary - at higher resolutions the perimeter is just one
+    // set of grid lines among many and doesn't read clearly, and depending
+    // on how the last row/column's triangles happen to be wound, part of
+    // the outer edge can end up looking thinner/fainter than the rest. Trace
+    // the actual TL-TR-BR-BL perimeter explicitly, on top, so the full shape
+    // is always unambiguous while calibrating regardless of resolution.
+    g.noFill();
+    g.beginShape();
+    g.vertex(this.mesh[this.TL].x + offX, this.mesh[this.TL].y + offY);
+    g.vertex(this.mesh[this.TR].x + offX, this.mesh[this.TR].y + offY);
+    g.vertex(this.mesh[this.BR].x + offX, this.mesh[this.BR].y + offY);
+    g.vertex(this.mesh[this.BL].x + offX, this.mesh[this.BL].y + offY);
+    g.endShape(g.CLOSE);
   }
 
   /** Emit two triangles for a cell with proper UVs (normalized 0..1). */
