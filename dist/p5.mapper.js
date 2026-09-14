@@ -1718,6 +1718,7 @@ function QuadMap_toPrimitive(t, r) { if ("object" != QuadMap_typeof(t) || !t) re
 
 
 
+
 // type PerspectiveFn = (x: number, y: number) => [number, number];
 var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
   function QuadMap(id, w, h, res, buffer, pInst) {
@@ -1726,17 +1727,40 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
     _this = QuadMap_callSuper(this, QuadMap, [id, w, h, res, "QUAD", buffer, pInst]);
 
     // Keep internal axes in sync with base resolution
+    /** We keep resX/resY mirrored to base `res` so the mesh stays consistent. */
     /** Throttle for the interior-point-rejection diagnostic warning below. */
     QuadMap_defineProperty(_this, "_lastRejectLogAt", -Infinity);
-    /** Cached calibration grid — only rebuilt when the mesh changes */
-    QuadMap_defineProperty(_this, "_calibGfx", null);
-    QuadMap_defineProperty(_this, "_calibGfxCapW", 0);
-    QuadMap_defineProperty(_this, "_calibGfxCapH", 0);
-    /** Rate limit for the buffer's actual (re)allocation — see _rebuildCalibGfx. */
-    QuadMap_defineProperty(_this, "_lastCalibGfxAllocAt", -Infinity);
-    QuadMap_defineProperty(_this, "_calibGfxOffX", 0);
-    QuadMap_defineProperty(_this, "_calibGfxOffY", 0);
+    /** True once this surface's own region of the shared calibration buffer needs redrawing. */
     QuadMap_defineProperty(_this, "_calibDirty", true);
+    /**
+     * The pMapper.getCalibSharedGfxGeneration() value as of this surface's last
+     * draw into the shared buffer. When the buffer itself gets freed and
+     * recreated (calibration exit/re-entry, or a canvas resize), every
+     * surface's region is blank again even though this surface's own mesh may
+     * not have changed - _calibDirty alone can't tell "my mesh changed" apart
+     * from "the whole buffer got wiped out from under me", so this is checked
+     * alongside it.
+     */
+    QuadMap_defineProperty(_this, "_calibGfxGenerationDrawn", -1);
+    /**
+     * this.x/this.y as of this surface's last draw into the shared buffer.
+     * Unlike the old per-surface buffer (blitted via image() inside a live
+     * translate(this.x, this.y), so a whole-surface drag repositioned it for
+     * free with no redraw), this surface's offset is now baked directly into
+     * the vertices written into the shared buffer - so a whole-surface drag
+     * that doesn't touch the mesh (no calculateMesh() call, no _calibDirty)
+     * still needs to be detected and redrawn here, or the old position is
+     * left behind as a ghost.
+     */
+    QuadMap_defineProperty(_this, "_calibDrawnX", NaN);
+    QuadMap_defineProperty(_this, "_calibDrawnY", NaN);
+    /** This surface's last-drawn region in the shared buffer, so a subsequent
+     *  redraw (position or mesh changed) can clear the *old* spot too - the
+     *  new position's clearRect doesn't touch pixels left behind at the old
+     *  one. Only meaningful when _calibGfxGenerationDrawn matches the shared
+     *  buffer's current generation (a fresh/recreated buffer has nothing to
+     *  clear there yet). */
+    QuadMap_defineProperty(_this, "_calibLastBox", null);
     /**
      * Cached render mesh (WEBGL only — buildGeometry/model aren't available in P2D).
      * Rebuilt when the mesh changes or the requested UV rect differs from last time.
@@ -1900,26 +1924,6 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       var u1 = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 1;
       var v1 = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 1;
       var p = this.pInst;
-
-      // The calibration overlay buffer (_calibGfx) is only ever drawn while
-      // calibrating (Surface.display()/displayTexture() only call
-      // displayCalibration() when isCalibratingMapper() is true) but, once
-      // created, previously stayed allocated forever - including for the
-      // rest of a long-running sketch's normal (non-calibrating) operation,
-      // and across every later re-entry into calibration mode, where it'd
-      // just get thrown away and reallocated anyway the moment the mesh next
-      // differs from what's cached. Freeing it here the moment calibration
-      // mode turns off means the far more common non-calibrating steady
-      // state holds zero calibration-only GPU resources, and each fresh
-      // calibration session starts from a clean, correctly-sized buffer
-      // instead of carrying over a stale one from last time.
-      if (this._calibGfx && !p.isCalibratingMapper()) {
-        this._calibGfx.remove();
-        this._calibGfx = null;
-        this._calibGfxCapW = 0;
-        this._calibGfxCapH = 0;
-        this._calibDirty = true;
-      }
       if (p.webglVersion === "p2d") {
         p.beginShape(p.TRIANGLES);
         for (var x = 0; x < this.resX - 1; x++) {
@@ -1964,23 +1968,43 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       p.model(this._geom);
     }
 
-    /** Calibration draw: blit a cached grid image instead of re-tessellating every frame */
+    /**
+     * Calibration draw: redraw only this surface's own region of the single
+     * shared calibration buffer (owned by ProjectionMapper), skipping the
+     * redraw entirely on frames where this surface's mesh hasn't changed.
+     * The buffer itself is blitted to screen exactly once per frame by
+     * ProjectionMapper.blitCalibSharedGfx() in postdraw, after every
+     * surface's displayCalibration() has had a chance to run - so this method
+     * must NOT call image()/blit anything itself.
+     */
   }, {
     key: "displayCalibration",
     value: function displayCalibration() {
-      if (this._calibDirty || !this._calibGfx) {
-        this._rebuildCalibGfx();
+      var g = src_ProjectionMapper.getCalibSharedGfx();
+      if (!g) return;
+      var generation = src_ProjectionMapper.getCalibSharedGfxGeneration();
+      var sameGeneration = this._calibGfxGenerationDrawn === generation;
+      var positionChanged = this.x !== this._calibDrawnX || this.y !== this._calibDrawnY;
+      if (!this._calibDirty && sameGeneration && !positionChanged) {
+        return;
       }
-      if (this._calibGfx) {
-        this.pInst.image(this._calibGfx, this._calibGfxOffX, this._calibGfxOffY);
-      }
-    }
 
-    /** Render the grid mesh into an offscreen 2D buffer once; reused until mesh changes. */
-  }, {
-    key: "_rebuildCalibGfx",
-    value: function _rebuildCalibGfx() {
-      // Compute surface-local bounding box of all mesh points
+      // This surface's own translate(this.x, this.y) is already active (see
+      // Surface.display()), so `mesh[i].x/y` are WEBGL-centered coordinates
+      // relative to this surface's origin. The shared buffer is a plain 2D
+      // graphics object sized to the canvas with a top-left origin (matching
+      // how ProjectionMapper.blitCalibSharedGfx() places it at
+      // (-width/2, -height/2) to cover the WEBGL-centered canvas exactly), so
+      // every point needs both this surface's own offset and the WEBGL
+      // center-to-top-left shift applied before drawing into it.
+      var p = this.pInst;
+      var offX = this.x + p.width / 2;
+      var offY = this.y + p.height / 2;
+
+      // Bounding box of this surface's own mesh, in the shared buffer's space,
+      // so only this surface's region gets cleared/redrawn (not the whole
+      // shared buffer, which would erase every other surface's contribution
+      // for that frame).
       var minX = Infinity,
         minY = Infinity,
         maxX = -Infinity,
@@ -1990,10 +2014,12 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       try {
         for (_iterator.s(); !(_step = _iterator.n()).done;) {
           var mp = _step.value;
-          if (mp.x < minX) minX = mp.x;
-          if (mp.y < minY) minY = mp.y;
-          if (mp.x > maxX) maxX = mp.x;
-          if (mp.y > maxY) maxY = mp.y;
+          var ax = mp.x + offX;
+          var ay = mp.y + offY;
+          if (ax < minX) minX = ax;
+          if (ay < minY) minY = ay;
+          if (ax > maxX) maxX = ax;
+          if (ay > maxY) maxY = ay;
         }
       } catch (err) {
         _iterator.e(err);
@@ -2001,70 +2027,28 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
         _iterator.f();
       }
       var pad = 4; // extra pixels to accommodate stroke width
-      var ox = Math.floor(minX) - pad;
-      var oy = Math.floor(minY) - pad;
+      var cx = Math.max(0, Math.floor(minX) - pad);
+      var cy = Math.max(0, Math.floor(minY) - pad);
+      var cx2 = Math.min(g.width, Math.ceil(maxX) + pad);
+      var cy2 = Math.min(g.height, Math.ceil(maxY) + pad);
 
-      // Cap the overlay size. A control point dragged far off the surface blows
-      // up the mesh's bounding box arbitrarily, and asking the GPU to allocate a
-      // texture/renderbuffer that large fails outright (GL_INVALID_OPERATION on
-      // renderbufferStorage), leaving a broken graphics object that then throws
-      // on every subsequent frame it's blitted. Nothing useful is lost by
-      // capping — the overlay only needs to cover what's actually visible,
-      // which is bounded by the canvas itself; anything beyond the cap is
-      // simply clipped instead of crashing the WebGL context.
-      var gw = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.max(1, Math.ceil(maxX - minX) + pad * 2));
-      var gh = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.max(1, Math.ceil(maxY - minY) + pad * 2));
-
-      // Grow-only, *and* rate-limited: the bounding box includes the corner
-      // points themselves, which are wherever the user just dragged them, so
-      // a single fast drag sweeping through several very different positions
-      // legitimately needs a bigger buffer on nearly every one of those
-      // frames — each one exceeding the *previous* grow-only cap, since a
-      // corner sweeping outward produces a monotonically growing box for a
-      // run of frames. Grow-only alone still means one real
-      // createGraphics()+remove() cycle per such frame; a burst of those
-      // faster than the browser can garbage-collect the discarded ones is
-      // exactly what exhausts the WebGL/canvas context budget ("too many
-      // active WebGL contexts", observed and confirmed via this file's own
-      // diagnostic logging while chasing that report). A hard minimum gap
-      // between actual reallocations fixes that: within the gap, keep
-      // rendering into the existing (possibly now slightly-too-small) buffer
-      // — a few frames of a clipped calibration overlay mid-fast-drag is a
-      // fully acceptable tradeoff for not thrashing GPU resources, and it
-      // self-corrects the moment the gap next elapses.
-      var now = typeof performance !== "undefined" ? performance.now() : Date.now();
-      var needsGrow = !this._calibGfx || gw > this._calibGfxCapW || gh > this._calibGfxCapH;
-      var throttled = this._calibGfx && now - this._lastCalibGfxAllocAt < 100;
-      // Skip reallocation *entirely* (not just rate-limited) while this
-      // surface's own corners or whole-surface position are actively being
-      // dragged, since the drag itself already gives full live feedback via
-      // the corner handles (drawn separately, unbuffered, in
-      // displayControlPoints()) - the cached grid background doesn't need to
-      // track a fast drag pixel-for-pixel, and deferring means zero
-      // createGraphics() calls for the entire duration of the drag, not just
-      // fewer of them. Only applies once a buffer already exists (the very
-      // first allocation still has to happen sometime, even if that first
-      // frame happens to coincide with a drag) - and only covers dragging
-      // *this* surface directly; the time-based throttle above is what
-      // still catches a parent surface being dragged fast while this one is
-      // a sibling/child re-deriving via recalcFromParent().
-      var isDraggingThis = this._calibGfx && (this.getIsDragging() || this.controlPoints.some(function (cp) {
-        return cp.getIsDragging();
-      }));
-      if (needsGrow && !throttled && !isDraggingThis) {
-        // Diagnostic only (temporary, lightweight - no stack capture) so the
-        // rate limit above is directly verifiable: with it, this should fire
-        // at most ~10x/sec even during a fast, sustained drag, vs. potentially
-        // every single frame (~60x/sec) without it.
-        console.warn("p5.mapper QuadMap[".concat(this.id, "]: (re)allocating calibration overlay buffer to ").concat(Math.ceil(gw * 2), "x").concat(Math.ceil(gh * 2), " (requested ").concat(gw, "x").concat(gh, ")."));
-        if (this._calibGfx) this._calibGfx.remove();
-        this._calibGfxCapW = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.ceil(gw * 2));
-        this._calibGfxCapH = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.ceil(gh * 2));
-        this._calibGfx = this.pInst.createGraphics(this._calibGfxCapW, this._calibGfxCapH);
-        this._lastCalibGfxAllocAt = now;
+      // Clear the *previous* region too, if the buffer we're drawing into is
+      // the same one that region was last drawn into - a whole-surface drag
+      // (or a mesh change that shifted the bounding box) otherwise leaves a
+      // ghost of the old grid behind at the old location.
+      if (sameGeneration && this._calibLastBox) {
+        var _this$_calibLastBox = QuadMap_slicedToArray(this._calibLastBox, 4),
+          lx = _this$_calibLastBox[0],
+          ly = _this$_calibLastBox[1],
+          lx2 = _this$_calibLastBox[2],
+          ly2 = _this$_calibLastBox[3];
+        if (lx2 > lx && ly2 > ly) {
+          g.drawingContext.clearRect(lx, ly, lx2 - lx, ly2 - ly);
+        }
       }
-      var g = this._calibGfx;
-      g.clear();
+      if (cx2 > cx && cy2 > cy) {
+        g.drawingContext.clearRect(cx, cy, cx2 - cx, cy2 - cy);
+      }
       g.strokeWeight(2);
       g.stroke(this.controlPointColor);
       g.fill(this.getMutedControlColor(this.controlPointColor));
@@ -2075,18 +2059,20 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
           var i10 = y * this.res + (x + 1);
           var i11 = (y + 1) * this.res + (x + 1);
           var i01 = (y + 1) * this.res + x;
-          g.vertex(this.mesh[i00].x - ox, this.mesh[i00].y - oy);
-          g.vertex(this.mesh[i10].x - ox, this.mesh[i10].y - oy);
-          g.vertex(this.mesh[i11].x - ox, this.mesh[i11].y - oy);
-          g.vertex(this.mesh[i00].x - ox, this.mesh[i00].y - oy);
-          g.vertex(this.mesh[i11].x - ox, this.mesh[i11].y - oy);
-          g.vertex(this.mesh[i01].x - ox, this.mesh[i01].y - oy);
+          g.vertex(this.mesh[i00].x + offX, this.mesh[i00].y + offY);
+          g.vertex(this.mesh[i10].x + offX, this.mesh[i10].y + offY);
+          g.vertex(this.mesh[i11].x + offX, this.mesh[i11].y + offY);
+          g.vertex(this.mesh[i00].x + offX, this.mesh[i00].y + offY);
+          g.vertex(this.mesh[i11].x + offX, this.mesh[i11].y + offY);
+          g.vertex(this.mesh[i01].x + offX, this.mesh[i01].y + offY);
         }
       }
       g.endShape();
-      this._calibGfxOffX = ox;
-      this._calibGfxOffY = oy;
       this._calibDirty = false;
+      this._calibGfxGenerationDrawn = generation;
+      this._calibDrawnX = this.x;
+      this._calibDrawnY = this.y;
+      this._calibLastBox = [cx, cy, cx2, cy2];
     }
 
     /** Emit two triangles for a cell with proper UVs (normalized 0..1). */
@@ -2163,14 +2149,6 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
     }
   }]);
 }(CornerPinSurface);
-/** We keep resX/resY mirrored to base `res` so the mesh stays consistent. */
-/**
- * Hard ceiling on the calibration overlay's offscreen buffer, in pixels per
- * axis. Well under every GPU's real MAX_TEXTURE_SIZE/MAX_RENDERBUFFER_SIZE
- * floor (even old/software renderers), and far larger than any canvas the
- * overlay actually needs to cover.
- */
-QuadMap_defineProperty(QuadMap, "MAX_CALIB_GFX_DIM", 4096);
 
 ;// ./src/surfaces/TriMap.ts
 function TriMap_typeof(o) { "@babel/helpers - typeof"; return TriMap_typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, TriMap_typeof(o); }
@@ -3830,6 +3808,31 @@ var ProjectionMapper = /*#__PURE__*/function () {
     // shaders
     ProjectionMapper_defineProperty(this, "bezShader", null);
     ProjectionMapper_defineProperty(this, "bezierShaderLoaded", false);
+    // --------------------- Shared calibration overlay ---------------------
+    //
+    // Every QuadMap-type surface's calibration grid draws into this ONE
+    // canvas-sized buffer (instead of each allocating its own) - see
+    // QuadMap.displayCalibration(). Exactly canvas-sized and persists across
+    // frames; a surface only clears+redraws its own sub-region when its own
+    // mesh actually changed, so this is deliberately NOT cleared wholesale
+    // every frame (that would force every surface to redraw every frame,
+    // defeating the whole point of caching). The single blit of the combined
+    // result happens once, in postdraw below - i.e. strictly after every
+    // surface's own draw() call this frame has had its chance to update its
+    // region - specifically so a later surface's contribution can never be
+    // silently covered up by an earlier surface's blit of unrelated content
+    // drawn in between, the way per-surface scattered blits could.
+    ProjectionMapper_defineProperty(this, "calibSharedGfx", null);
+    ProjectionMapper_defineProperty(this, "calibSharedGfxW", 0);
+    ProjectionMapper_defineProperty(this, "calibSharedGfxH", 0);
+    // Bumped every time the buffer itself is (re)created - on first use, on a
+    // canvas resize, and every time it's freed-then-recreated across a
+    // calibration exit/re-entry cycle. Each surface compares this against
+    // the generation it last drew into (see QuadMap.displayCalibration()) so
+    // a surface whose *own* mesh hasn't changed still knows to redraw into a
+    // freshly (re)created buffer instead of leaving its region blank - its
+    // own _calibDirty flag alone can't tell the two cases apart.
+    ProjectionMapper_defineProperty(this, "calibSharedGfxGeneration", 0);
   }
 
   // --------------------------- Lifecycle ---------------------------
@@ -4165,6 +4168,54 @@ var ProjectionMapper = /*#__PURE__*/function () {
         _iterator2.f();
       }
     }
+  }, {
+    key: "getCalibSharedGfx",
+    value: /** Lazily creates (or resizes, on canvas resize) the shared calibration buffer. */
+    function getCalibSharedGfx() {
+      if (!this.pInst) return null;
+      var w = this.pInst.width;
+      var h = this.pInst.height;
+      if (!this.calibSharedGfx || this.calibSharedGfxW !== w || this.calibSharedGfxH !== h) {
+        if (this.calibSharedGfx) this.calibSharedGfx.remove();
+        this.calibSharedGfx = this.pInst.createGraphics(Math.max(1, w), Math.max(1, h));
+        this.calibSharedGfxW = w;
+        this.calibSharedGfxH = h;
+        this.calibSharedGfxGeneration++;
+      }
+      return this.calibSharedGfx;
+    }
+
+    /** See calibSharedGfxGeneration above. */
+  }, {
+    key: "getCalibSharedGfxGeneration",
+    value: function getCalibSharedGfxGeneration() {
+      return this.calibSharedGfxGeneration;
+    }
+
+    /**
+     * Blit the shared calibration buffer once, after every surface has had a
+     * chance to draw into it this frame; free it the moment calibration mode
+     * turns off, so the far more common non-calibrating steady state (and
+     * every later re-entry into calibration mode) holds zero calibration-only
+     * GPU resources rather than carrying a stale buffer over indefinitely.
+     */
+  }, {
+    key: "blitCalibSharedGfx",
+    value: function blitCalibSharedGfx() {
+      if (!this.pInst) return;
+      if (!this.calibrate) {
+        if (this.calibSharedGfx) {
+          this.calibSharedGfx.remove();
+          this.calibSharedGfx = null;
+          this.calibSharedGfxW = 0;
+          this.calibSharedGfxH = 0;
+        }
+        return;
+      }
+      if (this.calibSharedGfx) {
+        this.pInst.image(this.calibSharedGfx, -this.pInst.width / 2, -this.pInst.height / 2);
+      }
+    }
 
     // small util exposed
   }, {
@@ -4220,6 +4271,13 @@ p5.registerAddon(function (_p5, _fn, lifecycles) {
   lifecycles.postdraw = function () {
     pMapper.displayControlPoints();
     pMapper.updateEvents();
+    // Every QuadMap-type surface's own draw() call this frame has already
+    // run by this point (postdraw fires once, after the whole sketch draw()
+    // completes) and had its chance to update its own region of the shared
+    // calibration buffer - this is the single, once-per-frame blit of the
+    // combined result. See ProjectionMapper's "Shared calibration overlay"
+    // section for why this can't just happen per-surface.
+    pMapper.blitCalibSharedGfx();
   };
 });
 /* harmony default export */ const src_ProjectionMapper = (pMapper);

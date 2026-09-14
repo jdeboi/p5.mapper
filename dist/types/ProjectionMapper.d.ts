@@ -62,6 +62,22 @@ declare class ProjectionMapper {
     stopCalibration(): void;
     toggleCalibration(): void;
     displayControlPoints(): void;
+    private calibSharedGfx;
+    private calibSharedGfxW;
+    private calibSharedGfxH;
+    private calibSharedGfxGeneration;
+    /** Lazily creates (or resizes, on canvas resize) the shared calibration buffer. */
+    getCalibSharedGfx(): any;
+    /** See calibSharedGfxGeneration above. */
+    getCalibSharedGfxGeneration(): number;
+    /**
+     * Blit the shared calibration buffer once, after every surface has had a
+     * chance to draw into it this frame; free it the moment calibration mode
+     * turns off, so the far more common non-calibrating steady state (and
+     * every later re-entry into calibration mode) holds zero calibration-only
+     * GPU resources rather than carrying a stale buffer over indefinitely.
+     */
+    blitCalibSharedGfx(): void;
     getOscillator(seconds: number, offset?: number): number;
     getBezierShader(): any;
 }
