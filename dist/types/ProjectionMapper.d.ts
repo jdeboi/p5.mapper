@@ -65,11 +65,14 @@ declare class ProjectionMapper {
     private calibSharedGfx;
     private calibSharedGfxW;
     private calibSharedGfxH;
-    private calibSharedGfxGeneration;
     /** Lazily creates (or resizes, on canvas resize) the shared calibration buffer. */
     getCalibSharedGfx(): any;
-    /** See calibSharedGfxGeneration above. */
-    getCalibSharedGfxGeneration(): number;
+    /**
+     * Clears the shared buffer once at the start of each frame, before any
+     * surface's displayCalibration() runs this frame. See the section comment
+     * above for why this has to be a full clear, not a per-surface partial one.
+     */
+    beginCalibFrame(): void;
     /**
      * Blit the shared calibration buffer once, after every surface has had a
      * chance to draw into it this frame; free it the moment calibration mode
