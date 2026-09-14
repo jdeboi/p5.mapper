@@ -11,6 +11,8 @@ export interface JsonSurface {
     type: "TRI" | "QUAD" | "BEZ" | "POLY";
     x: number;
     y: number;
+    /** Present when this surface is parented to another (one level only). */
+    parentId?: number | string;
     [k: string]: any;
 }
 type Selectable = Surface | LineMap;
@@ -56,6 +58,17 @@ declare class ProjectionMapper {
     load(filepath?: string, callback?: () => void): void;
     private loadedJson;
     private loadSurfaces;
+    /**
+     * Second pass, run after every surface above has loaded its own saved
+     * position: resolve each surface's parentId (if any) to a live setParent()
+     * call. This has to be a separate pass because parentId can reference any
+     * surface regardless of creation-order/type bucket, so every surface's id
+     * needs to already exist and be loaded before any of them can be
+     * reattached. Matches by each live surface's own id (assigned uniquely
+     * across the whole surfaces array at creation time), not by the
+     * type-bucketed positional matching loadTyped() uses above.
+     */
+    private reattachParents;
     private loadLines;
     save(filename?: string): void;
     startCalibration(): void;

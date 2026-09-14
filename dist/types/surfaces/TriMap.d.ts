@@ -9,6 +9,14 @@ export default class TriMap extends CornerPinSurface {
      */
     isMouseOver(): boolean;
     /**
+     * TriMap has no homography of its own (three loose points, no interior
+     * mesh to warp) — but when parented, its three control points still need
+     * to be re-derived from their parent-relative local values via the
+     * parent's current transform. CornerPinSurface's base calculateMesh() is
+     * a no-op, so this override exists purely to call resolveControlPoints().
+     */
+    protected calculateMesh(): void;
+    /**
      * Configure the triangle’s control points:
      * - Apex (TP) at the middle of the top row
      * - Bottom corners are BL and BR (inherited)

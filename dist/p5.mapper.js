@@ -462,6 +462,7 @@ var Draggable = /*#__PURE__*/function () {
           x: this.x,
           y: this.y
         });
+        this.onPositionChanged();
         return;
       }
 
@@ -477,6 +478,7 @@ var Draggable = /*#__PURE__*/function () {
         x: this.x,
         y: this.y
       });
+      this.onPositionChanged();
     }
 
     /** Relative move */
@@ -511,7 +513,20 @@ var Draggable = /*#__PURE__*/function () {
         x: this.x,
         y: this.y
       });
+      this.onPositionChanged();
     }
+
+    /**
+     * Internal hook, distinct from the public onDragMove/onDragStart/onDragEnd
+     * callbacks (which are user-assignable API and shouldn't be relied on
+     * internally — assigning one would silently clobber anything wired up
+     * here). Called whenever this draggable's position actually changes, via
+     * any path (drag, translate, or a direct set()). Surface overrides this to
+     * fan a parent's position change out to its children.
+     */
+  }, {
+    key: "onPositionChanged",
+    value: function onPositionChanged() {}
 
     /** Finish dragging */
   }, {
@@ -557,6 +572,7 @@ var Draggable = /*#__PURE__*/function () {
       var p = this.applyConstraints(nx, ny);
       this.x = p.x;
       this.y = p.y;
+      this.onPositionChanged();
       return this;
     }
   }, {
@@ -662,6 +678,9 @@ function _callSuper(t, o, e) { return o = _getPrototypeOf(o), _possibleConstruct
 function _possibleConstructorReturn(t, e) { if (e && ("object" == MovePoint_typeof(e) || "function" == typeof e)) return e; if (void 0 !== e) throw new TypeError("Derived constructors may only return object or undefined"); return _assertThisInitialized(t); }
 function _assertThisInitialized(e) { if (void 0 === e) throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); return e; }
 function _isNativeReflectConstruct() { try { var t = !Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); } catch (t) {} return (_isNativeReflectConstruct = function _isNativeReflectConstruct() { return !!t; })(); }
+function _superPropGet(t, o, e, r) { var p = _get(_getPrototypeOf(1 & r ? t.prototype : t), o, e); return 2 & r && "function" == typeof p ? function (t) { return p.apply(e, t); } : p; }
+function _get() { return _get = "undefined" != typeof Reflect && Reflect.get ? Reflect.get.bind() : function (e, t, r) { var p = _superPropBase(e, t); if (p) { var n = Object.getOwnPropertyDescriptor(p, t); return n.get ? n.get.call(arguments.length < 3 ? e : r) : n.value; } }, _get.apply(null, arguments); }
+function _superPropBase(t, o) { for (; !{}.hasOwnProperty.call(t, o) && null !== (t = _getPrototypeOf(t));); return t; }
 function _getPrototypeOf(t) { return _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf.bind() : function (t) { return t.__proto__ || Object.getPrototypeOf(t); }, _getPrototypeOf(t); }
 function _inherits(t, e) { if ("function" != typeof e && null !== e) throw new TypeError("Super expression must either be null or a function"); t.prototype = Object.create(e && e.prototype, { constructor: { value: t, writable: !0, configurable: !0 } }), Object.defineProperty(t, "prototype", { writable: !1 }), e && _setPrototypeOf(t, e); }
 function _setPrototypeOf(t, e) { return _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function (t, e) { return t.__proto__ = e, t; }, _setPrototypeOf(t, e); }
@@ -671,6 +690,18 @@ function MovePoint_toPrimitive(t, r) { if ("object" != MovePoint_typeof(t) || !t
 // MovePoint.ts
 
 var MovePoint = /*#__PURE__*/function (_Draggable) {
+  /**
+   * Shadow copy of this point's position, expressed in the *owning
+   * surface's parent's* local space, used only while that owning surface
+   * has a parentSurface set. x/y stay the render-facing/hit-testing value
+   * (what they've always been); localX/localY are the persisted,
+   * parent-relative calibration that survives the parent being re-pinned.
+   * Populated by Surface.setParent()/onParentAttached() and kept current
+   * by moveTo() below; resolved back into x/y by the owning surface's
+   * recalcFromParent() (CornerPinSurface.resolveControlPoints() /
+   * PolyMap's own override).
+   */
+
   function MovePoint(parent, x, y, pInst) {
     var _opts$radius, _opts$hitScale, _opts$color;
     var _this;
@@ -705,6 +736,61 @@ var MovePoint = /*#__PURE__*/function (_Draggable) {
         myLocal = _this$getLocalMouse.myLocal;
       this.moveTo(mxLocal, myLocal);
       return this;
+    }
+
+    /**
+     * When the owning surface (this.parent) is itself parented, dragging this
+     * point shouldn't write straight into the render-facing x/y — those get
+     * overwritten every time the owning surface recalculates from its parent.
+     * Instead, resolve the same screen-space drag target (identical math to
+     * Draggable.moveTo) through the parent's *current* inverse transform and
+     * stash it in localX/localY; the owning surface's recalcFromParent()
+     * (triggered right after, e.g. via MeshPoint.moveTo() -> calculateMesh())
+     * is what turns that back into real x/y.
+     */
+  }, {
+    key: "moveTo",
+    value: function moveTo(x, y) {
+      var _this$parent, _this$onDragMove, _this$parent3, _this$parent3$recalcF;
+      var ownerParent = (_this$parent = this.parent) === null || _this$parent === void 0 ? void 0 : _this$parent.parentSurface;
+      if (!ownerParent) {
+        var _this$parent2, _this$parent2$onPosit;
+        _superPropGet(MovePoint, "moveTo", this, 3)([x, y]);
+        // The *owning surface's own* shape just changed because one of its
+        // points moved. For a CornerPinSurface this is redundant with (but
+        // harmless alongside) the cascade already triggered via
+        // MeshPoint.moveTo() -> calculateMesh() -> onPositionChanged(); for a
+        // plain MovePoint-based surface (PolyMap has no such recompute step),
+        // this is the only place that notification happens, so it can't be
+        // dropped.
+        (_this$parent2 = this.parent) === null || _this$parent2 === void 0 || (_this$parent2$onPosit = _this$parent2.onPositionChanged) === null || _this$parent2$onPosit === void 0 || _this$parent2$onPosit.call(_this$parent2);
+        return;
+      }
+      var ax;
+      var ay;
+      if (typeof x === "number" && typeof y === "number") {
+        ax = x;
+        ay = y;
+      } else {
+        var mx = this.pInst.mouseX;
+        var my = this.pInst.mouseY;
+        ax = this.xStartDrag + (mx - this.clickX);
+        ay = this.yStartDrag + (my - this.clickY);
+      }
+      var local = ownerParent.resolveToLocal(ax, ay);
+      this.localX = local.x;
+      this.localY = local.y;
+      if (this.getIsDragging()) (_this$onDragMove = this.onDragMove) === null || _this$onDragMove === void 0 || _this$onDragMove.call(this, {
+        x: this.x,
+        y: this.y
+      });
+      // Resolve this point's new local value (and every sibling point's,
+      // since recalcFromParent() re-derives all of them) back into real x/y.
+      // For a MeshPoint this is redundant with — but harmless alongside —
+      // the calculateMesh() call MeshPoint.moveTo() makes right after this
+      // method returns; for a plain PolyMap point there is no other trigger,
+      // so dropping this would leave x/y stuck at their pre-drag value.
+      (_this$parent3 = this.parent) === null || _this$parent3 === void 0 || (_this$parent3$recalcF = _this$parent3.recalcFromParent) === null || _this$parent3$recalcF === void 0 || _this$parent3$recalcF.call(_this$parent3);
     }
 
     /** Mark/unmark as a control point */
@@ -799,13 +885,13 @@ var MovePoint = /*#__PURE__*/function (_Draggable) {
   }, {
     key: "toLocal",
     value: function toLocal(mx, my) {
-      var _this$parent$x, _this$parent, _this$parent$y, _this$parent2;
+      var _this$parent$x, _this$parent4, _this$parent$y, _this$parent5;
       var p = this.pInst;
       // `_renderer` is stripped when p5 binds instance properties onto `window`
       // in global mode, so check the public `webglVersion` property instead.
       var isWEBGL = p.webglVersion !== "p2d";
-      var px = (_this$parent$x = (_this$parent = this.parent) === null || _this$parent === void 0 ? void 0 : _this$parent.x) !== null && _this$parent$x !== void 0 ? _this$parent$x : 0;
-      var py = (_this$parent$y = (_this$parent2 = this.parent) === null || _this$parent2 === void 0 ? void 0 : _this$parent2.y) !== null && _this$parent$y !== void 0 ? _this$parent$y : 0;
+      var px = (_this$parent$x = (_this$parent4 = this.parent) === null || _this$parent4 === void 0 ? void 0 : _this$parent4.x) !== null && _this$parent$x !== void 0 ? _this$parent$x : 0;
+      var py = (_this$parent$y = (_this$parent5 = this.parent) === null || _this$parent5 === void 0 ? void 0 : _this$parent5.y) !== null && _this$parent$y !== void 0 ? _this$parent$y : 0;
 
       // For WEBGL renderer p5 positions mouse in canvas coords with origin top-left,
       // but your scene coordinates are typically centered; when drawing handles you
@@ -836,9 +922,9 @@ function MeshPoint_callSuper(t, o, e) { return o = MeshPoint_getPrototypeOf(o), 
 function MeshPoint_possibleConstructorReturn(t, e) { if (e && ("object" == MeshPoint_typeof(e) || "function" == typeof e)) return e; if (void 0 !== e) throw new TypeError("Derived constructors may only return object or undefined"); return MeshPoint_assertThisInitialized(t); }
 function MeshPoint_assertThisInitialized(e) { if (void 0 === e) throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); return e; }
 function MeshPoint_isNativeReflectConstruct() { try { var t = !Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); } catch (t) {} return (MeshPoint_isNativeReflectConstruct = function _isNativeReflectConstruct() { return !!t; })(); }
-function _superPropGet(t, o, e, r) { var p = _get(MeshPoint_getPrototypeOf(1 & r ? t.prototype : t), o, e); return 2 & r && "function" == typeof p ? function (t) { return p.apply(e, t); } : p; }
-function _get() { return _get = "undefined" != typeof Reflect && Reflect.get ? Reflect.get.bind() : function (e, t, r) { var p = _superPropBase(e, t); if (p) { var n = Object.getOwnPropertyDescriptor(p, t); return n.get ? n.get.call(arguments.length < 3 ? e : r) : n.value; } }, _get.apply(null, arguments); }
-function _superPropBase(t, o) { for (; !{}.hasOwnProperty.call(t, o) && null !== (t = MeshPoint_getPrototypeOf(t));); return t; }
+function MeshPoint_superPropGet(t, o, e, r) { var p = MeshPoint_get(MeshPoint_getPrototypeOf(1 & r ? t.prototype : t), o, e); return 2 & r && "function" == typeof p ? function (t) { return p.apply(e, t); } : p; }
+function MeshPoint_get() { return MeshPoint_get = "undefined" != typeof Reflect && Reflect.get ? Reflect.get.bind() : function (e, t, r) { var p = MeshPoint_superPropBase(e, t); if (p) { var n = Object.getOwnPropertyDescriptor(p, t); return n.get ? n.get.call(arguments.length < 3 ? e : r) : n.value; } }, MeshPoint_get.apply(null, arguments); }
+function MeshPoint_superPropBase(t, o) { for (; !{}.hasOwnProperty.call(t, o) && null !== (t = MeshPoint_getPrototypeOf(t));); return t; }
 function MeshPoint_getPrototypeOf(t) { return MeshPoint_getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf.bind() : function (t) { return t.__proto__ || Object.getPrototypeOf(t); }, MeshPoint_getPrototypeOf(t); }
 function MeshPoint_inherits(t, e) { if ("function" != typeof e && null !== e) throw new TypeError("Super expression must either be null or a function"); t.prototype = Object.create(e && e.prototype, { constructor: { value: t, writable: !0, configurable: !0 } }), Object.defineProperty(t, "prototype", { writable: !1 }), e && MeshPoint_setPrototypeOf(t, e); }
 function MeshPoint_setPrototypeOf(t, e) { return MeshPoint_setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function (t, e) { return t.__proto__ = e, t; }, MeshPoint_setPrototypeOf(t, e); }
@@ -861,7 +947,7 @@ var MeshPoint = /*#__PURE__*/function (_MovePoint) {
   return MeshPoint_createClass(MeshPoint, [{
     key: "set",
     value: function set(point) {
-      _superPropGet(MeshPoint, "set", this, 3)([point]);
+      MeshPoint_superPropGet(MeshPoint, "set", this, 3)([point]);
       this.u = point.u || 0;
       this.v = point.v || 0;
       return this;
@@ -869,7 +955,7 @@ var MeshPoint = /*#__PURE__*/function (_MovePoint) {
   }, {
     key: "moveTo",
     value: function moveTo() {
-      _superPropGet(MeshPoint, "moveTo", this, 3)([]);
+      MeshPoint_superPropGet(MeshPoint, "moveTo", this, 3)([]);
       this.parent.calculateMesh();
     }
 
@@ -1052,6 +1138,9 @@ function Surface_callSuper(t, o, e) { return o = Surface_getPrototypeOf(o), Surf
 function Surface_possibleConstructorReturn(t, e) { if (e && ("object" == Surface_typeof(e) || "function" == typeof e)) return e; if (void 0 !== e) throw new TypeError("Derived constructors may only return object or undefined"); return Surface_assertThisInitialized(t); }
 function Surface_assertThisInitialized(e) { if (void 0 === e) throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); return e; }
 function Surface_isNativeReflectConstruct() { try { var t = !Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); } catch (t) {} return (Surface_isNativeReflectConstruct = function _isNativeReflectConstruct() { return !!t; })(); }
+function Surface_superPropGet(t, o, e, r) { var p = Surface_get(Surface_getPrototypeOf(1 & r ? t.prototype : t), o, e); return 2 & r && "function" == typeof p ? function (t) { return p.apply(e, t); } : p; }
+function Surface_get() { return Surface_get = "undefined" != typeof Reflect && Reflect.get ? Reflect.get.bind() : function (e, t, r) { var p = Surface_superPropBase(e, t); if (p) { var n = Object.getOwnPropertyDescriptor(p, t); return n.get ? n.get.call(arguments.length < 3 ? e : r) : n.value; } }, Surface_get.apply(null, arguments); }
+function Surface_superPropBase(t, o) { for (; !{}.hasOwnProperty.call(t, o) && null !== (t = Surface_getPrototypeOf(t));); return t; }
 function Surface_getPrototypeOf(t) { return Surface_getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf.bind() : function (t) { return t.__proto__ || Object.getPrototypeOf(t); }, Surface_getPrototypeOf(t); }
 function Surface_inherits(t, e) { if ("function" != typeof e && null !== e) throw new TypeError("Super expression must either be null or a function"); t.prototype = Object.create(e && e.prototype, { constructor: { value: t, writable: !0, configurable: !0 } }), Object.defineProperty(t, "prototype", { writable: !1 }), e && Surface_setPrototypeOf(t, e); }
 function Surface_setPrototypeOf(t, e) { return Surface_setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function (t, e) { return t.__proto__ = e, t; }, Surface_setPrototypeOf(t, e); }
@@ -1088,6 +1177,16 @@ var Surface = /*#__PURE__*/function (_Draggable) {
     // p5.Graphics
     Surface_defineProperty(_this, "rafHandle", null);
     Surface_defineProperty(_this, "_mutedColor", null);
+    /**
+     * Optional parent surface. When set, this surface's own x/y is pinned to
+     * (0,0) and its calibration is expressed relative to the parent's local
+     * pre-warp space instead of absolute screen coordinates — see
+     * resolveToScreen/resolveToLocal and setParent(). Nesting is one level
+     * only: a parent cannot itself have a parent, and a surface with children
+     * cannot be given a parent (enforced in setParent()).
+     */
+    Surface_defineProperty(_this, "parentSurface", null);
+    Surface_defineProperty(_this, "children", []);
     _this.pInst = pInst;
     if (!Number.isInteger(res) || res < 2) {
       throw new Error("Surface: res must be an integer >= 2 (got ".concat(res, ")"));
@@ -1372,7 +1471,7 @@ var Surface = /*#__PURE__*/function (_Draggable) {
   }, {
     key: "toJSON",
     value: function toJSON() {
-      return {
+      var json = {
         id: this.id,
         type: this.type,
         res: this.res,
@@ -1381,6 +1480,157 @@ var Surface = /*#__PURE__*/function (_Draggable) {
         width: this.width,
         height: this.height
       };
+      if (this.parentSurface) json.parentId = this.parentSurface.id;
+      return json;
+    }
+
+    // --------------------------- Parenting ---------------------------
+
+    /**
+     * Resolve a point local to this surface into absolute screen coordinates.
+     * Default (no perspective warp): plain translate by this.x/this.y — this
+     * is exactly today's implicit behavior for every unparented surface, and
+     * remains correct for PolyMap (no warp) without needing an override.
+     * CornerPinSurface overrides this to route through its homography.
+     */
+  }, {
+    key: "resolveToScreen",
+    value: function resolveToScreen(lx, ly) {
+      return {
+        x: lx + this.x,
+        y: ly + this.y
+      };
+    }
+
+    /** Inverse of resolveToScreen — absolute screen coords -> this surface's local space. */
+  }, {
+    key: "resolveToLocal",
+    value: function resolveToLocal(ax, ay) {
+      return {
+        x: ax - this.x,
+        y: ay - this.y
+      };
+    }
+
+    /**
+     * Re-derive this surface's render-facing geometry from its stored
+     * parent-relative calibration, using the parent's *current* transform.
+     * No-op when there's no parent. Overridden by CornerPinSurface
+     * (-> calculateMesh()) and PolyMap (-> re-resolve each point).
+     */
+  }, {
+    key: "recalcFromParent",
+    value: function recalcFromParent() {}
+
+    /**
+     * Subclass hook: fold this surface's own point storage by (dx,dy) — the
+     * absolute offset this surface's x/y held right before being parented —
+     * and convert those points into parent-relative local coordinates via
+     * `this.parentSurface!.resolveToLocal()`. Called once, from setParent(),
+     * after this.parentSurface is set and this.x/this.y have been zeroed.
+     */
+  }, {
+    key: "onParentAttached",
+    value: function onParentAttached(dx, dy) {}
+
+    /**
+     * Subclass hook: freeze this surface's current resolved absolute position
+     * into its own point storage and clear any parent-relative local shadow
+     * state, so a future re-parent starts clean. Called once, from
+     * setParent(null), while this.parentSurface still points at the old parent.
+     */
+  }, {
+    key: "onParentDetached",
+    value: function onParentDetached() {}
+
+    /**
+     * Attach (or clear, via null) this surface's parent. Nesting is one level
+     * only: rejects making a surface its own parent, rejects a target that
+     * already has a parent (would create depth > 1, and structurally rules
+     * out an A<->B swap cycle since if `this` is already `target`'s parent,
+     * `target.parentSurface` is non-null), and rejects giving a parent to a
+     * surface that already has children (would make it a grandchild-producing
+     * middle node from the other direction).
+     *
+     * `opts.fromLoad` is for ProjectionMapper's loader only: load() (see
+     * CornerPinSurface/PolyMap) already reads this surface's parent-relative
+     * calibration straight out of the saved file into the local shadow
+     * fields, *before* setParent() runs (parent/child relationships are
+     * reattached in a second pass, after every surface has loaded its own
+     * saved position). The normal (interactive) attach path instead *derives*
+     * those local values by folding this surface's current absolute position
+     * through the parent's transform (onParentAttached) — which, at load
+     * time, would clobber the just-loaded real values with junk computed
+     * from this surface's stale pre-load default-seed position. fromLoad
+     * skips that fold and only resolves the (already-correct) local values
+     * into real x/y.
+     */
+  }, {
+    key: "setParent",
+    value: function setParent(parent) {
+      var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      if (parent === this.parentSurface) return this;
+      if (parent) {
+        if (parent === this) {
+          console.warn("setParent: a surface cannot be its own parent");
+          return this;
+        }
+        if (parent.parentSurface != null) {
+          console.warn("setParent: nesting is limited to one level — the target already has a parent");
+          return this;
+        }
+        if (this.children.length > 0) {
+          console.warn("setParent: this surface already has children — nesting is limited to one level");
+          return this;
+        }
+      }
+      if (this.parentSurface) {
+        var oldParent = this.parentSurface;
+        var idx = oldParent.children.indexOf(this);
+        if (idx >= 0) oldParent.children.splice(idx, 1);
+        this.parentSurface = null;
+        this.onParentDetached();
+      }
+      if (parent) {
+        var dx = this.x;
+        var dy = this.y;
+        this.x = 0;
+        this.y = 0;
+        this.parentSurface = parent;
+        parent.children.push(this);
+        if (!opts.fromLoad) this.onParentAttached(dx, dy);
+        this.recalcFromParent();
+      }
+      return this;
+    }
+  }, {
+    key: "getParent",
+    value: function getParent() {
+      return this.parentSurface;
+    }
+
+    /**
+     * Whole-surface rigid dragging is disabled once parented: a raw
+     * screen-space mouse delta applied to this.x/this.y is only approximately
+     * correct once the parent has any keystone (exact at its center, worse
+     * toward its edges), unlike per-point dragging (which goes through
+     * resolveToLocal and stays exact). Per-point dragging remains the only
+     * way to position/adjust a parented child.
+     */
+  }, {
+    key: "selectDraggable",
+    value: function selectDraggable() {
+      if (this.parentSurface) return null;
+      return Surface_superPropGet(Surface, "selectDraggable", this, 3)([]);
+    }
+
+    /** Fan a position change out to any children so they re-derive their own geometry. */
+  }, {
+    key: "onPositionChanged",
+    value: function onPositionChanged() {
+      this.children.forEach(function (c) {
+        return c.recalcFromParent();
+      });
     }
   }]);
 }(Draggable);
@@ -1413,8 +1663,11 @@ function CornerPinSurface_toPrimitive(t, r) { if ("object" != CornerPinSurface_t
 
 
 /**
- * Small interface so any perspective impl just needs a `transform([x,y])`.
- * E.g., wrap your PerspT or homography util here.
+ * Small interface so any perspective impl just needs transform/transformInverse
+ * over a single [x,y] pair. E.g., wrap your PerspT or homography util here.
+ * Both directions are required: `transform` (local canonical rect -> pinned
+ * screen corners) drives rendering and resolveToScreen(); `transformInverse`
+ * (the reverse) drives getTransformedCursor()/resolveToLocal().
  */
 var CornerPinSurface = /*#__PURE__*/function (_Surface) {
   function CornerPinSurface(id, width, height, res, type, buffer, pInst) {
@@ -1524,32 +1777,162 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
       this.perspectiveTransform = pt;
     }
 
+    /**
+     * When parented, resolve each control point's parent-relative local
+     * shadow value (MeshPoint.localX/localY) into this surface's real,
+     * render-facing .x/.y via the parent's *current* transform. Called as the
+     * first step of calculateMesh() (QuadMap/TriMap) so the homography built
+     * afterward is always based on the parent's latest calibration. No-op
+     * when unparented.
+     */
+  }, {
+    key: "resolveControlPoints",
+    value: function resolveControlPoints() {
+      if (!this.parentSurface) return;
+      var _iterator = CornerPinSurface_createForOfIteratorHelper(this.controlPoints),
+        _step;
+      try {
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
+          var cp = _step.value;
+          if (cp.localX == null || cp.localY == null) continue;
+          var abs = this.parentSurface.resolveToScreen(cp.localX, cp.localY);
+          cp.x = abs.x;
+          cp.y = abs.y;
+        }
+      } catch (err) {
+        _iterator.e(err);
+      } finally {
+        _iterator.f();
+      }
+    }
+
+    /** Re-derive this surface's geometry after the parent's calibration changes. */
+  }, {
+    key: "recalcFromParent",
+    value: function recalcFromParent() {
+      this.calculateMesh();
+    }
+
+    /**
+     * Fold this surface's absolute offset (dx,dy) — what this.x/this.y held
+     * right before being parented — into each control point, then convert
+     * from absolute screen space into the new parent's local space.
+     */
+  }, {
+    key: "onParentAttached",
+    value: function onParentAttached(dx, dy) {
+      if (!this.parentSurface) return;
+      var _iterator2 = CornerPinSurface_createForOfIteratorHelper(this.controlPoints),
+        _step2;
+      try {
+        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+          var cp = _step2.value;
+          var local = this.parentSurface.resolveToLocal(dx + cp.x, dy + cp.y);
+          cp.localX = local.x;
+          cp.localY = local.y;
+        }
+      } catch (err) {
+        _iterator2.e(err);
+      } finally {
+        _iterator2.f();
+      }
+    }
+
+    /** Clear parent-relative shadow state so a future re-parent starts clean. */
+  }, {
+    key: "onParentDetached",
+    value: function onParentDetached() {
+      var _iterator3 = CornerPinSurface_createForOfIteratorHelper(this.controlPoints),
+        _step3;
+      try {
+        for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
+          var cp = _step3.value;
+          cp.localX = undefined;
+          cp.localY = undefined;
+        }
+      } catch (err) {
+        _iterator3.e(err);
+      } finally {
+        _iterator3.f();
+      }
+    }
+
+    /**
+     * Resolve a point local to this surface's canonical rect into absolute
+     * screen coordinates via this surface's own homography (local -> pinned
+     * corners), then this surface's own x/y translation (0 when parented).
+     */
+  }, {
+    key: "resolveToScreen",
+    value: function resolveToScreen(lx, ly) {
+      if (!this.perspectiveTransform) return {
+        x: lx + this.x,
+        y: ly + this.y
+      };
+      var _this$perspectiveTran = this.perspectiveTransform.transform([lx, ly]),
+        _this$perspectiveTran2 = CornerPinSurface_slicedToArray(_this$perspectiveTran, 2),
+        tx = _this$perspectiveTran2[0],
+        ty = _this$perspectiveTran2[1];
+      return {
+        x: tx + this.x,
+        y: ty + this.y
+      };
+    }
+
+    /** Inverse of resolveToScreen — absolute screen coords -> this surface's local canonical rect. */
+  }, {
+    key: "resolveToLocal",
+    value: function resolveToLocal(ax, ay) {
+      if (!this.perspectiveTransform) return {
+        x: ax - this.x,
+        y: ay - this.y
+      };
+      var _this$perspectiveTran3 = this.perspectiveTransform.transformInverse([ax - this.x, ay - this.y]),
+        _this$perspectiveTran4 = CornerPinSurface_slicedToArray(_this$perspectiveTran3, 2),
+        tx = _this$perspectiveTran4[0],
+        ty = _this$perspectiveTran4[1];
+      return {
+        x: tx,
+        y: ty
+      };
+    }
+
     /** JSON → state (applies only stored control points, keeps others) */
   }, {
     key: "load",
     value: function load(json) {
       var x = json.x,
         y = json.y,
-        points = json.points;
+        points = json.points,
+        parentId = json.parentId;
       this.x = x;
       this.y = y;
-      var _iterator = CornerPinSurface_createForOfIteratorHelper(points || []),
-        _step;
+      var _iterator4 = CornerPinSurface_createForOfIteratorHelper(points || []),
+        _step4;
       try {
-        for (_iterator.s(); !(_step = _iterator.n()).done;) {
-          var p = _step.value;
+        for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+          var p = _step4.value;
           var mp = this.mesh[p.i];
           if (!mp) continue;
-          mp.x = p.x;
-          mp.y = p.y;
+          // When parentId is present, persisted point coords are parent-local
+          // canonical values, not absolute — stash them and let the
+          // parentId->setParent() reattach pass (ProjectionMapper.loadSurfaces)
+          // resolve real .x/.y via recalcFromParent() once every surface exists.
+          if (parentId != null) {
+            mp.localX = p.x;
+            mp.localY = p.y;
+          } else {
+            mp.x = p.x;
+            mp.y = p.y;
+          }
           mp.u = p.u || 0;
           mp.v = p.v || 0;
           mp.setControlPoint(true);
         }
       } catch (err) {
-        _iterator.e(err);
+        _iterator4.e(err);
       } finally {
-        _iterator.f();
+        _iterator4.f();
       }
       this.calculateMesh();
     }
@@ -1558,6 +1941,7 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
   }, {
     key: "toJSON",
     value: function toJSON() {
+      var _this3 = this;
       var data = {
         id: String(this.id),
         res: this.res,
@@ -1568,13 +1952,16 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
         type: this.type,
         points: []
       };
+      if (this.parentSurface) data.parentId = this.parentSurface.id;
       this.forEachPoint(function (mp, _x, _y, i) {
         if (mp.isControlPoint) {
           var _data$points;
+          var px = _this3.parentSurface && mp.localX != null ? mp.localX : mp.x;
+          var py = _this3.parentSurface && mp.localY != null ? mp.localY : mp.y;
           (_data$points = data.points) === null || _data$points === void 0 || _data$points.push({
             i: i,
-            x: mp.x,
-            y: mp.y,
+            x: px,
+            y: py,
             u: mp.u,
             v: mp.v
           });
@@ -1600,17 +1987,17 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
   }, {
     key: "isMouseOverControlPoints",
     value: function isMouseOverControlPoints() {
-      var _iterator2 = CornerPinSurface_createForOfIteratorHelper(this.controlPoints),
-        _step2;
+      var _iterator5 = CornerPinSurface_createForOfIteratorHelper(this.controlPoints),
+        _step5;
       try {
-        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-          var cp = _step2.value;
+        for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
+          var cp = _step5.value;
           if (cp.isMouseOver()) return cp;
         }
       } catch (err) {
-        _iterator2.e(err);
+        _iterator5.e(err);
       } finally {
-        _iterator2.f();
+        _iterator5.f();
       }
       return false;
     }
@@ -1646,17 +2033,17 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
       var p = this.pInst;
       p.push();
       p.translate(this.x, this.y);
-      var _iterator3 = CornerPinSurface_createForOfIteratorHelper(this.controlPoints),
-        _step3;
+      var _iterator6 = CornerPinSurface_createForOfIteratorHelper(this.controlPoints),
+        _step6;
       try {
-        for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-          var cp = _step3.value;
+        for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
+          var cp = _step6.value;
           cp.display(this.controlPointColor);
         }
       } catch (err) {
-        _iterator3.e(err);
+        _iterator6.e(err);
       } finally {
-        _iterator3.f();
+        _iterator6.f();
       }
       p.pop();
     }
@@ -1668,12 +2055,10 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
   }, {
     key: "getTransformedCursor",
     value: function getTransformedCursor(cx, cy) {
-      if (!this.perspectiveTransform) return this.pInst.createVector(cx - this.x, cy - this.y);
-      var _this$perspectiveTran = this.perspectiveTransform.transform([cx - this.x, cy - this.y]),
-        _this$perspectiveTran2 = CornerPinSurface_slicedToArray(_this$perspectiveTran, 2),
-        tx = _this$perspectiveTran2[0],
-        ty = _this$perspectiveTran2[1];
-      return this.pInst.createVector(tx, ty);
+      var _this$resolveToLocal = this.resolveToLocal(cx, cy),
+        x = _this$resolveToLocal.x,
+        y = _this$resolveToLocal.y;
+      return this.pInst.createVector(x, y);
     }
   }, {
     key: "getTransformedMouse",
@@ -1802,6 +2187,10 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
   }, {
     key: "calculateMesh",
     value: function calculateMesh() {
+      // When parented, re-derive this quad's pinned corners from their
+      // parent-relative local values via the parent's *current* homography,
+      // before anything below reads them — see CornerPinSurface.resolveControlPoints.
+      this.resolveControlPoints();
       this._calibDirty = true;
       this._geomDirty = true;
       var srcCorners = [0, 0, this.width, 0, this.width, this.height, 0, this.height];
@@ -1810,16 +2199,22 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       // PerspT is expected to return an object with transform(x,y) → [x', y']
       var persp = perspective_PerspT(srcCorners, dstCorners);
 
-      // Wire this frame's homography up for getTransformedCursor/getTransformedMouse.
-      // getTransformedCursor maps canvas-space -> local pre-warp space, which is the
-      // *inverse* of persp.transform (local -> canvas, used below to place mesh
-      // points), so it needs transformInverse here, not transform.
-      // (CornerPinSurface's PerspectiveTransform interface takes a single [x,y] pair.)
+      // Wire this frame's homography up both ways: `transform` (local -> pinned
+      // corners) drives rendering below and resolveToScreen() for any children
+      // parented to this quad; `transformInverse` drives getTransformedCursor()/
+      // resolveToLocal(). (CornerPinSurface's PerspectiveTransform interface
+      // takes a single [x,y] pair per direction.)
       this.setPerspectiveTransform({
         transform: function transform(_ref) {
           var _ref2 = QuadMap_slicedToArray(_ref, 2),
             x = _ref2[0],
             y = _ref2[1];
+          return persp.transform(x, y);
+        },
+        transformInverse: function transformInverse(_ref3) {
+          var _ref4 = QuadMap_slicedToArray(_ref3, 2),
+            x = _ref4[0],
+            y = _ref4[1];
           return persp.transformInverse(x, y);
         }
       });
@@ -1902,6 +2297,10 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
           })), "."));
         }
       }
+
+      // This quad's own shape just changed (corner drag, load(), or
+      // setResolution()) — let any children re-derive their geometry from it.
+      this.onPositionChanged();
     }
 
     /**
@@ -2136,7 +2535,7 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
   }, {
     key: "setResolution",
     value: function setResolution(res) {
-      var _initMesh, _ref3;
+      var _initMesh, _ref5;
       var r = Math.max(2, Math.floor(res));
       if (r === this.res) return;
       this.res = r;
@@ -2144,7 +2543,7 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       this.resY = r;
 
       // Rebuild the base mesh & control points from CornerPinSurface
-      (_initMesh = (_ref3 = this).initMesh) === null || _initMesh === void 0 || _initMesh.call(_ref3);
+      (_initMesh = (_ref5 = this).initMesh) === null || _initMesh === void 0 || _initMesh.call(_ref5);
       this.calculateMesh();
     }
   }]);
@@ -2191,6 +2590,20 @@ var TriMap = /*#__PURE__*/function (_CornerPinSurface) {
       var mx = x - this.x;
       var my = y - this.y;
       return this.isPointInTriangle(mx, my, this.mesh[this.TP], this.mesh[this.BL], this.mesh[this.BR]);
+    }
+
+    /**
+     * TriMap has no homography of its own (three loose points, no interior
+     * mesh to warp) — but when parented, its three control points still need
+     * to be re-derived from their parent-relative local values via the
+     * parent's current transform. CornerPinSurface's base calculateMesh() is
+     * a no-op, so this override exists purely to call resolveControlPoints().
+     */
+  }, {
+    key: "calculateMesh",
+    value: function calculateMesh() {
+      this.resolveControlPoints();
+      this.onPositionChanged();
     }
 
     /**
@@ -2431,7 +2844,8 @@ var PolyMap = /*#__PURE__*/function (_Surface) {
     value: function load(json) {
       var x = json.x,
         y = json.y,
-        points = json.points;
+        points = json.points,
+        parentId = json.parentId;
       this.x = x;
       this.y = y;
       var _iterator4 = PolyMap_createForOfIteratorHelper(points || []),
@@ -2441,8 +2855,17 @@ var PolyMap = /*#__PURE__*/function (_Surface) {
           var point = _step4.value;
           var mp = this.points[point.i];
           if (!mp) continue;
-          mp.x = point.x;
-          mp.y = point.y;
+          // Mirrors CornerPinSurface.load(): when parentId is present, persisted
+          // coords are parent-local, not absolute — stash them and let the
+          // parentId->setParent() reattach pass (ProjectionMapper.loadSurfaces)
+          // resolve real x/y via recalcFromParent() once every surface exists.
+          if (parentId != null) {
+            mp.localX = point.x;
+            mp.localY = point.y;
+          } else {
+            mp.x = point.x;
+            mp.y = point.y;
+          }
         }
       } catch (err) {
         _iterator4.e(err);
@@ -2450,6 +2873,7 @@ var PolyMap = /*#__PURE__*/function (_Surface) {
         _iterator4.f();
       }
       this.setDimensions(this.points);
+      this.onPositionChanged();
     }
 
     /** Persist id/pos/type + point positions. */
@@ -2463,35 +2887,109 @@ var PolyMap = /*#__PURE__*/function (_Surface) {
         type: "POLY",
         points: []
       };
+      if (this.parentSurface) out.parentId = this.parentSurface.id;
       for (var i = 0; i < this.points.length; i++) {
         var _out$points;
+        var pt = this.points[i];
+        var px = this.parentSurface && pt.localX != null ? pt.localX : pt.x;
+        var py = this.parentSurface && pt.localY != null ? pt.localY : pt.y;
         (_out$points = out.points) === null || _out$points === void 0 || _out$points.push({
           i: i,
-          x: this.points[i].x,
-          y: this.points[i].y
+          x: px,
+          y: py
         });
       }
       return out;
+    }
+
+    /**
+     * Re-derive every point's render-facing position from its parent-relative
+     * local shadow value, via the parent's *current* transform. No-op when
+     * unparented.
+     */
+  }, {
+    key: "recalcFromParent",
+    value: function recalcFromParent() {
+      if (!this.parentSurface) return;
+      var _iterator5 = PolyMap_createForOfIteratorHelper(this.points),
+        _step5;
+      try {
+        for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
+          var pt = _step5.value;
+          if (pt.localX == null || pt.localY == null) continue;
+          var abs = this.parentSurface.resolveToScreen(pt.localX, pt.localY);
+          pt.x = abs.x;
+          pt.y = abs.y;
+        }
+      } catch (err) {
+        _iterator5.e(err);
+      } finally {
+        _iterator5.f();
+      }
+      this.setDimensions(this.points);
+    }
+
+    /**
+     * Fold this surface's absolute offset (dx,dy) into each point, then
+     * convert from absolute screen space into the new parent's local space.
+     */
+  }, {
+    key: "onParentAttached",
+    value: function onParentAttached(dx, dy) {
+      if (!this.parentSurface) return;
+      var _iterator6 = PolyMap_createForOfIteratorHelper(this.points),
+        _step6;
+      try {
+        for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
+          var pt = _step6.value;
+          var local = this.parentSurface.resolveToLocal(dx + pt.x, dy + pt.y);
+          pt.localX = local.x;
+          pt.localY = local.y;
+        }
+      } catch (err) {
+        _iterator6.e(err);
+      } finally {
+        _iterator6.f();
+      }
+    }
+
+    /** Clear parent-relative shadow state so a future re-parent starts clean. */
+  }, {
+    key: "onParentDetached",
+    value: function onParentDetached() {
+      var _iterator7 = PolyMap_createForOfIteratorHelper(this.points),
+        _step7;
+      try {
+        for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
+          var pt = _step7.value;
+          pt.localX = undefined;
+          pt.localY = undefined;
+        }
+      } catch (err) {
+        _iterator7.e(err);
+      } finally {
+        _iterator7.f();
+      }
     }
 
     /** Select a control point for dragging. */
   }, {
     key: "selectPoints",
     value: function selectPoints() {
-      var _iterator5 = PolyMap_createForOfIteratorHelper(this.points),
-        _step5;
+      var _iterator8 = PolyMap_createForOfIteratorHelper(this.points),
+        _step8;
       try {
-        for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
-          var cp = _step5.value;
+        for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
+          var cp = _step8.value;
           if (cp.isMouseOver()) {
             cp.startDrag();
             return cp;
           }
         }
       } catch (err) {
-        _iterator5.e(err);
+        _iterator8.e(err);
       } finally {
-        _iterator5.f();
+        _iterator8.f();
       }
       return null;
     }
@@ -4093,6 +4591,56 @@ var ProjectionMapper = /*#__PURE__*/function () {
       loadTyped("QUAD");
       loadTyped("BEZ");
       loadTyped("POLY");
+      this.reattachParents(jSurfaces);
+    }
+
+    /**
+     * Second pass, run after every surface above has loaded its own saved
+     * position: resolve each surface's parentId (if any) to a live setParent()
+     * call. This has to be a separate pass because parentId can reference any
+     * surface regardless of creation-order/type bucket, so every surface's id
+     * needs to already exist and be loaded before any of them can be
+     * reattached. Matches by each live surface's own id (assigned uniquely
+     * across the whole surfaces array at creation time), not by the
+     * type-bucketed positional matching loadTyped() uses above.
+     */
+  }, {
+    key: "reattachParents",
+    value: function reattachParents(jSurfaces) {
+      var byId = new Map();
+      var _iterator = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
+        _step;
+      try {
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
+          var s = _step.value;
+          if (s instanceof Surface) byId.set(String(s.id), s);
+        }
+      } catch (err) {
+        _iterator.e(err);
+      } finally {
+        _iterator.f();
+      }
+      var _iterator2 = ProjectionMapper_createForOfIteratorHelper(jSurfaces),
+        _step2;
+      try {
+        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+          var j = _step2.value;
+          if (j.parentId == null) continue;
+          var child = byId.get(String(j.id));
+          var parent = byId.get(String(j.parentId));
+          if (!child || !parent) {
+            console.warn("p5.mapper: couldn't resolve parentId \"".concat(j.parentId, "\" for surface \"").concat(j.id, "\" while loading calibration \u2014 it will stay unparented."));
+            continue;
+          }
+          child.setParent(parent, {
+            fromLoad: true
+          });
+        }
+      } catch (err) {
+        _iterator2.e(err);
+      } finally {
+        _iterator2.f();
+      }
     }
   }, {
     key: "loadLines",
@@ -4142,30 +4690,30 @@ var ProjectionMapper = /*#__PURE__*/function () {
     key: "displayControlPoints",
     value: function displayControlPoints() {
       if (!this.calibrate) return;
-      var _iterator = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
-        _step;
+      var _iterator3 = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
+        _step3;
       try {
-        for (_iterator.s(); !(_step = _iterator.n()).done;) {
-          var s = _step.value;
+        for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
+          var s = _step3.value;
           if (s instanceof Surface) s.displayControlPoints();
         }
       } catch (err) {
-        _iterator.e(err);
+        _iterator3.e(err);
       } finally {
-        _iterator.f();
+        _iterator3.f();
       }
-      var _iterator2 = ProjectionMapper_createForOfIteratorHelper(this.lines),
-        _step2;
+      var _iterator4 = ProjectionMapper_createForOfIteratorHelper(this.lines),
+        _step4;
       try {
-        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-          var l = _step2.value;
+        for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+          var l = _step4.value;
           l.displayCalibration();
           l.displayControlPoints();
         }
       } catch (err) {
-        _iterator2.e(err);
+        _iterator4.e(err);
       } finally {
-        _iterator2.f();
+        _iterator4.f();
       }
     }
   }, {

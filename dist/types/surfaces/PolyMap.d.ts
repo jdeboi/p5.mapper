@@ -25,6 +25,19 @@ export default class PolyMap extends Surface {
     load(json: DraggableJSON): void;
     /** Persist id/pos/type + point positions. */
     toJSON(): DraggableJSON;
+    /**
+     * Re-derive every point's render-facing position from its parent-relative
+     * local shadow value, via the parent's *current* transform. No-op when
+     * unparented.
+     */
+    recalcFromParent(): void;
+    /**
+     * Fold this surface's absolute offset (dx,dy) into each point, then
+     * convert from absolute screen space into the new parent's local space.
+     */
+    protected onParentAttached(dx: number, dy: number): void;
+    /** Clear parent-relative shadow state so a future re-parent starts clean. */
+    protected onParentDetached(): void;
     /** Select a control point for dragging. */
     selectPoints(): MovePoint | null;
 }

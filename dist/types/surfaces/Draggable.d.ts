@@ -16,6 +16,7 @@ export type Rect = {
 export type AxisLock = "none" | "x" | "y";
 export interface DraggableJSON {
     id?: string | number;
+    parentId?: string | number;
     x: number;
     y: number;
     x0?: number;
@@ -77,6 +78,15 @@ export default class Draggable {
     getIsEnabled(): boolean;
     /** Update dragging with current pointer */
     updateDrag(mx: number, my: number): void;
+    /**
+     * Internal hook, distinct from the public onDragMove/onDragStart/onDragEnd
+     * callbacks (which are user-assignable API and shouldn't be relied on
+     * internally — assigning one would silently clobber anything wired up
+     * here). Called whenever this draggable's position actually changes, via
+     * any path (drag, translate, or a direct set()). Surface overrides this to
+     * fan a parent's position change out to its children.
+     */
+    protected onPositionChanged(): void;
     /** Finish dragging */
     endDrag(): void;
     selectDraggable(): this | null;

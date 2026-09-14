@@ -1,12 +1,16 @@
 import { DraggableJSON } from "./Draggable";
 import MeshPoint from "./MeshPoint";
-import Surface from "./Surface";
+import Surface, { PointXY } from "./Surface";
 /**
- * Small interface so any perspective impl just needs a `transform([x,y])`.
- * E.g., wrap your PerspT or homography util here.
+ * Small interface so any perspective impl just needs transform/transformInverse
+ * over a single [x,y] pair. E.g., wrap your PerspT or homography util here.
+ * Both directions are required: `transform` (local canonical rect -> pinned
+ * screen corners) drives rendering and resolveToScreen(); `transformInverse`
+ * (the reverse) drives getTransformedCursor()/resolveToLocal().
  */
 interface PerspectiveTransform {
     transform: (pt: [number, number]) => [number, number];
+    transformInverse: (pt: [number, number]) => [number, number];
 }
 export default class CornerPinSurface extends Surface {
     /** grid resolution per axis (res x res points) */
@@ -41,6 +45,33 @@ export default class CornerPinSurface extends Surface {
     protected calculateMesh(): void;
     /** supply a perspective transform impl (set from calculateMesh) */
     protected setPerspectiveTransform(pt: PerspectiveTransform | null): void;
+    /**
+     * When parented, resolve each control point's parent-relative local
+     * shadow value (MeshPoint.localX/localY) into this surface's real,
+     * render-facing .x/.y via the parent's *current* transform. Called as the
+     * first step of calculateMesh() (QuadMap/TriMap) so the homography built
+     * afterward is always based on the parent's latest calibration. No-op
+     * when unparented.
+     */
+    protected resolveControlPoints(): void;
+    /** Re-derive this surface's geometry after the parent's calibration changes. */
+    recalcFromParent(): void;
+    /**
+     * Fold this surface's absolute offset (dx,dy) — what this.x/this.y held
+     * right before being parented — into each control point, then convert
+     * from absolute screen space into the new parent's local space.
+     */
+    protected onParentAttached(dx: number, dy: number): void;
+    /** Clear parent-relative shadow state so a future re-parent starts clean. */
+    protected onParentDetached(): void;
+    /**
+     * Resolve a point local to this surface's canonical rect into absolute
+     * screen coordinates via this surface's own homography (local -> pinned
+     * corners), then this surface's own x/y translation (0 when parented).
+     */
+    resolveToScreen(lx: number, ly: number): PointXY;
+    /** Inverse of resolveToScreen — absolute screen coords -> this surface's local canonical rect. */
+    resolveToLocal(ax: number, ay: number): PointXY;
     /** JSON → state (applies only stored control points, keeps others) */
     load(json: DraggableJSON): void;
     /** state → JSON (only control points are persisted) */
