@@ -374,28 +374,29 @@ class ProjectionMapper {
   //
   // Every QuadMap-type surface's calibration grid draws into this ONE
   // canvas-sized buffer (instead of each allocating its own) - see
-  // QuadMap.displayCalibration(). Exactly canvas-sized and persists across
-  // frames; a surface only clears+redraws its own sub-region when its own
-  // mesh actually changed, so this is deliberately NOT cleared wholesale
-  // every frame (that would force every surface to redraw every frame,
-  // defeating the whole point of caching). The single blit of the combined
-  // result happens once, in postdraw below - i.e. strictly after every
-  // surface's own draw() call this frame has had its chance to update its
-  // region - specifically so a later surface's contribution can never be
-  // silently covered up by an earlier surface's blit of unrelated content
-  // drawn in between, the way per-surface scattered blits could.
+  // QuadMap.displayCalibration(). Surfaces are allowed to visually overlap
+  // on the actual wall (a painting sits *within* the wall quad's own
+  // boundary), so their calibration grids overlap in this shared buffer
+  // too - a per-surface "clear only my own sub-region, skip redraw if I
+  // haven't changed" optimization is unsafe here: whenever an overlapping
+  // surface redraws, it would clear and erase another surface's
+  // already-drawn content, which then never gets redrawn (that surface has
+  // no way to know its region was just wiped out from under it) - this was
+  // shipped once and visibly broke (surfaces disappearing while a sibling
+  // was dragged) before being caught and reverted to the simpler, correct
+  // version here: a full clear + full redraw of every surface, every
+  // frame, while calibrating. That's cheap 2D immediate-mode triangle
+  // drawing (a handful of small grids), not the createGraphics()/GPU-buffer
+  // churn this consolidation exists to avoid, so there's no real cost to
+  // giving up the partial-redraw optimization. The clear happens once, in
+  // predraw below, strictly before any surface's own draw() call this frame
+  // - i.e. before any surface has had a chance to draw into it - and the
+  // single blit of the combined result happens once, in postdraw, strictly
+  // after every surface's draw() call this frame has run.
 
   private calibSharedGfx: any | null = null;
   private calibSharedGfxW = 0;
   private calibSharedGfxH = 0;
-  // Bumped every time the buffer itself is (re)created - on first use, on a
-  // canvas resize, and every time it's freed-then-recreated across a
-  // calibration exit/re-entry cycle. Each surface compares this against
-  // the generation it last drew into (see QuadMap.displayCalibration()) so
-  // a surface whose *own* mesh hasn't changed still knows to redraw into a
-  // freshly (re)created buffer instead of leaving its region blank - its
-  // own _calibDirty flag alone can't tell the two cases apart.
-  private calibSharedGfxGeneration = 0;
 
   /** Lazily creates (or resizes, on canvas resize) the shared calibration buffer. */
   getCalibSharedGfx(): any {
@@ -414,14 +415,19 @@ class ProjectionMapper {
       );
       this.calibSharedGfxW = w;
       this.calibSharedGfxH = h;
-      this.calibSharedGfxGeneration++;
     }
     return this.calibSharedGfx;
   }
 
-  /** See calibSharedGfxGeneration above. */
-  getCalibSharedGfxGeneration(): number {
-    return this.calibSharedGfxGeneration;
+  /**
+   * Clears the shared buffer once at the start of each frame, before any
+   * surface's displayCalibration() runs this frame. See the section comment
+   * above for why this has to be a full clear, not a per-surface partial one.
+   */
+  beginCalibFrame(): void {
+    if (!this.calibrate) return;
+    const g = this.getCalibSharedGfx();
+    if (g) g.clear();
   }
 
   /**
@@ -523,6 +529,11 @@ p5.prototype.initPMapperShader = function () {
 // Use a single 'postdraw' lifecycle hook to avoid overriding each other.
 // p5.js 2.x replaced the old registerMethod("post", ...) API with registerAddon.
 p5.registerAddon((_p5: any, _fn: any, lifecycles: any) => {
+  lifecycles.predraw = () => {
+    // Must run before any surface's own draw() call this frame - see
+    // ProjectionMapper's "Shared calibration overlay" section.
+    pMapper.beginCalibFrame();
+  };
   lifecycles.postdraw = () => {
     pMapper.displayControlPoints();
     pMapper.updateEvents();

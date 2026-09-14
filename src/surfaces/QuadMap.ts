@@ -12,41 +12,6 @@ export default class QuadMap extends CornerPinSurface {
   /** Throttle for the interior-point-rejection diagnostic warning below. */
   private _lastRejectLogAt = -Infinity;
 
-  /** True once this surface's own region of the shared calibration buffer needs redrawing. */
-  private _calibDirty = true;
-
-  /**
-   * The pMapper.getCalibSharedGfxGeneration() value as of this surface's last
-   * draw into the shared buffer. When the buffer itself gets freed and
-   * recreated (calibration exit/re-entry, or a canvas resize), every
-   * surface's region is blank again even though this surface's own mesh may
-   * not have changed - _calibDirty alone can't tell "my mesh changed" apart
-   * from "the whole buffer got wiped out from under me", so this is checked
-   * alongside it.
-   */
-  private _calibGfxGenerationDrawn = -1;
-
-  /**
-   * this.x/this.y as of this surface's last draw into the shared buffer.
-   * Unlike the old per-surface buffer (blitted via image() inside a live
-   * translate(this.x, this.y), so a whole-surface drag repositioned it for
-   * free with no redraw), this surface's offset is now baked directly into
-   * the vertices written into the shared buffer - so a whole-surface drag
-   * that doesn't touch the mesh (no calculateMesh() call, no _calibDirty)
-   * still needs to be detected and redrawn here, or the old position is
-   * left behind as a ghost.
-   */
-  private _calibDrawnX = NaN;
-  private _calibDrawnY = NaN;
-
-  /** This surface's last-drawn region in the shared buffer, so a subsequent
-   *  redraw (position or mesh changed) can clear the *old* spot too - the
-   *  new position's clearRect doesn't touch pixels left behind at the old
-   *  one. Only meaningful when _calibGfxGenerationDrawn matches the shared
-   *  buffer's current generation (a fresh/recreated buffer has nothing to
-   *  clear there yet). */
-  private _calibLastBox: [number, number, number, number] | null = null;
-
   /**
    * Cached render mesh (WEBGL only — buildGeometry/model aren't available in P2D).
    * Rebuilt when the mesh changes or the requested UV rect differs from last time.
@@ -107,7 +72,6 @@ export default class QuadMap extends CornerPinSurface {
    * then maps every interior grid point.
    */
   protected calculateMesh(): void {
-    this._calibDirty = true;
     this._geomDirty = true;
     const srcCorners = [
       0,
@@ -326,25 +290,20 @@ export default class QuadMap extends CornerPinSurface {
   }
 
   /**
-   * Calibration draw: redraw only this surface's own region of the single
-   * shared calibration buffer (owned by ProjectionMapper), skipping the
-   * redraw entirely on frames where this surface's mesh hasn't changed.
-   * The buffer itself is blitted to screen exactly once per frame by
-   * ProjectionMapper.blitCalibSharedGfx() in postdraw, after every
-   * surface's displayCalibration() has had a chance to run - so this method
-   * must NOT call image()/blit anything itself.
+   * Calibration draw: redraw this surface's grid into the single shared
+   * calibration buffer (owned by ProjectionMapper), which was already
+   * fully cleared once this frame in predraw (see
+   * ProjectionMapper.beginCalibFrame() - this can't be a per-surface
+   * partial clear+skip-if-unchanged, since surfaces are allowed to overlap
+   * on the wall, and one surface's region can't be judged in isolation from
+   * its neighbors'). The buffer itself is blitted to screen exactly once
+   * per frame by ProjectionMapper.blitCalibSharedGfx() in postdraw, after
+   * every surface's displayCalibration() has had a chance to run - so this
+   * method must NOT call image()/blit anything itself.
    */
   public displayCalibration(): void {
     const g = pMapper.getCalibSharedGfx();
     if (!g) return;
-
-    const generation = pMapper.getCalibSharedGfxGeneration();
-    const sameGeneration = this._calibGfxGenerationDrawn === generation;
-    const positionChanged =
-      this.x !== this._calibDrawnX || this.y !== this._calibDrawnY;
-    if (!this._calibDirty && sameGeneration && !positionChanged) {
-      return;
-    }
 
     // This surface's own translate(this.x, this.y) is already active (see
     // Surface.display()), so `mesh[i].x/y` are WEBGL-centered coordinates
@@ -357,39 +316,6 @@ export default class QuadMap extends CornerPinSurface {
     const p = this.pInst;
     const offX = this.x + p.width / 2;
     const offY = this.y + p.height / 2;
-
-    // Bounding box of this surface's own mesh, in the shared buffer's space,
-    // so only this surface's region gets cleared/redrawn (not the whole
-    // shared buffer, which would erase every other surface's contribution
-    // for that frame).
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const mp of this.mesh) {
-      const ax = mp.x + offX;
-      const ay = mp.y + offY;
-      if (ax < minX) minX = ax;
-      if (ay < minY) minY = ay;
-      if (ax > maxX) maxX = ax;
-      if (ay > maxY) maxY = ay;
-    }
-    const pad = 4; // extra pixels to accommodate stroke width
-    const cx = Math.max(0, Math.floor(minX) - pad);
-    const cy = Math.max(0, Math.floor(minY) - pad);
-    const cx2 = Math.min(g.width, Math.ceil(maxX) + pad);
-    const cy2 = Math.min(g.height, Math.ceil(maxY) + pad);
-
-    // Clear the *previous* region too, if the buffer we're drawing into is
-    // the same one that region was last drawn into - a whole-surface drag
-    // (or a mesh change that shifted the bounding box) otherwise leaves a
-    // ghost of the old grid behind at the old location.
-    if (sameGeneration && this._calibLastBox) {
-      const [lx, ly, lx2, ly2] = this._calibLastBox;
-      if (lx2 > lx && ly2 > ly) {
-        g.drawingContext.clearRect(lx, ly, lx2 - lx, ly2 - ly);
-      }
-    }
-    if (cx2 > cx && cy2 > cy) {
-      g.drawingContext.clearRect(cx, cy, cx2 - cx, cy2 - cy);
-    }
 
     g.strokeWeight(2);
     g.stroke(this.controlPointColor);
@@ -411,12 +337,6 @@ export default class QuadMap extends CornerPinSurface {
       }
     }
     g.endShape();
-
-    this._calibDirty = false;
-    this._calibGfxGenerationDrawn = generation;
-    this._calibDrawnX = this.x;
-    this._calibDrawnY = this.y;
-    this._calibLastBox = [cx, cy, cx2, cy2];
   }
 
   /** Emit two triangles for a cell with proper UVs (normalized 0..1). */
