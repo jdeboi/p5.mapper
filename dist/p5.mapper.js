@@ -1718,6 +1718,7 @@ function QuadMap_toPrimitive(t, r) { if ("object" != QuadMap_typeof(t) || !t) re
 
 
 
+
 // type PerspectiveFn = (x: number, y: number) => [number, number];
 var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
   function QuadMap(id, w, h, res, buffer, pInst) {
@@ -1726,13 +1727,40 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
     _this = QuadMap_callSuper(this, QuadMap, [id, w, h, res, "QUAD", buffer, pInst]);
 
     // Keep internal axes in sync with base resolution
-    /** Cached calibration grid — only rebuilt when the mesh changes */
-    QuadMap_defineProperty(_this, "_calibGfx", null);
-    QuadMap_defineProperty(_this, "_calibGfxCapW", 0);
-    QuadMap_defineProperty(_this, "_calibGfxCapH", 0);
-    QuadMap_defineProperty(_this, "_calibGfxOffX", 0);
-    QuadMap_defineProperty(_this, "_calibGfxOffY", 0);
+    /** We keep resX/resY mirrored to base `res` so the mesh stays consistent. */
+    /** Throttle for the interior-point-rejection diagnostic warning below. */
+    QuadMap_defineProperty(_this, "_lastRejectLogAt", -Infinity);
+    /** True once this surface's own region of the shared calibration buffer needs redrawing. */
     QuadMap_defineProperty(_this, "_calibDirty", true);
+    /**
+     * The pMapper.getCalibSharedGfxGeneration() value as of this surface's last
+     * draw into the shared buffer. When the buffer itself gets freed and
+     * recreated (calibration exit/re-entry, or a canvas resize), every
+     * surface's region is blank again even though this surface's own mesh may
+     * not have changed - _calibDirty alone can't tell "my mesh changed" apart
+     * from "the whole buffer got wiped out from under me", so this is checked
+     * alongside it.
+     */
+    QuadMap_defineProperty(_this, "_calibGfxGenerationDrawn", -1);
+    /**
+     * this.x/this.y as of this surface's last draw into the shared buffer.
+     * Unlike the old per-surface buffer (blitted via image() inside a live
+     * translate(this.x, this.y), so a whole-surface drag repositioned it for
+     * free with no redraw), this surface's offset is now baked directly into
+     * the vertices written into the shared buffer - so a whole-surface drag
+     * that doesn't touch the mesh (no calculateMesh() call, no _calibDirty)
+     * still needs to be detected and redrawn here, or the old position is
+     * left behind as a ghost.
+     */
+    QuadMap_defineProperty(_this, "_calibDrawnX", NaN);
+    QuadMap_defineProperty(_this, "_calibDrawnY", NaN);
+    /** This surface's last-drawn region in the shared buffer, so a subsequent
+     *  redraw (position or mesh changed) can clear the *old* spot too - the
+     *  new position's clearRect doesn't touch pixels left behind at the old
+     *  one. Only meaningful when _calibGfxGenerationDrawn matches the shared
+     *  buffer's current generation (a fresh/recreated buffer has nothing to
+     *  clear there yet). */
+    QuadMap_defineProperty(_this, "_calibLastBox", null);
     /**
      * Cached render mesh (WEBGL only — buildGeometry/model aren't available in P2D).
      * Rebuilt when the mesh changes or the requested UV rect differs from last time.
@@ -1781,10 +1809,65 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
 
       // PerspT is expected to return an object with transform(x,y) → [x', y']
       var persp = perspective_PerspT(srcCorners, dstCorners);
+
+      // Wire this frame's homography up for getTransformedCursor/getTransformedMouse.
+      // getTransformedCursor maps canvas-space -> local pre-warp space, which is the
+      // *inverse* of persp.transform (local -> canvas, used below to place mesh
+      // points), so it needs transformInverse here, not transform.
+      // (CornerPinSurface's PerspectiveTransform interface takes a single [x,y] pair.)
+      this.setPerspectiveTransform({
+        transform: function transform(_ref) {
+          var _ref2 = QuadMap_slicedToArray(_ref, 2),
+            x = _ref2[0],
+            y = _ref2[1];
+          return persp.transformInverse(x, y);
+        }
+      });
       var stepX = this.width / (this.resX - 1);
       var stepY = this.height / (this.resY - 1);
 
+      // A self-intersecting ("bowtie") quad, or one merely close to that
+      // configuration — a corner dragged near (not even necessarily across)
+      // the diagonal formed by the other two — puts the homography's `w`
+      // divisor near zero for some interior points. Exactly at w=0 that's
+      // NaN/Infinity (guarded below); *near* zero it's a huge but perfectly
+      // finite number instead (observed: a single interior point 500,000+px
+      // from origin from one corner dragged a few hundred px too far) —
+      // Number.isFinite() alone doesn't catch that, but a WebGL triangle with
+      // a vertex that far out still swallows the entire viewport in whatever
+      // that triangle's fill color is, which is what actually produces the
+      // "screen goes white" report this guards against. A well-formed quad's
+      // interior can never legitimately fall outside its own corners' convex
+      // hull, so anything many times farther from the corners' own span is
+      // the same blowup, just landing on a finite number — reject it the
+      // same way: leave the point at its last valid position for this one
+      // frame, self-correcting as soon as the corner moves back out.
+      var cornerXs = [this.mesh[this.TL].x, this.mesh[this.TR].x, this.mesh[this.BR].x, this.mesh[this.BL].x];
+      var cornerYs = [this.mesh[this.TL].y, this.mesh[this.TR].y, this.mesh[this.BR].y, this.mesh[this.BL].y];
+      var cornerCenterX = (cornerXs[0] + cornerXs[1] + cornerXs[2] + cornerXs[3]) / 4;
+      var cornerCenterY = (cornerYs[0] + cornerYs[1] + cornerYs[2] + cornerYs[3]) / 4;
+      var cornerSpan = Math.max(Math.max.apply(Math, cornerXs) - Math.min.apply(Math, cornerXs), Math.max.apply(Math, cornerYs) - Math.min.apply(Math, cornerYs), 1 // avoid a zero span when all 4 corners momentarily coincide
+      );
+      // For a *non-degenerate* perspective transform, every interior point of
+      // a convex quad is mathematically guaranteed to land within the convex
+      // hull of its transformed corners (the same property document-scanning/
+      // dewarping code relies on) - so legitimate points can only ever be
+      // slightly beyond the corners' own span, for floating-point/mesh-
+      // quantization slop. This must NOT scale up with how far a corner has
+      // already been dragged (an earlier version of this guard used a 20x
+      // multiple of the corner span, which grows right when it needs to
+      // shrink: dragging a corner far away inflates the span and loosens the
+      // threshold at exactly the moment it needs to be tightest - a ~29,000px
+      // blowup slipped through it in testing, next to legitimate corners only
+      // ~2,000px apart). A tight, fixed 20% margin (comfortably above the
+      // theoretical 0% a truly non-degenerate transform needs, for floating-
+      // point/mesh-quantization slop) catches that class of near-degenerate
+      // blowup while still being generous for any real quad.
+      var maxInteriorDist = cornerSpan * 1.2;
+
       // Map all grid points except the four pinned corners
+      var rejectedCount = 0;
+      var maxRejectedMag = 0;
       for (var y = 0; y < this.resY; y++) {
         for (var x = 0; x < this.resX; x++) {
           var i = y * this.res + x; // base mesh is res x res
@@ -1795,20 +1878,28 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
             _persp$transform2 = QuadMap_slicedToArray(_persp$transform, 2),
             dx = _persp$transform2[0],
             dy = _persp$transform2[1];
-
-          // A self-intersecting ("bowtie") quad — e.g. a corner dragged across
-          // the diagonal formed by the other two — puts the homography's
-          // vanishing line through the source rect, so `w` in transform() goes
-          // to ~0 for interior points near that line and dx/dy blow up to
-          // +/-Infinity or NaN. Left unguarded that garbage corrupts both the
-          // render mesh and the calibration overlay's bounding box, which is
-          // what was crashing the WebGL context. Just leave the point at its
-          // last valid position for this one frame instead — it self-corrects
-          // as soon as the corner moves back out of the degenerate config.
-          if (Number.isFinite(dx) && Number.isFinite(dy)) {
+          if (Number.isFinite(dx) && Number.isFinite(dy) && Math.abs(dx - cornerCenterX) <= maxInteriorDist && Math.abs(dy - cornerCenterY) <= maxInteriorDist) {
             this.mesh[i].x = dx;
             this.mesh[i].y = dy;
+          } else {
+            rejectedCount++;
+            var mag = Math.max(Number.isFinite(dx) ? Math.abs(dx - cornerCenterX) : Infinity, Number.isFinite(dy) ? Math.abs(dy - cornerCenterY) : Infinity);
+            if (mag > maxRejectedMag) maxRejectedMag = mag;
           }
+        }
+      }
+
+      // Diagnostic only (temporary, left in deliberately to help track down a
+      // "drag a corner -> whole screen goes white/unresponsive" report this
+      // guard is meant to prevent) - throttled per-instance so a sustained
+      // drag near the degenerate zone doesn't flood the console every frame.
+      if (rejectedCount > 0) {
+        var now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        if (now - this._lastRejectLogAt > 250) {
+          this._lastRejectLogAt = now;
+          console.warn("p5.mapper QuadMap[".concat(this.id, "]: rejected ").concat(rejectedCount, "/").concat(this.resX * this.resY - 4, " interior mesh point(s) this frame (near-degenerate homography). ") + "Worst rejected magnitude: ".concat(maxRejectedMag.toFixed(0), "px beyond threshold ").concat(maxInteriorDist.toFixed(0), "px. Corner span: ").concat(cornerSpan.toFixed(0), "px, center: (").concat(cornerCenterX.toFixed(0), ", ").concat(cornerCenterY.toFixed(0), "). Corners (TL,TR,BR,BL): ").concat(JSON.stringify(cornerXs.map(function (x, k) {
+            return [Math.round(x), Math.round(cornerYs[k])];
+          })), "."));
         }
       }
     }
@@ -1877,23 +1968,43 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       p.model(this._geom);
     }
 
-    /** Calibration draw: blit a cached grid image instead of re-tessellating every frame */
+    /**
+     * Calibration draw: redraw only this surface's own region of the single
+     * shared calibration buffer (owned by ProjectionMapper), skipping the
+     * redraw entirely on frames where this surface's mesh hasn't changed.
+     * The buffer itself is blitted to screen exactly once per frame by
+     * ProjectionMapper.blitCalibSharedGfx() in postdraw, after every
+     * surface's displayCalibration() has had a chance to run - so this method
+     * must NOT call image()/blit anything itself.
+     */
   }, {
     key: "displayCalibration",
     value: function displayCalibration() {
-      if (this._calibDirty || !this._calibGfx) {
-        this._rebuildCalibGfx();
+      var g = src_ProjectionMapper.getCalibSharedGfx();
+      if (!g) return;
+      var generation = src_ProjectionMapper.getCalibSharedGfxGeneration();
+      var sameGeneration = this._calibGfxGenerationDrawn === generation;
+      var positionChanged = this.x !== this._calibDrawnX || this.y !== this._calibDrawnY;
+      if (!this._calibDirty && sameGeneration && !positionChanged) {
+        return;
       }
-      if (this._calibGfx) {
-        this.pInst.image(this._calibGfx, this._calibGfxOffX, this._calibGfxOffY);
-      }
-    }
 
-    /** Render the grid mesh into an offscreen 2D buffer once; reused until mesh changes. */
-  }, {
-    key: "_rebuildCalibGfx",
-    value: function _rebuildCalibGfx() {
-      // Compute surface-local bounding box of all mesh points
+      // This surface's own translate(this.x, this.y) is already active (see
+      // Surface.display()), so `mesh[i].x/y` are WEBGL-centered coordinates
+      // relative to this surface's origin. The shared buffer is a plain 2D
+      // graphics object sized to the canvas with a top-left origin (matching
+      // how ProjectionMapper.blitCalibSharedGfx() places it at
+      // (-width/2, -height/2) to cover the WEBGL-centered canvas exactly), so
+      // every point needs both this surface's own offset and the WEBGL
+      // center-to-top-left shift applied before drawing into it.
+      var p = this.pInst;
+      var offX = this.x + p.width / 2;
+      var offY = this.y + p.height / 2;
+
+      // Bounding box of this surface's own mesh, in the shared buffer's space,
+      // so only this surface's region gets cleared/redrawn (not the whole
+      // shared buffer, which would erase every other surface's contribution
+      // for that frame).
       var minX = Infinity,
         minY = Infinity,
         maxX = -Infinity,
@@ -1903,10 +2014,12 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       try {
         for (_iterator.s(); !(_step = _iterator.n()).done;) {
           var mp = _step.value;
-          if (mp.x < minX) minX = mp.x;
-          if (mp.y < minY) minY = mp.y;
-          if (mp.x > maxX) maxX = mp.x;
-          if (mp.y > maxY) maxY = mp.y;
+          var ax = mp.x + offX;
+          var ay = mp.y + offY;
+          if (ax < minX) minX = ax;
+          if (ay < minY) minY = ay;
+          if (ax > maxX) maxX = ax;
+          if (ay > maxY) maxY = ay;
         }
       } catch (err) {
         _iterator.e(err);
@@ -1914,34 +2027,28 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
         _iterator.f();
       }
       var pad = 4; // extra pixels to accommodate stroke width
-      var ox = Math.floor(minX) - pad;
-      var oy = Math.floor(minY) - pad;
+      var cx = Math.max(0, Math.floor(minX) - pad);
+      var cy = Math.max(0, Math.floor(minY) - pad);
+      var cx2 = Math.min(g.width, Math.ceil(maxX) + pad);
+      var cy2 = Math.min(g.height, Math.ceil(maxY) + pad);
 
-      // Cap the overlay size. A control point dragged far off the surface blows
-      // up the mesh's bounding box arbitrarily, and asking the GPU to allocate a
-      // texture/renderbuffer that large fails outright (GL_INVALID_OPERATION on
-      // renderbufferStorage), leaving a broken graphics object that then throws
-      // on every subsequent frame it's blitted. Nothing useful is lost by
-      // capping — the overlay only needs to cover what's actually visible,
-      // which is bounded by the canvas itself; anything beyond the cap is
-      // simply clipped instead of crashing the WebGL context.
-      var gw = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.max(1, Math.ceil(maxX - minX) + pad * 2));
-      var gh = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.max(1, Math.ceil(maxY - minY) + pad * 2));
-
-      // Grow-only: reallocating this canvas every frame is what starves the GPU
-      // while a corner is being dragged, since the bounding box (and therefore
-      // gw/gh) changes on nearly every frame of the drag. Only recreate when the
-      // request exceeds current capacity (with slack so we don't flap right at
-      // the boundary), and blit the possibly-larger buffer at its actual size —
-      // the clear() below wipes any stale content in the extra margin.
-      if (!this._calibGfx || gw > this._calibGfxCapW || gh > this._calibGfxCapH) {
-        if (this._calibGfx) this._calibGfx.remove();
-        this._calibGfxCapW = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.ceil(gw * 1.25));
-        this._calibGfxCapH = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.ceil(gh * 1.25));
-        this._calibGfx = this.pInst.createGraphics(this._calibGfxCapW, this._calibGfxCapH);
+      // Clear the *previous* region too, if the buffer we're drawing into is
+      // the same one that region was last drawn into - a whole-surface drag
+      // (or a mesh change that shifted the bounding box) otherwise leaves a
+      // ghost of the old grid behind at the old location.
+      if (sameGeneration && this._calibLastBox) {
+        var _this$_calibLastBox = QuadMap_slicedToArray(this._calibLastBox, 4),
+          lx = _this$_calibLastBox[0],
+          ly = _this$_calibLastBox[1],
+          lx2 = _this$_calibLastBox[2],
+          ly2 = _this$_calibLastBox[3];
+        if (lx2 > lx && ly2 > ly) {
+          g.drawingContext.clearRect(lx, ly, lx2 - lx, ly2 - ly);
+        }
       }
-      var g = this._calibGfx;
-      g.clear();
+      if (cx2 > cx && cy2 > cy) {
+        g.drawingContext.clearRect(cx, cy, cx2 - cx, cy2 - cy);
+      }
       g.strokeWeight(2);
       g.stroke(this.controlPointColor);
       g.fill(this.getMutedControlColor(this.controlPointColor));
@@ -1952,18 +2059,20 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
           var i10 = y * this.res + (x + 1);
           var i11 = (y + 1) * this.res + (x + 1);
           var i01 = (y + 1) * this.res + x;
-          g.vertex(this.mesh[i00].x - ox, this.mesh[i00].y - oy);
-          g.vertex(this.mesh[i10].x - ox, this.mesh[i10].y - oy);
-          g.vertex(this.mesh[i11].x - ox, this.mesh[i11].y - oy);
-          g.vertex(this.mesh[i00].x - ox, this.mesh[i00].y - oy);
-          g.vertex(this.mesh[i11].x - ox, this.mesh[i11].y - oy);
-          g.vertex(this.mesh[i01].x - ox, this.mesh[i01].y - oy);
+          g.vertex(this.mesh[i00].x + offX, this.mesh[i00].y + offY);
+          g.vertex(this.mesh[i10].x + offX, this.mesh[i10].y + offY);
+          g.vertex(this.mesh[i11].x + offX, this.mesh[i11].y + offY);
+          g.vertex(this.mesh[i00].x + offX, this.mesh[i00].y + offY);
+          g.vertex(this.mesh[i11].x + offX, this.mesh[i11].y + offY);
+          g.vertex(this.mesh[i01].x + offX, this.mesh[i01].y + offY);
         }
       }
       g.endShape();
-      this._calibGfxOffX = ox;
-      this._calibGfxOffY = oy;
       this._calibDirty = false;
+      this._calibGfxGenerationDrawn = generation;
+      this._calibDrawnX = this.x;
+      this._calibDrawnY = this.y;
+      this._calibLastBox = [cx, cy, cx2, cy2];
     }
 
     /** Emit two triangles for a cell with proper UVs (normalized 0..1). */
@@ -2027,7 +2136,7 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
   }, {
     key: "setResolution",
     value: function setResolution(res) {
-      var _initMesh, _ref;
+      var _initMesh, _ref3;
       var r = Math.max(2, Math.floor(res));
       if (r === this.res) return;
       this.res = r;
@@ -2035,19 +2144,11 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       this.resY = r;
 
       // Rebuild the base mesh & control points from CornerPinSurface
-      (_initMesh = (_ref = this).initMesh) === null || _initMesh === void 0 || _initMesh.call(_ref);
+      (_initMesh = (_ref3 = this).initMesh) === null || _initMesh === void 0 || _initMesh.call(_ref3);
       this.calculateMesh();
     }
   }]);
 }(CornerPinSurface);
-/** We keep resX/resY mirrored to base `res` so the mesh stays consistent. */
-/**
- * Hard ceiling on the calibration overlay's offscreen buffer, in pixels per
- * axis. Well under every GPU's real MAX_TEXTURE_SIZE/MAX_RENDERBUFFER_SIZE
- * floor (even old/software renderers), and far larger than any canvas the
- * overlay actually needs to cover.
- */
-QuadMap_defineProperty(QuadMap, "MAX_CALIB_GFX_DIM", 4096);
 
 ;// ./src/surfaces/TriMap.ts
 function TriMap_typeof(o) { "@babel/helpers - typeof"; return TriMap_typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, TriMap_typeof(o); }
@@ -3707,6 +3808,31 @@ var ProjectionMapper = /*#__PURE__*/function () {
     // shaders
     ProjectionMapper_defineProperty(this, "bezShader", null);
     ProjectionMapper_defineProperty(this, "bezierShaderLoaded", false);
+    // --------------------- Shared calibration overlay ---------------------
+    //
+    // Every QuadMap-type surface's calibration grid draws into this ONE
+    // canvas-sized buffer (instead of each allocating its own) - see
+    // QuadMap.displayCalibration(). Exactly canvas-sized and persists across
+    // frames; a surface only clears+redraws its own sub-region when its own
+    // mesh actually changed, so this is deliberately NOT cleared wholesale
+    // every frame (that would force every surface to redraw every frame,
+    // defeating the whole point of caching). The single blit of the combined
+    // result happens once, in postdraw below - i.e. strictly after every
+    // surface's own draw() call this frame has had its chance to update its
+    // region - specifically so a later surface's contribution can never be
+    // silently covered up by an earlier surface's blit of unrelated content
+    // drawn in between, the way per-surface scattered blits could.
+    ProjectionMapper_defineProperty(this, "calibSharedGfx", null);
+    ProjectionMapper_defineProperty(this, "calibSharedGfxW", 0);
+    ProjectionMapper_defineProperty(this, "calibSharedGfxH", 0);
+    // Bumped every time the buffer itself is (re)created - on first use, on a
+    // canvas resize, and every time it's freed-then-recreated across a
+    // calibration exit/re-entry cycle. Each surface compares this against
+    // the generation it last drew into (see QuadMap.displayCalibration()) so
+    // a surface whose *own* mesh hasn't changed still knows to redraw into a
+    // freshly (re)created buffer instead of leaving its region blank - its
+    // own _calibDirty flag alone can't tell the two cases apart.
+    ProjectionMapper_defineProperty(this, "calibSharedGfxGeneration", 0);
   }
 
   // --------------------------- Lifecycle ---------------------------
@@ -4042,6 +4168,54 @@ var ProjectionMapper = /*#__PURE__*/function () {
         _iterator2.f();
       }
     }
+  }, {
+    key: "getCalibSharedGfx",
+    value: /** Lazily creates (or resizes, on canvas resize) the shared calibration buffer. */
+    function getCalibSharedGfx() {
+      if (!this.pInst) return null;
+      var w = this.pInst.width;
+      var h = this.pInst.height;
+      if (!this.calibSharedGfx || this.calibSharedGfxW !== w || this.calibSharedGfxH !== h) {
+        if (this.calibSharedGfx) this.calibSharedGfx.remove();
+        this.calibSharedGfx = this.pInst.createGraphics(Math.max(1, w), Math.max(1, h));
+        this.calibSharedGfxW = w;
+        this.calibSharedGfxH = h;
+        this.calibSharedGfxGeneration++;
+      }
+      return this.calibSharedGfx;
+    }
+
+    /** See calibSharedGfxGeneration above. */
+  }, {
+    key: "getCalibSharedGfxGeneration",
+    value: function getCalibSharedGfxGeneration() {
+      return this.calibSharedGfxGeneration;
+    }
+
+    /**
+     * Blit the shared calibration buffer once, after every surface has had a
+     * chance to draw into it this frame; free it the moment calibration mode
+     * turns off, so the far more common non-calibrating steady state (and
+     * every later re-entry into calibration mode) holds zero calibration-only
+     * GPU resources rather than carrying a stale buffer over indefinitely.
+     */
+  }, {
+    key: "blitCalibSharedGfx",
+    value: function blitCalibSharedGfx() {
+      if (!this.pInst) return;
+      if (!this.calibrate) {
+        if (this.calibSharedGfx) {
+          this.calibSharedGfx.remove();
+          this.calibSharedGfx = null;
+          this.calibSharedGfxW = 0;
+          this.calibSharedGfxH = 0;
+        }
+        return;
+      }
+      if (this.calibSharedGfx) {
+        this.pInst.image(this.calibSharedGfx, -this.pInst.width / 2, -this.pInst.height / 2);
+      }
+    }
 
     // small util exposed
   }, {
@@ -4097,6 +4271,13 @@ p5.registerAddon(function (_p5, _fn, lifecycles) {
   lifecycles.postdraw = function () {
     pMapper.displayControlPoints();
     pMapper.updateEvents();
+    // Every QuadMap-type surface's own draw() call this frame has already
+    // run by this point (postdraw fires once, after the whole sketch draw()
+    // completes) and had its chance to update its own region of the shared
+    // calibration buffer - this is the single, once-per-frame blit of the
+    // combined result. See ProjectionMapper's "Shared calibration overlay"
+    // section for why this can't just happen per-surface.
+    pMapper.blitCalibSharedGfx();
   };
 });
 /* harmony default export */ const src_ProjectionMapper = (pMapper);
