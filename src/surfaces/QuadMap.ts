@@ -263,6 +263,26 @@ export default class QuadMap extends CornerPinSurface {
   protected displaySurface(isUV = true, u0 = 0, v0 = 0, u1 = 1, v1 = 1): void {
     const p = this.pInst;
 
+    // The calibration overlay buffer (_calibGfx) is only ever drawn while
+    // calibrating (Surface.display()/displayTexture() only call
+    // displayCalibration() when isCalibratingMapper() is true) but, once
+    // created, previously stayed allocated forever - including for the
+    // rest of a long-running sketch's normal (non-calibrating) operation,
+    // and across every later re-entry into calibration mode, where it'd
+    // just get thrown away and reallocated anyway the moment the mesh next
+    // differs from what's cached. Freeing it here the moment calibration
+    // mode turns off means the far more common non-calibrating steady
+    // state holds zero calibration-only GPU resources, and each fresh
+    // calibration session starts from a clean, correctly-sized buffer
+    // instead of carrying over a stale one from last time.
+    if (this._calibGfx && !p.isCalibratingMapper()) {
+      this._calibGfx.remove();
+      this._calibGfx = null;
+      this._calibGfxCapW = 0;
+      this._calibGfxCapH = 0;
+      this._calibDirty = true;
+    }
+
     if (p.webglVersion === "p2d") {
       p.beginShape(p.TRIANGLES);
       for (let x = 0; x < this.resX - 1; x++) {
@@ -382,8 +402,25 @@ export default class QuadMap extends CornerPinSurface {
       !this._calibGfx || gw > this._calibGfxCapW || gh > this._calibGfxCapH;
     const throttled =
       this._calibGfx && now - this._lastCalibGfxAllocAt < 100;
+    // Skip reallocation *entirely* (not just rate-limited) while this
+    // surface's own corners or whole-surface position are actively being
+    // dragged, since the drag itself already gives full live feedback via
+    // the corner handles (drawn separately, unbuffered, in
+    // displayControlPoints()) - the cached grid background doesn't need to
+    // track a fast drag pixel-for-pixel, and deferring means zero
+    // createGraphics() calls for the entire duration of the drag, not just
+    // fewer of them. Only applies once a buffer already exists (the very
+    // first allocation still has to happen sometime, even if that first
+    // frame happens to coincide with a drag) - and only covers dragging
+    // *this* surface directly; the time-based throttle above is what
+    // still catches a parent surface being dragged fast while this one is
+    // a sibling/child re-deriving via recalcFromParent().
+    const isDraggingThis =
+      this._calibGfx &&
+      (this.getIsDragging() ||
+        this.controlPoints.some((cp) => cp.getIsDragging()));
 
-    if (needsGrow && !throttled) {
+    if (needsGrow && !throttled && !isDraggingThis) {
       // Diagnostic only (temporary, lightweight - no stack capture) so the
       // rate limit above is directly verifiable: with it, this should fire
       // at most ~10x/sec even during a fast, sustained drag, vs. potentially
