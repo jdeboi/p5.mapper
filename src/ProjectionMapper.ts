@@ -370,6 +370,87 @@ class ProjectionMapper {
     }
   }
 
+  // --------------------- Shared calibration overlay ---------------------
+  //
+  // Every QuadMap-type surface's calibration grid draws into this ONE
+  // canvas-sized buffer (instead of each allocating its own) - see
+  // QuadMap.displayCalibration(). Exactly canvas-sized and persists across
+  // frames; a surface only clears+redraws its own sub-region when its own
+  // mesh actually changed, so this is deliberately NOT cleared wholesale
+  // every frame (that would force every surface to redraw every frame,
+  // defeating the whole point of caching). The single blit of the combined
+  // result happens once, in postdraw below - i.e. strictly after every
+  // surface's own draw() call this frame has had its chance to update its
+  // region - specifically so a later surface's contribution can never be
+  // silently covered up by an earlier surface's blit of unrelated content
+  // drawn in between, the way per-surface scattered blits could.
+
+  private calibSharedGfx: any | null = null;
+  private calibSharedGfxW = 0;
+  private calibSharedGfxH = 0;
+  // Bumped every time the buffer itself is (re)created - on first use, on a
+  // canvas resize, and every time it's freed-then-recreated across a
+  // calibration exit/re-entry cycle. Each surface compares this against
+  // the generation it last drew into (see QuadMap.displayCalibration()) so
+  // a surface whose *own* mesh hasn't changed still knows to redraw into a
+  // freshly (re)created buffer instead of leaving its region blank - its
+  // own _calibDirty flag alone can't tell the two cases apart.
+  private calibSharedGfxGeneration = 0;
+
+  /** Lazily creates (or resizes, on canvas resize) the shared calibration buffer. */
+  getCalibSharedGfx(): any {
+    if (!this.pInst) return null;
+    const w = this.pInst.width;
+    const h = this.pInst.height;
+    if (
+      !this.calibSharedGfx ||
+      this.calibSharedGfxW !== w ||
+      this.calibSharedGfxH !== h
+    ) {
+      if (this.calibSharedGfx) this.calibSharedGfx.remove();
+      this.calibSharedGfx = this.pInst.createGraphics(
+        Math.max(1, w),
+        Math.max(1, h)
+      );
+      this.calibSharedGfxW = w;
+      this.calibSharedGfxH = h;
+      this.calibSharedGfxGeneration++;
+    }
+    return this.calibSharedGfx;
+  }
+
+  /** See calibSharedGfxGeneration above. */
+  getCalibSharedGfxGeneration(): number {
+    return this.calibSharedGfxGeneration;
+  }
+
+  /**
+   * Blit the shared calibration buffer once, after every surface has had a
+   * chance to draw into it this frame; free it the moment calibration mode
+   * turns off, so the far more common non-calibrating steady state (and
+   * every later re-entry into calibration mode) holds zero calibration-only
+   * GPU resources rather than carrying a stale buffer over indefinitely.
+   */
+  blitCalibSharedGfx() {
+    if (!this.pInst) return;
+    if (!this.calibrate) {
+      if (this.calibSharedGfx) {
+        this.calibSharedGfx.remove();
+        this.calibSharedGfx = null;
+        this.calibSharedGfxW = 0;
+        this.calibSharedGfxH = 0;
+      }
+      return;
+    }
+    if (this.calibSharedGfx) {
+      this.pInst.image(
+        this.calibSharedGfx,
+        -this.pInst.width / 2,
+        -this.pInst.height / 2
+      );
+    }
+  }
+
   // small util exposed
   getOscillator(seconds: number, offset = 0) {
     if (!this.pInst) return 0;
@@ -445,6 +526,13 @@ p5.registerAddon((_p5: any, _fn: any, lifecycles: any) => {
   lifecycles.postdraw = () => {
     pMapper.displayControlPoints();
     pMapper.updateEvents();
+    // Every QuadMap-type surface's own draw() call this frame has already
+    // run by this point (postdraw fires once, after the whole sketch draw()
+    // completes) and had its chance to update its own region of the shared
+    // calibration buffer - this is the single, once-per-frame blit of the
+    // combined result. See ProjectionMapper's "Shared calibration overlay"
+    // section for why this can't just happen per-surface.
+    pMapper.blitCalibSharedGfx();
   };
 });
 
