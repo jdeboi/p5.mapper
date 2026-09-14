@@ -129,6 +129,58 @@ export default class QuadMap extends CornerPinSurface {
     const stepX = this.width / (this.resX - 1);
     const stepY = this.height / (this.resY - 1);
 
+    // A self-intersecting ("bowtie") quad, or one merely close to that
+    // configuration — a corner dragged near (not even necessarily across)
+    // the diagonal formed by the other two — puts the homography's `w`
+    // divisor near zero for some interior points. Exactly at w=0 that's
+    // NaN/Infinity (guarded below); *near* zero it's a huge but perfectly
+    // finite number instead (observed: a single interior point 500,000+px
+    // from origin from one corner dragged a few hundred px too far) —
+    // Number.isFinite() alone doesn't catch that, but a WebGL triangle with
+    // a vertex that far out still swallows the entire viewport in whatever
+    // that triangle's fill color is, which is what actually produces the
+    // "screen goes white" report this guards against. A well-formed quad's
+    // interior can never legitimately fall outside its own corners' convex
+    // hull, so anything many times farther from the corners' own span is
+    // the same blowup, just landing on a finite number — reject it the
+    // same way: leave the point at its last valid position for this one
+    // frame, self-correcting as soon as the corner moves back out.
+    const cornerXs = [
+      this.mesh[this.TL].x,
+      this.mesh[this.TR].x,
+      this.mesh[this.BR].x,
+      this.mesh[this.BL].x,
+    ];
+    const cornerYs = [
+      this.mesh[this.TL].y,
+      this.mesh[this.TR].y,
+      this.mesh[this.BR].y,
+      this.mesh[this.BL].y,
+    ];
+    const cornerCenterX = (cornerXs[0] + cornerXs[1] + cornerXs[2] + cornerXs[3]) / 4;
+    const cornerCenterY = (cornerYs[0] + cornerYs[1] + cornerYs[2] + cornerYs[3]) / 4;
+    const cornerSpan = Math.max(
+      Math.max(...cornerXs) - Math.min(...cornerXs),
+      Math.max(...cornerYs) - Math.min(...cornerYs),
+      1 // avoid a zero span when all 4 corners momentarily coincide
+    );
+    // For a *non-degenerate* perspective transform, every interior point of
+    // a convex quad is mathematically guaranteed to land within the convex
+    // hull of its transformed corners (the same property document-scanning/
+    // dewarping code relies on) - so legitimate points can only ever be
+    // slightly beyond the corners' own span, for floating-point/mesh-
+    // quantization slop. This must NOT scale up with how far a corner has
+    // already been dragged (an earlier version of this guard used a 20x
+    // multiple of the corner span, which grows right when it needs to
+    // shrink: dragging a corner far away inflates the span and loosens the
+    // threshold at exactly the moment it needs to be tightest - a ~29,000px
+    // blowup slipped through it in testing, next to legitimate corners only
+    // ~2,000px apart). A tight, fixed 20% margin (comfortably above the
+    // theoretical 0% a truly non-degenerate transform needs, for floating-
+    // point/mesh-quantization slop) catches that class of near-degenerate
+    // blowup while still being generous for any real quad.
+    const maxInteriorDist = cornerSpan * 1.2;
+
     // Map all grid points except the four pinned corners
     for (let y = 0; y < this.resY; y++) {
       for (let x = 0; x < this.resX; x++) {
@@ -141,16 +193,12 @@ export default class QuadMap extends CornerPinSurface {
 
         const [dx, dy] = persp.transform(sx, sy);
 
-        // A self-intersecting ("bowtie") quad — e.g. a corner dragged across
-        // the diagonal formed by the other two — puts the homography's
-        // vanishing line through the source rect, so `w` in transform() goes
-        // to ~0 for interior points near that line and dx/dy blow up to
-        // +/-Infinity or NaN. Left unguarded that garbage corrupts both the
-        // render mesh and the calibration overlay's bounding box, which is
-        // what was crashing the WebGL context. Just leave the point at its
-        // last valid position for this one frame instead — it self-corrects
-        // as soon as the corner moves back out of the degenerate config.
-        if (Number.isFinite(dx) && Number.isFinite(dy)) {
+        if (
+          Number.isFinite(dx) &&
+          Number.isFinite(dy) &&
+          Math.abs(dx - cornerCenterX) <= maxInteriorDist &&
+          Math.abs(dy - cornerCenterY) <= maxInteriorDist
+        ) {
           this.mesh[i].x = dx;
           this.mesh[i].y = dy;
         }
