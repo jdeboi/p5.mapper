@@ -12,6 +12,20 @@ export default class MovePoint extends Draggable {
   public r: number;
   public isControlPoint = false;
 
+  /**
+   * Shadow copy of this point's position, expressed in the *owning
+   * surface's parent's* local space, used only while that owning surface
+   * has a parentSurface set. x/y stay the render-facing/hit-testing value
+   * (what they've always been); localX/localY are the persisted,
+   * parent-relative calibration that survives the parent being re-pinned.
+   * Populated by Surface.setParent()/onParentAttached() and kept current
+   * by moveTo() below; resolved back into x/y by the owning surface's
+   * recalcFromParent() (CornerPinSurface.resolveControlPoints() /
+   * PolyMap's own override).
+   */
+  public localX?: number;
+  public localY?: number;
+
   protected parent: any;
   protected col: any;
   protected hitScale: number;
@@ -42,6 +56,56 @@ export default class MovePoint extends Draggable {
     const { mxLocal, myLocal } = this.getLocalMouse();
     this.moveTo(mxLocal, myLocal);
     return this;
+  }
+
+  /**
+   * When the owning surface (this.parent) is itself parented, dragging this
+   * point shouldn't write straight into the render-facing x/y — those get
+   * overwritten every time the owning surface recalculates from its parent.
+   * Instead, resolve the same screen-space drag target (identical math to
+   * Draggable.moveTo) through the parent's *current* inverse transform and
+   * stash it in localX/localY; the owning surface's recalcFromParent()
+   * (triggered right after, e.g. via MeshPoint.moveTo() -> calculateMesh())
+   * is what turns that back into real x/y.
+   */
+  moveTo(x?: number, y?: number): void {
+    const ownerParent = this.parent?.parentSurface;
+    if (!ownerParent) {
+      super.moveTo(x, y);
+      // The *owning surface's own* shape just changed because one of its
+      // points moved. For a CornerPinSurface this is redundant with (but
+      // harmless alongside) the cascade already triggered via
+      // MeshPoint.moveTo() -> calculateMesh() -> onPositionChanged(); for a
+      // plain MovePoint-based surface (PolyMap has no such recompute step),
+      // this is the only place that notification happens, so it can't be
+      // dropped.
+      this.parent?.onPositionChanged?.();
+      return;
+    }
+
+    let ax: number;
+    let ay: number;
+    if (typeof x === "number" && typeof y === "number") {
+      ax = x;
+      ay = y;
+    } else {
+      const mx = this.pInst.mouseX;
+      const my = this.pInst.mouseY;
+      ax = this.xStartDrag + (mx - this.clickX);
+      ay = this.yStartDrag + (my - this.clickY);
+    }
+
+    const local = ownerParent.resolveToLocal(ax, ay);
+    this.localX = local.x;
+    this.localY = local.y;
+    if (this.getIsDragging()) this.onDragMove?.({ x: this.x, y: this.y });
+    // Resolve this point's new local value (and every sibling point's,
+    // since recalcFromParent() re-derives all of them) back into real x/y.
+    // For a MeshPoint this is redundant with — but harmless alongside —
+    // the calculateMesh() call MeshPoint.moveTo() makes right after this
+    // method returns; for a plain PolyMap point there is no other trigger,
+    // so dropping this would leave x/y stuck at their pre-drag value.
+    this.parent?.recalcFromParent?.();
   }
 
   /** Mark/unmark as a control point */

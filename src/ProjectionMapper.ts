@@ -17,6 +17,8 @@ export interface JsonSurface {
   type: "TRI" | "QUAD" | "BEZ" | "POLY";
   x: number;
   y: number;
+  /** Present when this surface is parented to another (one level only). */
+  parentId?: number | string;
   [k: string]: any;
 }
 
@@ -320,6 +322,38 @@ class ProjectionMapper {
     loadTyped("QUAD");
     loadTyped("BEZ");
     loadTyped("POLY");
+
+    this.reattachParents(jSurfaces);
+  }
+
+  /**
+   * Second pass, run after every surface above has loaded its own saved
+   * position: resolve each surface's parentId (if any) to a live setParent()
+   * call. This has to be a separate pass because parentId can reference any
+   * surface regardless of creation-order/type bucket, so every surface's id
+   * needs to already exist and be loaded before any of them can be
+   * reattached. Matches by each live surface's own id (assigned uniquely
+   * across the whole surfaces array at creation time), not by the
+   * type-bucketed positional matching loadTyped() uses above.
+   */
+  private reattachParents(jSurfaces: JsonSurface[]) {
+    const byId = new Map<string, Surface>();
+    for (const s of this.surfaces) {
+      if (s instanceof Surface) byId.set(String((s as any).id), s);
+    }
+
+    for (const j of jSurfaces) {
+      if (j.parentId == null) continue;
+      const child = byId.get(String(j.id));
+      const parent = byId.get(String(j.parentId));
+      if (!child || !parent) {
+        console.warn(
+          `p5.mapper: couldn't resolve parentId "${j.parentId}" for surface "${j.id}" while loading calibration — it will stay unparented.`
+        );
+        continue;
+      }
+      child.setParent(parent, { fromLoad: true });
+    }
   }
 
   private loadLines(jLines: LineJson[]) {

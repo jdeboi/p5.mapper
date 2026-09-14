@@ -84,6 +84,11 @@ export default class QuadMap extends CornerPinSurface {
    * then maps every interior grid point.
    */
   protected calculateMesh(): void {
+    // When parented, re-derive this quad's pinned corners from their
+    // parent-relative local values via the parent's *current* homography,
+    // before anything below reads them — see CornerPinSurface.resolveControlPoints.
+    this.resolveControlPoints();
+
     this._calibDirty = true;
     this._geomDirty = true;
     const srcCorners = [
@@ -110,13 +115,15 @@ export default class QuadMap extends CornerPinSurface {
     // PerspT is expected to return an object with transform(x,y) → [x', y']
     const persp = PerspT(srcCorners, dstCorners);
 
-    // Wire this frame's homography up for getTransformedCursor/getTransformedMouse.
-    // getTransformedCursor maps canvas-space -> local pre-warp space, which is the
-    // *inverse* of persp.transform (local -> canvas, used below to place mesh
-    // points), so it needs transformInverse here, not transform.
-    // (CornerPinSurface's PerspectiveTransform interface takes a single [x,y] pair.)
+    // Wire this frame's homography up both ways: `transform` (local -> pinned
+    // corners) drives rendering below and resolveToScreen() for any children
+    // parented to this quad; `transformInverse` drives getTransformedCursor()/
+    // resolveToLocal(). (CornerPinSurface's PerspectiveTransform interface
+    // takes a single [x,y] pair per direction.)
     this.setPerspectiveTransform({
-      transform: ([x, y]: [number, number]) => persp.transformInverse(x, y),
+      transform: ([x, y]: [number, number]) => persp.transform(x, y),
+      transformInverse: ([x, y]: [number, number]) =>
+        persp.transformInverse(x, y),
     });
 
     const stepX = this.width / (this.resX - 1);
@@ -149,6 +156,10 @@ export default class QuadMap extends CornerPinSurface {
         }
       }
     }
+
+    // This quad's own shape just changed (corner drag, load(), or
+    // setResolution()) — let any children re-derive their geometry from it.
+    this.onPositionChanged();
   }
 
   /**

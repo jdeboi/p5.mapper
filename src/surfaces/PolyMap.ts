@@ -102,17 +102,27 @@ export default class PolyMap extends Surface {
 
   /** Load persisted state (positions only). */
   public load(json: DraggableJSON): void {
-    const { x, y, points } = json;
+    const { x, y, points, parentId } = json;
     this.x = x;
     this.y = y;
 
     for (const point of points || []) {
       const mp = this.points[point.i];
       if (!mp) continue;
-      mp.x = point.x;
-      mp.y = point.y;
+      // Mirrors CornerPinSurface.load(): when parentId is present, persisted
+      // coords are parent-local, not absolute — stash them and let the
+      // parentId->setParent() reattach pass (ProjectionMapper.loadSurfaces)
+      // resolve real x/y via recalcFromParent() once every surface exists.
+      if (parentId != null) {
+        mp.localX = point.x;
+        mp.localY = point.y;
+      } else {
+        mp.x = point.x;
+        mp.y = point.y;
+      }
     }
     this.setDimensions(this.points);
+    this.onPositionChanged();
   }
 
   /** Persist id/pos/type + point positions. */
@@ -124,10 +134,51 @@ export default class PolyMap extends Surface {
       type: "POLY",
       points: [] as PolyPointJSON[],
     };
+    if (this.parentSurface) out.parentId = this.parentSurface.id;
     for (let i = 0; i < this.points.length; i++) {
-      out.points?.push({ i, x: this.points[i].x, y: this.points[i].y });
+      const pt = this.points[i];
+      const px = this.parentSurface && pt.localX != null ? pt.localX : pt.x;
+      const py = this.parentSurface && pt.localY != null ? pt.localY : pt.y;
+      out.points?.push({ i, x: px, y: py });
     }
     return out;
+  }
+
+  /**
+   * Re-derive every point's render-facing position from its parent-relative
+   * local shadow value, via the parent's *current* transform. No-op when
+   * unparented.
+   */
+  public recalcFromParent(): void {
+    if (!this.parentSurface) return;
+    for (const pt of this.points) {
+      if (pt.localX == null || pt.localY == null) continue;
+      const abs = this.parentSurface.resolveToScreen(pt.localX, pt.localY);
+      pt.x = abs.x;
+      pt.y = abs.y;
+    }
+    this.setDimensions(this.points);
+  }
+
+  /**
+   * Fold this surface's absolute offset (dx,dy) into each point, then
+   * convert from absolute screen space into the new parent's local space.
+   */
+  protected onParentAttached(dx: number, dy: number): void {
+    if (!this.parentSurface) return;
+    for (const pt of this.points) {
+      const local = this.parentSurface.resolveToLocal(dx + pt.x, dy + pt.y);
+      pt.localX = local.x;
+      pt.localY = local.y;
+    }
+  }
+
+  /** Clear parent-relative shadow state so a future re-parent starts clean. */
+  protected onParentDetached(): void {
+    for (const pt of this.points) {
+      pt.localX = undefined;
+      pt.localY = undefined;
+    }
   }
 
   /** Select a control point for dragging. */

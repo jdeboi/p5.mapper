@@ -9,6 +9,7 @@ export type AxisLock = "none" | "x" | "y";
 
 export interface DraggableJSON {
   id?: string | number;
+  parentId?: string | number;
   x: number;
   y: number;
   x0?: number;
@@ -113,6 +114,7 @@ export default class Draggable {
       this.x = pos.x;
       this.y = pos.y;
       if (this._dragging) this.onDragMove?.({ x: this.x, y: this.y });
+      this.onPositionChanged();
       return;
     }
 
@@ -125,6 +127,7 @@ export default class Draggable {
     this.x = pos.x;
     this.y = pos.y;
     if (this._dragging) this.onDragMove?.({ x: this.x, y: this.y });
+    this.onPositionChanged();
   }
 
   /** Relative move */
@@ -148,7 +151,18 @@ export default class Draggable {
     this.x = pos.x;
     this.y = pos.y;
     this.onDragMove?.({ x: this.x, y: this.y });
+    this.onPositionChanged();
   }
+
+  /**
+   * Internal hook, distinct from the public onDragMove/onDragStart/onDragEnd
+   * callbacks (which are user-assignable API and shouldn't be relied on
+   * internally — assigning one would silently clobber anything wired up
+   * here). Called whenever this draggable's position actually changes, via
+   * any path (drag, translate, or a direct set()). Surface overrides this to
+   * fan a parent's position change out to its children.
+   */
+  protected onPositionChanged(): void {}
 
   /** Finish dragging */
   endDrag() {
@@ -182,6 +196,7 @@ export default class Draggable {
     const p = this.applyConstraints(nx, ny);
     this.x = p.x;
     this.y = p.y;
+    this.onPositionChanged();
     return this;
   }
 

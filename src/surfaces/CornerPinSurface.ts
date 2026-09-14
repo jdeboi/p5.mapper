@@ -1,14 +1,18 @@
 // CornerPinSurface.ts
 import { DraggableJSON } from "./Draggable";
 import MeshPoint from "./MeshPoint";
-import Surface from "./Surface";
+import Surface, { PointXY } from "./Surface";
 
 /**
- * Small interface so any perspective impl just needs a `transform([x,y])`.
- * E.g., wrap your PerspT or homography util here.
+ * Small interface so any perspective impl just needs transform/transformInverse
+ * over a single [x,y] pair. E.g., wrap your PerspT or homography util here.
+ * Both directions are required: `transform` (local canonical rect -> pinned
+ * screen corners) drives rendering and resolveToScreen(); `transformInverse`
+ * (the reverse) drives getTransformedCursor()/resolveToLocal().
  */
 interface PerspectiveTransform {
   transform: (pt: [number, number]) => [number, number];
+  transformInverse: (pt: [number, number]) => [number, number];
 }
 
 type CornerIndex = "TL" | "TR" | "BR" | "BL";
@@ -144,17 +148,92 @@ export default class CornerPinSurface extends Surface {
     this.perspectiveTransform = pt;
   }
 
+  /**
+   * When parented, resolve each control point's parent-relative local
+   * shadow value (MeshPoint.localX/localY) into this surface's real,
+   * render-facing .x/.y via the parent's *current* transform. Called as the
+   * first step of calculateMesh() (QuadMap/TriMap) so the homography built
+   * afterward is always based on the parent's latest calibration. No-op
+   * when unparented.
+   */
+  protected resolveControlPoints(): void {
+    if (!this.parentSurface) return;
+    for (const cp of this.controlPoints) {
+      if (cp.localX == null || cp.localY == null) continue;
+      const abs = this.parentSurface.resolveToScreen(cp.localX, cp.localY);
+      cp.x = abs.x;
+      cp.y = abs.y;
+    }
+  }
+
+  /** Re-derive this surface's geometry after the parent's calibration changes. */
+  public recalcFromParent(): void {
+    this.calculateMesh();
+  }
+
+  /**
+   * Fold this surface's absolute offset (dx,dy) — what this.x/this.y held
+   * right before being parented — into each control point, then convert
+   * from absolute screen space into the new parent's local space.
+   */
+  protected onParentAttached(dx: number, dy: number): void {
+    if (!this.parentSurface) return;
+    for (const cp of this.controlPoints) {
+      const local = this.parentSurface.resolveToLocal(dx + cp.x, dy + cp.y);
+      cp.localX = local.x;
+      cp.localY = local.y;
+    }
+  }
+
+  /** Clear parent-relative shadow state so a future re-parent starts clean. */
+  protected onParentDetached(): void {
+    for (const cp of this.controlPoints) {
+      cp.localX = undefined;
+      cp.localY = undefined;
+    }
+  }
+
+  /**
+   * Resolve a point local to this surface's canonical rect into absolute
+   * screen coordinates via this surface's own homography (local -> pinned
+   * corners), then this surface's own x/y translation (0 when parented).
+   */
+  public resolveToScreen(lx: number, ly: number): PointXY {
+    if (!this.perspectiveTransform) return { x: lx + this.x, y: ly + this.y };
+    const [tx, ty] = this.perspectiveTransform.transform([lx, ly]);
+    return { x: tx + this.x, y: ty + this.y };
+  }
+
+  /** Inverse of resolveToScreen — absolute screen coords -> this surface's local canonical rect. */
+  public resolveToLocal(ax: number, ay: number): PointXY {
+    if (!this.perspectiveTransform) return { x: ax - this.x, y: ay - this.y };
+    const [tx, ty] = this.perspectiveTransform.transformInverse([
+      ax - this.x,
+      ay - this.y,
+    ]);
+    return { x: tx, y: ty };
+  }
+
   /** JSON → state (applies only stored control points, keeps others) */
   public load(json: DraggableJSON): void {
-    const { x, y, points } = json;
+    const { x, y, points, parentId } = json;
     this.x = x;
     this.y = y;
 
     for (const p of points || []) {
       const mp = this.mesh[p.i];
       if (!mp) continue;
-      mp.x = p.x;
-      mp.y = p.y;
+      // When parentId is present, persisted point coords are parent-local
+      // canonical values, not absolute — stash them and let the
+      // parentId->setParent() reattach pass (ProjectionMapper.loadSurfaces)
+      // resolve real .x/.y via recalcFromParent() once every surface exists.
+      if (parentId != null) {
+        mp.localX = p.x;
+        mp.localY = p.y;
+      } else {
+        mp.x = p.x;
+        mp.y = p.y;
+      }
       mp.u = p.u || 0;
       mp.v = p.v || 0;
       mp.setControlPoint(true);
@@ -174,10 +253,13 @@ export default class CornerPinSurface extends Surface {
       type: this.type,
       points: [],
     };
+    if (this.parentSurface) data.parentId = this.parentSurface.id;
 
     this.forEachPoint((mp, _x, _y, i) => {
       if (mp.isControlPoint) {
-        data.points?.push({ i, x: mp.x, y: mp.y, u: mp.u, v: mp.v });
+        const px = this.parentSurface && mp.localX != null ? mp.localX : mp.x;
+        const py = this.parentSurface && mp.localY != null ? mp.localY : mp.y;
+        data.points?.push({ i, x: px, y: py, u: mp.u, v: mp.v });
       }
     });
 
@@ -249,13 +331,8 @@ export default class CornerPinSurface extends Surface {
    * Requires `this.perspectiveTransform` to be set (e.g., in `calculateMesh`).
    */
   public getTransformedCursor(cx: number, cy: number) {
-    if (!this.perspectiveTransform)
-      return this.pInst.createVector(cx - this.x, cy - this.y);
-    const [tx, ty] = this.perspectiveTransform.transform([
-      cx - this.x,
-      cy - this.y,
-    ]);
-    return this.pInst.createVector(tx, ty);
+    const { x, y } = this.resolveToLocal(cx, cy);
+    return this.pInst.createVector(x, y);
   }
 
   public getTransformedMouse() {
