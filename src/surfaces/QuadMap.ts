@@ -16,10 +16,15 @@ export default class QuadMap extends CornerPinSurface {
    */
   private static readonly MAX_CALIB_GFX_DIM = 4096;
 
+  /** Throttle for the interior-point-rejection diagnostic warning below. */
+  private _lastRejectLogAt = -Infinity;
+
   /** Cached calibration grid — only rebuilt when the mesh changes */
   private _calibGfx: any | null = null;
   private _calibGfxCapW = 0;
   private _calibGfxCapH = 0;
+  /** Rate limit for the buffer's actual (re)allocation — see _rebuildCalibGfx. */
+  private _lastCalibGfxAllocAt = -Infinity;
   private _calibGfxOffX = 0;
   private _calibGfxOffY = 0;
   private _calibDirty = true;
@@ -175,6 +180,8 @@ export default class QuadMap extends CornerPinSurface {
     const maxInteriorDist = cornerSpan * 1.2;
 
     // Map all grid points except the four pinned corners
+    let rejectedCount = 0;
+    let maxRejectedMag = 0;
     for (let y = 0; y < this.resY; y++) {
       for (let x = 0; x < this.resX; x++) {
         const i = y * this.res + x; // base mesh is res x res
@@ -194,7 +201,40 @@ export default class QuadMap extends CornerPinSurface {
         ) {
           this.mesh[i].x = dx;
           this.mesh[i].y = dy;
+        } else {
+          rejectedCount++;
+          const mag = Math.max(
+            Number.isFinite(dx) ? Math.abs(dx - cornerCenterX) : Infinity,
+            Number.isFinite(dy) ? Math.abs(dy - cornerCenterY) : Infinity
+          );
+          if (mag > maxRejectedMag) maxRejectedMag = mag;
         }
+      }
+    }
+
+    // Diagnostic only (temporary, left in deliberately to help track down a
+    // "drag a corner -> whole screen goes white/unresponsive" report this
+    // guard is meant to prevent) - throttled per-instance so a sustained
+    // drag near the degenerate zone doesn't flood the console every frame.
+    if (rejectedCount > 0) {
+      const now =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (now - this._lastRejectLogAt > 250) {
+        this._lastRejectLogAt = now;
+        console.warn(
+          `p5.mapper QuadMap[${this.id}]: rejected ${rejectedCount}/${
+            this.resX * this.resY - 4
+          } interior mesh point(s) this frame (near-degenerate homography). ` +
+            `Worst rejected magnitude: ${maxRejectedMag.toFixed(0)}px beyond threshold ${maxInteriorDist.toFixed(
+              0
+            )}px. Corner span: ${cornerSpan.toFixed(
+              0
+            )}px, center: (${cornerCenterX.toFixed(0)}, ${cornerCenterY.toFixed(
+              0
+            )}). Corners (TL,TR,BR,BL): ${JSON.stringify(
+              cornerXs.map((x, k) => [Math.round(x), Math.round(cornerYs[k])])
+            )}.`
+        );
       }
     }
   }
@@ -308,26 +348,54 @@ export default class QuadMap extends CornerPinSurface {
       Math.max(1, Math.ceil(maxY - minY) + pad * 2)
     );
 
-    // Grow-only: reallocating this canvas every frame is what starves the GPU
-    // while a corner is being dragged, since the bounding box (and therefore
-    // gw/gh) changes on nearly every frame of the drag. Only recreate when the
-    // request exceeds current capacity (with slack so we don't flap right at
-    // the boundary), and blit the possibly-larger buffer at its actual size —
-    // the clear() below wipes any stale content in the extra margin.
-    if (!this._calibGfx || gw > this._calibGfxCapW || gh > this._calibGfxCapH) {
+    // Grow-only, *and* rate-limited: the bounding box includes the corner
+    // points themselves, which are wherever the user just dragged them, so
+    // a single fast drag sweeping through several very different positions
+    // legitimately needs a bigger buffer on nearly every one of those
+    // frames — each one exceeding the *previous* grow-only cap, since a
+    // corner sweeping outward produces a monotonically growing box for a
+    // run of frames. Grow-only alone still means one real
+    // createGraphics()+remove() cycle per such frame; a burst of those
+    // faster than the browser can garbage-collect the discarded ones is
+    // exactly what exhausts the WebGL/canvas context budget ("too many
+    // active WebGL contexts", observed and confirmed via this file's own
+    // diagnostic logging while chasing that report). A hard minimum gap
+    // between actual reallocations fixes that: within the gap, keep
+    // rendering into the existing (possibly now slightly-too-small) buffer
+    // — a few frames of a clipped calibration overlay mid-fast-drag is a
+    // fully acceptable tradeoff for not thrashing GPU resources, and it
+    // self-corrects the moment the gap next elapses.
+    const now =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+    const needsGrow =
+      !this._calibGfx || gw > this._calibGfxCapW || gh > this._calibGfxCapH;
+    const throttled =
+      this._calibGfx && now - this._lastCalibGfxAllocAt < 100;
+
+    if (needsGrow && !throttled) {
+      // Diagnostic only (temporary, lightweight - no stack capture) so the
+      // rate limit above is directly verifiable: with it, this should fire
+      // at most ~10x/sec even during a fast, sustained drag, vs. potentially
+      // every single frame (~60x/sec) without it.
+      console.warn(
+        `p5.mapper QuadMap[${this.id}]: (re)allocating calibration overlay buffer to ${Math.ceil(
+          gw * 2
+        )}x${Math.ceil(gh * 2)} (requested ${gw}x${gh}).`
+      );
       if (this._calibGfx) this._calibGfx.remove();
       this._calibGfxCapW = Math.min(
         QuadMap.MAX_CALIB_GFX_DIM,
-        Math.ceil(gw * 1.25)
+        Math.ceil(gw * 2)
       );
       this._calibGfxCapH = Math.min(
         QuadMap.MAX_CALIB_GFX_DIM,
-        Math.ceil(gh * 1.25)
+        Math.ceil(gh * 2)
       );
       this._calibGfx = this.pInst.createGraphics(
         this._calibGfxCapW,
         this._calibGfxCapH
       );
+      this._lastCalibGfxAllocAt = now;
     }
 
     const g = this._calibGfx;
