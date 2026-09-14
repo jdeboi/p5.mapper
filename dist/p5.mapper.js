@@ -1726,10 +1726,14 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
     _this = QuadMap_callSuper(this, QuadMap, [id, w, h, res, "QUAD", buffer, pInst]);
 
     // Keep internal axes in sync with base resolution
+    /** Throttle for the interior-point-rejection diagnostic warning below. */
+    QuadMap_defineProperty(_this, "_lastRejectLogAt", -Infinity);
     /** Cached calibration grid — only rebuilt when the mesh changes */
     QuadMap_defineProperty(_this, "_calibGfx", null);
     QuadMap_defineProperty(_this, "_calibGfxCapW", 0);
     QuadMap_defineProperty(_this, "_calibGfxCapH", 0);
+    /** Rate limit for the buffer's actual (re)allocation — see _rebuildCalibGfx. */
+    QuadMap_defineProperty(_this, "_lastCalibGfxAllocAt", -Infinity);
     QuadMap_defineProperty(_this, "_calibGfxOffX", 0);
     QuadMap_defineProperty(_this, "_calibGfxOffY", 0);
     QuadMap_defineProperty(_this, "_calibDirty", true);
@@ -1781,10 +1785,65 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
 
       // PerspT is expected to return an object with transform(x,y) → [x', y']
       var persp = perspective_PerspT(srcCorners, dstCorners);
+
+      // Wire this frame's homography up for getTransformedCursor/getTransformedMouse.
+      // getTransformedCursor maps canvas-space -> local pre-warp space, which is the
+      // *inverse* of persp.transform (local -> canvas, used below to place mesh
+      // points), so it needs transformInverse here, not transform.
+      // (CornerPinSurface's PerspectiveTransform interface takes a single [x,y] pair.)
+      this.setPerspectiveTransform({
+        transform: function transform(_ref) {
+          var _ref2 = QuadMap_slicedToArray(_ref, 2),
+            x = _ref2[0],
+            y = _ref2[1];
+          return persp.transformInverse(x, y);
+        }
+      });
       var stepX = this.width / (this.resX - 1);
       var stepY = this.height / (this.resY - 1);
 
+      // A self-intersecting ("bowtie") quad, or one merely close to that
+      // configuration — a corner dragged near (not even necessarily across)
+      // the diagonal formed by the other two — puts the homography's `w`
+      // divisor near zero for some interior points. Exactly at w=0 that's
+      // NaN/Infinity (guarded below); *near* zero it's a huge but perfectly
+      // finite number instead (observed: a single interior point 500,000+px
+      // from origin from one corner dragged a few hundred px too far) —
+      // Number.isFinite() alone doesn't catch that, but a WebGL triangle with
+      // a vertex that far out still swallows the entire viewport in whatever
+      // that triangle's fill color is, which is what actually produces the
+      // "screen goes white" report this guards against. A well-formed quad's
+      // interior can never legitimately fall outside its own corners' convex
+      // hull, so anything many times farther from the corners' own span is
+      // the same blowup, just landing on a finite number — reject it the
+      // same way: leave the point at its last valid position for this one
+      // frame, self-correcting as soon as the corner moves back out.
+      var cornerXs = [this.mesh[this.TL].x, this.mesh[this.TR].x, this.mesh[this.BR].x, this.mesh[this.BL].x];
+      var cornerYs = [this.mesh[this.TL].y, this.mesh[this.TR].y, this.mesh[this.BR].y, this.mesh[this.BL].y];
+      var cornerCenterX = (cornerXs[0] + cornerXs[1] + cornerXs[2] + cornerXs[3]) / 4;
+      var cornerCenterY = (cornerYs[0] + cornerYs[1] + cornerYs[2] + cornerYs[3]) / 4;
+      var cornerSpan = Math.max(Math.max.apply(Math, cornerXs) - Math.min.apply(Math, cornerXs), Math.max.apply(Math, cornerYs) - Math.min.apply(Math, cornerYs), 1 // avoid a zero span when all 4 corners momentarily coincide
+      );
+      // For a *non-degenerate* perspective transform, every interior point of
+      // a convex quad is mathematically guaranteed to land within the convex
+      // hull of its transformed corners (the same property document-scanning/
+      // dewarping code relies on) - so legitimate points can only ever be
+      // slightly beyond the corners' own span, for floating-point/mesh-
+      // quantization slop. This must NOT scale up with how far a corner has
+      // already been dragged (an earlier version of this guard used a 20x
+      // multiple of the corner span, which grows right when it needs to
+      // shrink: dragging a corner far away inflates the span and loosens the
+      // threshold at exactly the moment it needs to be tightest - a ~29,000px
+      // blowup slipped through it in testing, next to legitimate corners only
+      // ~2,000px apart). A tight, fixed 20% margin (comfortably above the
+      // theoretical 0% a truly non-degenerate transform needs, for floating-
+      // point/mesh-quantization slop) catches that class of near-degenerate
+      // blowup while still being generous for any real quad.
+      var maxInteriorDist = cornerSpan * 1.2;
+
       // Map all grid points except the four pinned corners
+      var rejectedCount = 0;
+      var maxRejectedMag = 0;
       for (var y = 0; y < this.resY; y++) {
         for (var x = 0; x < this.resX; x++) {
           var i = y * this.res + x; // base mesh is res x res
@@ -1795,20 +1854,28 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
             _persp$transform2 = QuadMap_slicedToArray(_persp$transform, 2),
             dx = _persp$transform2[0],
             dy = _persp$transform2[1];
-
-          // A self-intersecting ("bowtie") quad — e.g. a corner dragged across
-          // the diagonal formed by the other two — puts the homography's
-          // vanishing line through the source rect, so `w` in transform() goes
-          // to ~0 for interior points near that line and dx/dy blow up to
-          // +/-Infinity or NaN. Left unguarded that garbage corrupts both the
-          // render mesh and the calibration overlay's bounding box, which is
-          // what was crashing the WebGL context. Just leave the point at its
-          // last valid position for this one frame instead — it self-corrects
-          // as soon as the corner moves back out of the degenerate config.
-          if (Number.isFinite(dx) && Number.isFinite(dy)) {
+          if (Number.isFinite(dx) && Number.isFinite(dy) && Math.abs(dx - cornerCenterX) <= maxInteriorDist && Math.abs(dy - cornerCenterY) <= maxInteriorDist) {
             this.mesh[i].x = dx;
             this.mesh[i].y = dy;
+          } else {
+            rejectedCount++;
+            var mag = Math.max(Number.isFinite(dx) ? Math.abs(dx - cornerCenterX) : Infinity, Number.isFinite(dy) ? Math.abs(dy - cornerCenterY) : Infinity);
+            if (mag > maxRejectedMag) maxRejectedMag = mag;
           }
+        }
+      }
+
+      // Diagnostic only (temporary, left in deliberately to help track down a
+      // "drag a corner -> whole screen goes white/unresponsive" report this
+      // guard is meant to prevent) - throttled per-instance so a sustained
+      // drag near the degenerate zone doesn't flood the console every frame.
+      if (rejectedCount > 0) {
+        var now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        if (now - this._lastRejectLogAt > 250) {
+          this._lastRejectLogAt = now;
+          console.warn("p5.mapper QuadMap[".concat(this.id, "]: rejected ").concat(rejectedCount, "/").concat(this.resX * this.resY - 4, " interior mesh point(s) this frame (near-degenerate homography). ") + "Worst rejected magnitude: ".concat(maxRejectedMag.toFixed(0), "px beyond threshold ").concat(maxInteriorDist.toFixed(0), "px. Corner span: ").concat(cornerSpan.toFixed(0), "px, center: (").concat(cornerCenterX.toFixed(0), ", ").concat(cornerCenterY.toFixed(0), "). Corners (TL,TR,BR,BL): ").concat(JSON.stringify(cornerXs.map(function (x, k) {
+            return [Math.round(x), Math.round(cornerYs[k])];
+          })), "."));
         }
       }
     }
@@ -1833,6 +1900,26 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       var u1 = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 1;
       var v1 = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 1;
       var p = this.pInst;
+
+      // The calibration overlay buffer (_calibGfx) is only ever drawn while
+      // calibrating (Surface.display()/displayTexture() only call
+      // displayCalibration() when isCalibratingMapper() is true) but, once
+      // created, previously stayed allocated forever - including for the
+      // rest of a long-running sketch's normal (non-calibrating) operation,
+      // and across every later re-entry into calibration mode, where it'd
+      // just get thrown away and reallocated anyway the moment the mesh next
+      // differs from what's cached. Freeing it here the moment calibration
+      // mode turns off means the far more common non-calibrating steady
+      // state holds zero calibration-only GPU resources, and each fresh
+      // calibration session starts from a clean, correctly-sized buffer
+      // instead of carrying over a stale one from last time.
+      if (this._calibGfx && !p.isCalibratingMapper()) {
+        this._calibGfx.remove();
+        this._calibGfx = null;
+        this._calibGfxCapW = 0;
+        this._calibGfxCapH = 0;
+        this._calibDirty = true;
+      }
       if (p.webglVersion === "p2d") {
         p.beginShape(p.TRIANGLES);
         for (var x = 0; x < this.resX - 1; x++) {
@@ -1928,17 +2015,53 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       var gw = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.max(1, Math.ceil(maxX - minX) + pad * 2));
       var gh = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.max(1, Math.ceil(maxY - minY) + pad * 2));
 
-      // Grow-only: reallocating this canvas every frame is what starves the GPU
-      // while a corner is being dragged, since the bounding box (and therefore
-      // gw/gh) changes on nearly every frame of the drag. Only recreate when the
-      // request exceeds current capacity (with slack so we don't flap right at
-      // the boundary), and blit the possibly-larger buffer at its actual size —
-      // the clear() below wipes any stale content in the extra margin.
-      if (!this._calibGfx || gw > this._calibGfxCapW || gh > this._calibGfxCapH) {
+      // Grow-only, *and* rate-limited: the bounding box includes the corner
+      // points themselves, which are wherever the user just dragged them, so
+      // a single fast drag sweeping through several very different positions
+      // legitimately needs a bigger buffer on nearly every one of those
+      // frames — each one exceeding the *previous* grow-only cap, since a
+      // corner sweeping outward produces a monotonically growing box for a
+      // run of frames. Grow-only alone still means one real
+      // createGraphics()+remove() cycle per such frame; a burst of those
+      // faster than the browser can garbage-collect the discarded ones is
+      // exactly what exhausts the WebGL/canvas context budget ("too many
+      // active WebGL contexts", observed and confirmed via this file's own
+      // diagnostic logging while chasing that report). A hard minimum gap
+      // between actual reallocations fixes that: within the gap, keep
+      // rendering into the existing (possibly now slightly-too-small) buffer
+      // — a few frames of a clipped calibration overlay mid-fast-drag is a
+      // fully acceptable tradeoff for not thrashing GPU resources, and it
+      // self-corrects the moment the gap next elapses.
+      var now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      var needsGrow = !this._calibGfx || gw > this._calibGfxCapW || gh > this._calibGfxCapH;
+      var throttled = this._calibGfx && now - this._lastCalibGfxAllocAt < 100;
+      // Skip reallocation *entirely* (not just rate-limited) while this
+      // surface's own corners or whole-surface position are actively being
+      // dragged, since the drag itself already gives full live feedback via
+      // the corner handles (drawn separately, unbuffered, in
+      // displayControlPoints()) - the cached grid background doesn't need to
+      // track a fast drag pixel-for-pixel, and deferring means zero
+      // createGraphics() calls for the entire duration of the drag, not just
+      // fewer of them. Only applies once a buffer already exists (the very
+      // first allocation still has to happen sometime, even if that first
+      // frame happens to coincide with a drag) - and only covers dragging
+      // *this* surface directly; the time-based throttle above is what
+      // still catches a parent surface being dragged fast while this one is
+      // a sibling/child re-deriving via recalcFromParent().
+      var isDraggingThis = this._calibGfx && (this.getIsDragging() || this.controlPoints.some(function (cp) {
+        return cp.getIsDragging();
+      }));
+      if (needsGrow && !throttled && !isDraggingThis) {
+        // Diagnostic only (temporary, lightweight - no stack capture) so the
+        // rate limit above is directly verifiable: with it, this should fire
+        // at most ~10x/sec even during a fast, sustained drag, vs. potentially
+        // every single frame (~60x/sec) without it.
+        console.warn("p5.mapper QuadMap[".concat(this.id, "]: (re)allocating calibration overlay buffer to ").concat(Math.ceil(gw * 2), "x").concat(Math.ceil(gh * 2), " (requested ").concat(gw, "x").concat(gh, ")."));
         if (this._calibGfx) this._calibGfx.remove();
-        this._calibGfxCapW = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.ceil(gw * 1.25));
-        this._calibGfxCapH = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.ceil(gh * 1.25));
+        this._calibGfxCapW = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.ceil(gw * 2));
+        this._calibGfxCapH = Math.min(QuadMap.MAX_CALIB_GFX_DIM, Math.ceil(gh * 2));
         this._calibGfx = this.pInst.createGraphics(this._calibGfxCapW, this._calibGfxCapH);
+        this._lastCalibGfxAllocAt = now;
       }
       var g = this._calibGfx;
       g.clear();
@@ -2027,7 +2150,7 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
   }, {
     key: "setResolution",
     value: function setResolution(res) {
-      var _initMesh, _ref;
+      var _initMesh, _ref3;
       var r = Math.max(2, Math.floor(res));
       if (r === this.res) return;
       this.res = r;
@@ -2035,7 +2158,7 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       this.resY = r;
 
       // Rebuild the base mesh & control points from CornerPinSurface
-      (_initMesh = (_ref = this).initMesh) === null || _initMesh === void 0 || _initMesh.call(_ref);
+      (_initMesh = (_ref3 = this).initMesh) === null || _initMesh === void 0 || _initMesh.call(_ref3);
       this.calculateMesh();
     }
   }]);

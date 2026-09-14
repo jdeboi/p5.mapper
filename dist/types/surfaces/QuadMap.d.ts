@@ -10,10 +10,14 @@ export default class QuadMap extends CornerPinSurface {
      * overlay actually needs to cover.
      */
     private static readonly MAX_CALIB_GFX_DIM;
+    /** Throttle for the interior-point-rejection diagnostic warning below. */
+    private _lastRejectLogAt;
     /** Cached calibration grid — only rebuilt when the mesh changes */
     private _calibGfx;
     private _calibGfxCapW;
     private _calibGfxCapH;
+    /** Rate limit for the buffer's actual (re)allocation — see _rebuildCalibGfx. */
+    private _lastCalibGfxAllocAt;
     private _calibGfxOffX;
     private _calibGfxOffY;
     private _calibDirty;
