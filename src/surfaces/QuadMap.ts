@@ -317,41 +317,89 @@ export default class QuadMap extends CornerPinSurface {
     const offX = this.x + p.width / 2;
     const offY = this.y + p.height / 2;
 
-    g.strokeWeight(2);
-    g.stroke(this.controlPointColor);
+    // Fill pass: triangulated mesh, no stroke of its own. At low resolutions
+    // (e.g. res=2, a single cell split into two triangles for WebGL) the
+    // shared edge between those triangles is a corner-to-corner diagonal
+    // with no relation to the surface's actual shape - stroking this same
+    // shape (as the fill+stroke pass used to) drew that diagonal as if it
+    // were part of the outline. Grid lines are stroked separately below,
+    // per grid *cell* rather than per triangle, so that shared diagonal
+    // never gets a stroke.
+    //
+    // Each cell is its own beginShape(TRIANGLES)/endShape() call rather than
+    // one call covering the whole mesh: batching every cell's two triangles
+    // into a single shape hits another p5 2.0.5 2D-renderer bug - under a
+    // keystoned (non-axis-aligned) mesh, that single combined fill comes out
+    // with periodic wedge-shaped cutouts (alternating filled/unfilled
+    // stripes) instead of a solid fill. Isolating each cell in its own
+    // begin/end call sidesteps whatever winding/batching logic causes that.
+    g.noStroke();
     g.fill(this.getMutedControlColor(this.controlPointColor));
 
-    g.beginShape(g.TRIANGLES);
     for (let x = 0; x < this.resX - 1; x++) {
       for (let y = 0; y < this.resY - 1; y++) {
         const i00 = y * this.res + x;
         const i10 = y * this.res + (x + 1);
         const i11 = (y + 1) * this.res + (x + 1);
         const i01 = (y + 1) * this.res + x;
+        g.beginShape(g.TRIANGLES);
         g.vertex(this.mesh[i00].x + offX, this.mesh[i00].y + offY);
         g.vertex(this.mesh[i10].x + offX, this.mesh[i10].y + offY);
         g.vertex(this.mesh[i11].x + offX, this.mesh[i11].y + offY);
         g.vertex(this.mesh[i00].x + offX, this.mesh[i00].y + offY);
         g.vertex(this.mesh[i11].x + offX, this.mesh[i11].y + offY);
         g.vertex(this.mesh[i01].x + offX, this.mesh[i01].y + offY);
+        g.endShape();
       }
     }
-    g.endShape();
 
-    // The interior grid lines above are triangle edges, not the surface's
-    // true outer boundary - at higher resolutions the perimeter is just one
-    // set of grid lines among many and doesn't read clearly, and depending
-    // on how the last row/column's triangles happen to be wound, part of
-    // the outer edge can end up looking thinner/fainter than the rest. Trace
-    // the actual TL-TR-BR-BL perimeter explicitly, on top, so the full shape
-    // is always unambiguous while calibrating regardless of resolution.
+    // Grid-line pass: stroke each cell's own quad boundary (TL-TR-BR-BL of
+    // that cell) instead of the two triangles that make it up, so the
+    // diagonal split between them never appears. At res=2 there's exactly
+    // one cell, so this reduces to just the surface's own perimeter and
+    // draws nothing the trace below doesn't already draw; at higher
+    // resolutions it reproduces the interior grid visualization.
+    //
+    // Vertices close via an explicit repeated first point + plain
+    // endShape(), not endShape(CLOSE): p5 2.0.5's 2D renderer under-strokes
+    // the implicit closing segment CLOSE adds (observed ~17% of the opacity
+    // of every explicitly-added edge - looks like a missing edge at a
+    // glance). Repeating the first vertex makes that edge an explicit
+    // segment like every other one, so it renders at full opacity too.
+    g.noFill();
+    g.strokeWeight(1);
+    g.stroke(this.controlPointColor);
+    for (let x = 0; x < this.resX - 1; x++) {
+      for (let y = 0; y < this.resY - 1; y++) {
+        const i00 = y * this.res + x;
+        const i10 = y * this.res + (x + 1);
+        const i11 = (y + 1) * this.res + (x + 1);
+        const i01 = (y + 1) * this.res + x;
+        g.beginShape();
+        g.vertex(this.mesh[i00].x + offX, this.mesh[i00].y + offY);
+        g.vertex(this.mesh[i10].x + offX, this.mesh[i10].y + offY);
+        g.vertex(this.mesh[i11].x + offX, this.mesh[i11].y + offY);
+        g.vertex(this.mesh[i01].x + offX, this.mesh[i01].y + offY);
+        g.vertex(this.mesh[i00].x + offX, this.mesh[i00].y + offY);
+        g.endShape();
+      }
+    }
+
+    // Trace the actual TL-TR-BR-BL perimeter explicitly, on top of
+    // everything above, so the full outer shape is always unambiguous and
+    // stands out from the interior grid lines regardless of resolution or
+    // triangle winding. Same explicit-close reasoning as the grid-line pass
+    // above.
+    g.strokeWeight(2);
+    g.stroke(this.controlPointColor);
     g.noFill();
     g.beginShape();
     g.vertex(this.mesh[this.TL].x + offX, this.mesh[this.TL].y + offY);
     g.vertex(this.mesh[this.TR].x + offX, this.mesh[this.TR].y + offY);
     g.vertex(this.mesh[this.BR].x + offX, this.mesh[this.BR].y + offY);
     g.vertex(this.mesh[this.BL].x + offX, this.mesh[this.BL].y + offY);
-    g.endShape(g.CLOSE);
+    g.vertex(this.mesh[this.TL].x + offX, this.mesh[this.TL].y + offY);
+    g.endShape();
   }
 
   /** Emit two triangles for a cell with proper UVs (normalized 0..1). */
