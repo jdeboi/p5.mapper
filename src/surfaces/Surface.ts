@@ -167,6 +167,19 @@ export default class Surface extends Draggable {
     sketch(g);
     g.pop();
 
+    // The buffer handed to `sketch` here may be a larger, shared buffer
+    // (ProjectionMapper gives every surface the same canvas-sized 2D
+    // buffer, not one sized to this surface) - so the crop must default to
+    // *this surface's own* footprint, not the buffer's. Without this,
+    // displayTexture()'s texW<=0/texH<=0 fallback uses tex.width/tex.height
+    // (the shared buffer's full canvas size) as the source rect, stretching
+    // whatever `sketch` drew (authored in this surface's own 0..width,
+    // 0..height space) across a UV range sized for the whole canvas -
+    // non-uniformly squashing it toward this surface's origin by roughly
+    // (this.width / canvasWidth, this.height / canvasHeight).
+    if (texW <= 0) texW = this.width;
+    if (texH <= 0) texH = this.height;
+
     this.displayTexture(g, tX, tY, texW, texH);
   }
 
