@@ -3701,6 +3701,9 @@ function ProjectionMapper_defineProperty(e, r, t) { return (r = ProjectionMapper
 function ProjectionMapper_toPropertyKey(t) { var i = ProjectionMapper_toPrimitive(t, "string"); return "symbol" == ProjectionMapper_typeof(i) ? i : i + ""; }
 function ProjectionMapper_toPrimitive(t, r) { if ("object" != ProjectionMapper_typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != ProjectionMapper_typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 // ProjectionMapper.ts
+// The real p5 instance type, used only to build the P5WithMapper export below;
+// everything else in this file keeps using the relaxed `P5 = any` alias.
+
 
 
 
@@ -4169,9 +4172,16 @@ var pMapper = new ProjectionMapper();
 
 // --------------------------- p5 Integration ---------------------------
 
-// Legacy global augmentation for @types/p5 consumers.
-// p5 v2 module consumers get the same methods via the declare module "p5"
-// block appended to dist/types/ProjectionMapper.d.ts by scripts/patch-declarations.js.
+// Shared method list for both augmentation styles below.
+
+// Legacy global augmentation, for consumers using p5 as a global (script tag)
+// or the older @types/p5 (DefinitelyTyped) declarations.
+
+// p5 v2's own bundled types use `export default class p5 {}`, which can't be
+// declaration-merged into from outside — so `declare module "p5"` /
+// `declare global` augmentation above is invisible to `import p5 from "p5"`
+// consumers. This intersection type is the real fix for that case: annotate
+// your sketch's p5 instance with it to get p5.mapper's methods typed.
 
 p5.prototype.createProjectionMapper = function (pInst, w, h) {
   var W = w !== null && w !== void 0 ? w : pInst.width;
