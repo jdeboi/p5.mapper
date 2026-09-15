@@ -1,3 +1,4 @@
+import type RealP5 from "p5";
 import QuadMap from "./surfaces/QuadMap";
 import TriMap from "./surfaces/TriMap";
 import PolyMap from "./surfaces/PolyMap";
@@ -98,18 +99,16 @@ declare class ProjectionMapper {
     getBezierShader(): any;
 }
 declare const pMapper: ProjectionMapper;
-declare global {
-    interface Window {
-        p5: any;
-    }
+interface PMapperInstanceMethods {
+    createProjectionMapper(pInst: P5, w?: number, h?: number): ProjectionMapper;
+    isCalibratingMapper(): boolean;
+    isMovingPoints(): boolean;
+    isDragging(surface: Selectable): boolean;
+    initPMapperShader(): void;
 }
 declare global {
-    interface p5 {
-        createProjectionMapper(pInst: P5, w?: number, h?: number): ProjectionMapper;
-        isCalibratingMapper(): boolean;
-        isMovingPoints(): boolean;
-        isDragging(surface: Selectable): boolean;
-        initPMapperShader(): void;
+    interface p5 extends PMapperInstanceMethods {
     }
 }
+export type P5WithMapper = RealP5 & PMapperInstanceMethods;
 export default pMapper;

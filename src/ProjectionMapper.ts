@@ -1,4 +1,7 @@
 // ProjectionMapper.ts
+// The real p5 instance type, used only to build the P5WithMapper export below;
+// everything else in this file keeps using the relaxed `P5 = any` alias.
+import type RealP5 from "p5";
 import QuadMap from "./surfaces/QuadMap";
 import TriMap from "./surfaces/TriMap";
 import PolyMap from "./surfaces/PolyMap";
@@ -509,24 +512,27 @@ const pMapper = new ProjectionMapper();
 
 declare const p5: any;
 
-declare global {
-  interface Window {
-    p5: any;
-  }
+// Shared method list for both augmentation styles below.
+interface PMapperInstanceMethods {
+  createProjectionMapper(pInst: P5, w?: number, h?: number): ProjectionMapper;
+  isCalibratingMapper(): boolean;
+  isMovingPoints(): boolean;
+  isDragging(surface: Selectable): boolean;
+  initPMapperShader(): void;
 }
 
-// Legacy global augmentation for @types/p5 consumers.
-// p5 v2 module consumers get the same methods via the declare module "p5"
-// block appended to dist/types/ProjectionMapper.d.ts by scripts/patch-declarations.js.
+// Legacy global augmentation, for consumers using p5 as a global (script tag)
+// or the older @types/p5 (DefinitelyTyped) declarations.
 declare global {
-  interface p5 {
-    createProjectionMapper(pInst: P5, w?: number, h?: number): ProjectionMapper;
-    isCalibratingMapper(): boolean;
-    isMovingPoints(): boolean;
-    isDragging(surface: Selectable): boolean;
-    initPMapperShader(): void;
-  }
+  interface p5 extends PMapperInstanceMethods {}
 }
+
+// p5 v2's own bundled types use `export default class p5 {}`, which can't be
+// declaration-merged into from outside — so `declare module "p5"` /
+// `declare global` augmentation above is invisible to `import p5 from "p5"`
+// consumers. This intersection type is the real fix for that case: annotate
+// your sketch's p5 instance with it to get p5.mapper's methods typed.
+export type P5WithMapper = RealP5 & PMapperInstanceMethods;
 
 p5.prototype.createProjectionMapper = function (
   pInst: P5,
