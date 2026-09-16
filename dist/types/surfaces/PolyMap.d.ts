@@ -29,6 +29,23 @@ export default class PolyMap extends Surface {
      * Re-derive every point's render-facing position from its parent-relative
      * local shadow value, via the parent's *current* transform. No-op when
      * unparented.
+     *
+     * Deliberately does NOT call setDimensions()/setSize() - those recreate
+     * this.buffer (a fresh createGraphics() call) whenever the floored
+     * width/height changes, and re-deriving from continuously-perturbed
+     * floating-point homography output (e.g. every frame while the parent is
+     * being dragged) flips that floor by +-1px on a large fraction of frames.
+     * Each flip is a new offscreen buffer, and this runs for every parented
+     * PolyMap every frame during a parent drag - fast enough to exhaust the
+     * browser's WebGL context budget within about a second and crash the
+     * whole canvas (observed: dragging a QuadMap with 3 parented PolyMap
+     * children went from ~30 canvases to 100+ within one short drag).
+     * width/height only gate this.buffer's size for content actually drawn
+     * via displaySketch() - displaySurface() and isMouseOver() both already
+     * recompute straight from this.points, so a parent-driven reposition
+     * (same points, moved - never a structural change) has no correctness
+     * need to resize the buffer on every recalc. setPoints()/load() (genuine
+     * structural changes) still call setDimensions() themselves.
      */
     recalcFromParent(): void;
     /**
