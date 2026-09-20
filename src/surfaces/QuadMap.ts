@@ -5,10 +5,6 @@ import pMapper from "../ProjectionMapper";
 // type PerspectiveFn = (x: number, y: number) => [number, number];
 
 export default class QuadMap extends CornerPinSurface {
-  /** We keep resX/resY mirrored to base `res` so the mesh stays consistent. */
-  private resX: number;
-  private resY: number;
-
   /** Throttle for the interior-point-rejection diagnostic warning below. */
   private _lastRejectLogAt = -Infinity;
 
@@ -30,13 +26,10 @@ export default class QuadMap extends CornerPinSurface {
     h: number,
     res: number,
     buffer: any,
-    pInst: any
+    pInst: any,
+    resY?: number
   ) {
-    super(id, w, h, res, "QUAD", buffer, pInst);
-
-    // Keep internal axes in sync with base resolution
-    this.resX = this.res;
-    this.resY = this.res;
+    super(id, w, h, res, "QUAD", buffer, pInst, resY);
   }
 
   /**
@@ -173,7 +166,7 @@ export default class QuadMap extends CornerPinSurface {
     let maxRejectedMag = 0;
     for (let y = 0; y < this.resY; y++) {
       for (let x = 0; x < this.resX; x++) {
-        const i = y * this.res + x; // base mesh is res x res
+        const i = y * this.resX + x; // base mesh is resX x resY
         if (i === this.TL || i === this.TR || i === this.BR || i === this.BL)
           continue;
 
@@ -349,10 +342,10 @@ export default class QuadMap extends CornerPinSurface {
 
     for (let x = 0; x < this.resX - 1; x++) {
       for (let y = 0; y < this.resY - 1; y++) {
-        const i00 = y * this.res + x;
-        const i10 = y * this.res + (x + 1);
-        const i11 = (y + 1) * this.res + (x + 1);
-        const i01 = (y + 1) * this.res + x;
+        const i00 = y * this.resX + x;
+        const i10 = y * this.resX + (x + 1);
+        const i11 = (y + 1) * this.resX + (x + 1);
+        const i01 = (y + 1) * this.resX + x;
         g.beginShape(g.TRIANGLES);
         g.vertex(this.mesh[i00].x + offX, this.mesh[i00].y + offY);
         g.vertex(this.mesh[i10].x + offX, this.mesh[i10].y + offY);
@@ -382,10 +375,10 @@ export default class QuadMap extends CornerPinSurface {
     g.stroke(this.controlPointColor);
     for (let x = 0; x < this.resX - 1; x++) {
       for (let y = 0; y < this.resY - 1; y++) {
-        const i00 = y * this.res + x;
-        const i10 = y * this.res + (x + 1);
-        const i11 = (y + 1) * this.res + (x + 1);
-        const i01 = (y + 1) * this.res + x;
+        const i00 = y * this.resX + x;
+        const i10 = y * this.resX + (x + 1);
+        const i11 = (y + 1) * this.resX + (x + 1);
+        const i01 = (y + 1) * this.resX + x;
         g.beginShape();
         g.vertex(this.mesh[i00].x + offX, this.mesh[i00].y + offY);
         g.vertex(this.mesh[i10].x + offX, this.mesh[i10].y + offY);
@@ -422,10 +415,10 @@ export default class QuadMap extends CornerPinSurface {
     u1: number,
     v1: number
   ): void {
-    const i00 = y * this.res + x;
-    const i10 = y * this.res + (x + 1);
-    const i11 = (y + 1) * this.res + (x + 1);
-    const i01 = (y + 1) * this.res + x;
+    const i00 = y * this.resX + x;
+    const i10 = y * this.resX + (x + 1);
+    const i11 = (y + 1) * this.resX + (x + 1);
+    const i01 = (y + 1) * this.resX + x;
 
     // Precompute UV scale factors once per cell; inline vertex calls to avoid
     // creating a closure (put = (i) => {...}) on every one of the 361 cell calls per frame.
@@ -444,10 +437,10 @@ export default class QuadMap extends CornerPinSurface {
 
   /** Emit two triangles for outline/fill only (no UVs). */
   private emitQuadAsTrianglesOutline(x: number, y: number): void {
-    const i00 = y * this.res + x;
-    const i10 = y * this.res + (x + 1);
-    const i11 = (y + 1) * this.res + (x + 1);
-    const i01 = (y + 1) * this.res + x;
+    const i00 = y * this.resX + x;
+    const i10 = y * this.resX + (x + 1);
+    const i11 = (y + 1) * this.resX + (x + 1);
+    const i01 = (y + 1) * this.resX + x;
 
     // Inline to avoid closure allocation per cell call
     const p = this.pInst;
@@ -463,21 +456,27 @@ export default class QuadMap extends CornerPinSurface {
   // --- Optional: if you ever want to change tessellation dynamically ----
 
   /**
-   * Set a new (square) resolution and rebuild the base mesh accordingly.
-   * Higher values give a smoother perspective warp under heavy keystoning
-   * (matters most for displayTexture/displaySketch content); lower values
-   * cost fewer vertices per frame. A solid-color display() fill looks the
-   * same at any resolution, so it's a good place to drop this toward 2.
+   * Set a new resolution and rebuild the base mesh accordingly. `resY`
+   * defaults to `resX` for a square grid; pass it explicitly to give an
+   * elongated quad more subdivisions along one axis than the other. Higher
+   * values give a smoother perspective warp under heavy keystoning (matters
+   * most for displayTexture/displaySketch content); lower values cost fewer
+   * vertices per frame. A solid-color display() fill looks the same at any
+   * resolution, so it's a good place to drop this toward 2.
+   *
+   * Note: changing resolution reindexes the mesh, so any previously
+   * calibrated corner pins for this surface will need to be redone.
    */
-  public setResolution(res: number): void {
-    const r = Math.max(2, Math.floor(res));
-    if (r === this.res) return;
-    this.res = r;
-    this.resX = r;
-    this.resY = r;
+  public setResolution(resX: number, resY?: number): void {
+    const rx = Math.max(2, Math.floor(resX));
+    const ry = Math.max(2, Math.floor(resY ?? resX));
+    if (rx === this.resX && ry === this.resY) return;
+    this.res = rx;
+    this.resX = rx;
+    this.resY = ry;
 
     // Rebuild the base mesh & control points from CornerPinSurface
-    (this as any).initMesh?.();
+    this.initMesh();
     this.calculateMesh();
   }
 }

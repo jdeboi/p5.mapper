@@ -29,10 +29,19 @@ type CornerPinJSON = {
 };
 
 export default class CornerPinSurface extends Surface {
-  /** grid resolution per axis (res x res points) */
+  /** grid resolution per axis (res x res points), kept for JSON/back-compat */
   public res: number;
 
-  /** flattened grid of MeshPoints, row-major (y * res + x) */
+  /**
+   * Actual per-axis mesh dimensions. Equal to `res` unless a subclass (only
+   * QuadMap does today) is given an independent resY, e.g. to give an
+   * elongated quad more subdivisions along its long axis than its short one
+   * without over-tessellating the short one.
+   */
+  public resX: number;
+  public resY: number;
+
+  /** flattened grid of MeshPoints, row-major (y * resX + x) */
   protected mesh: MeshPoint[] = [];
 
   /** top-left, top-right, bottom-right, bottom-left indices into mesh */
@@ -54,7 +63,8 @@ export default class CornerPinSurface extends Surface {
     res: number,
     type: string,
     buffer: any,
-    pInst: any
+    pInst: any,
+    resY?: number
   ) {
     super(id, width, height, res, type, buffer, pInst);
 
@@ -63,7 +73,14 @@ export default class CornerPinSurface extends Surface {
         `CornerPinSurface: res must be an integer >= 2, got ${res}`
       );
     }
+    if (resY !== undefined && (!Number.isInteger(resY) || resY < 2)) {
+      throw new Error(
+        `CornerPinSurface: resY must be an integer >= 2, got ${resY}`
+      );
+    }
     this.res = res;
+    this.resX = res;
+    this.resY = resY ?? res;
 
     this.initMesh();
     this.calculateMesh(); // abstract in base class, but we call to set initial transform if you compute it there
@@ -71,7 +88,7 @@ export default class CornerPinSurface extends Surface {
 
   /** index helper (row-major) */
   private idx(x: number, y: number): number {
-    return y * this.res + x;
+    return y * this.resX + x;
   }
 
   /** iterate all mesh points */
@@ -79,25 +96,25 @@ export default class CornerPinSurface extends Surface {
     fn: (mp: MeshPoint, x: number, y: number, i: number) => void
   ) {
     let i = 0;
-    for (let y = 0; y < this.res; y++) {
-      for (let x = 0; x < this.res; x++, i++) {
+    for (let y = 0; y < this.resY; y++) {
+      for (let x = 0; x < this.resX; x++, i++) {
         fn(this.mesh[i], x, y, i);
       }
     }
   }
 
   /** build a regular grid + mark corners as control points */
-  private initMesh(): void {
-    this.mesh = new Array(this.res * this.res);
+  protected initMesh(): void {
+    this.mesh = new Array(this.resX * this.resY);
 
-    // map 0..res-1 → 0..width/height so corners land exactly on edges
-    const mapX = (gx: number) => (gx / (this.res - 1)) * this.width;
-    const mapY = (gy: number) => (gy / (this.res - 1)) * this.height;
-    const mapU = (gx: number) => gx / (this.res - 1);
-    const mapV = (gy: number) => gy / (this.res - 1);
+    // map 0..resX/Y-1 → 0..width/height so corners land exactly on edges
+    const mapX = (gx: number) => (gx / (this.resX - 1)) * this.width;
+    const mapY = (gy: number) => (gy / (this.resY - 1)) * this.height;
+    const mapU = (gx: number) => gx / (this.resX - 1);
+    const mapV = (gy: number) => gy / (this.resY - 1);
 
-    for (let y = 0; y < this.res; y++) {
-      for (let x = 0; x < this.res; x++) {
+    for (let y = 0; y < this.resY; y++) {
+      for (let x = 0; x < this.resX; x++) {
         const mx = Math.round(mapX(x));
         const my = Math.round(mapY(y));
         const u = mapU(x);
@@ -114,9 +131,9 @@ export default class CornerPinSurface extends Surface {
     }
 
     this.TL = this.idx(0, 0);
-    this.TR = this.idx(this.res - 1, 0);
-    this.BL = this.idx(0, this.res - 1);
-    this.BR = this.idx(this.res - 1, this.res - 1);
+    this.TR = this.idx(this.resX - 1, 0);
+    this.BL = this.idx(0, this.resY - 1);
+    this.BR = this.idx(this.resX - 1, this.resY - 1);
 
     // corners are control points
     [this.TL, this.TR, this.BR, this.BL].forEach((i) => {
@@ -246,6 +263,7 @@ export default class CornerPinSurface extends Surface {
     const data: DraggableJSON = {
       id: String(this.id),
       res: this.res,
+      resY: this.resY,
       x: this.x,
       y: this.y,
       width: this.width,

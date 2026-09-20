@@ -113,8 +113,14 @@ class ProjectionMapper {
 
   // --------------------------- Factories ---------------------------
 
-  /** Creates and registers a new quad surface. */
-  createQuadMap(w: number, h: number, res = 20) {
+  /**
+   * Creates and registers a new quad surface.
+   * @param resY  optional independent vertical resolution. When omitted the
+   *              mesh is a square `res x res` grid as before; pass it to
+   *              give an elongated quad more subdivisions along one axis
+   *              (e.g. a wide, short strip) than the other.
+   */
+  createQuadMap(w: number, h: number, res = 20, resY?: number) {
     if (!this.pInst || !this.buffer)
       throw new Error("ProjectionMapper not initialized");
     const s = new QuadMap(
@@ -123,7 +129,8 @@ class ProjectionMapper {
       h,
       res,
       this.buffer,
-      this.pInst
+      this.pInst,
+      resY
     );
     this.surfaces.push(s);
     return s;
