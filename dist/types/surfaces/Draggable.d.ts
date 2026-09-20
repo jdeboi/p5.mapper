@@ -27,6 +27,7 @@ export interface DraggableJSON {
     enabled?: boolean;
     type?: string;
     res?: number;
+    resY?: number;
     width?: number;
     height?: number;
     closed?: boolean;

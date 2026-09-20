@@ -1683,12 +1683,18 @@ function CornerPinSurface_toPrimitive(t, r) { if ("object" != CornerPinSurface_t
  * (the reverse) drives getTransformedCursor()/resolveToLocal().
  */
 var CornerPinSurface = /*#__PURE__*/function (_Surface) {
-  function CornerPinSurface(id, width, height, res, type, buffer, pInst) {
+  function CornerPinSurface(id, width, height, res, type, buffer, pInst, resY) {
     var _this;
     CornerPinSurface_classCallCheck(this, CornerPinSurface);
     _this = CornerPinSurface_callSuper(this, CornerPinSurface, [id, width, height, res, type, buffer, pInst]);
-    /** grid resolution per axis (res x res points) */
-    /** flattened grid of MeshPoints, row-major (y * res + x) */
+    /** grid resolution per axis (res x res points), kept for JSON/back-compat */
+    /**
+     * Actual per-axis mesh dimensions. Equal to `res` unless a subclass (only
+     * QuadMap does today) is given an independent resY, e.g. to give an
+     * elongated quad more subdivisions along its long axis than its short one
+     * without over-tessellating the short one.
+     */
+    /** flattened grid of MeshPoints, row-major (y * resX + x) */
     CornerPinSurface_defineProperty(_this, "mesh", []);
     /** top-left, top-right, bottom-right, bottom-left indices into mesh */
     CornerPinSurface_defineProperty(_this, "TL", 0);
@@ -1702,7 +1708,12 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
     if (!Number.isInteger(res) || res < 2) {
       throw new Error("CornerPinSurface: res must be an integer >= 2, got ".concat(res));
     }
+    if (resY !== undefined && (!Number.isInteger(resY) || resY < 2)) {
+      throw new Error("CornerPinSurface: resY must be an integer >= 2, got ".concat(resY));
+    }
     _this.res = res;
+    _this.resX = res;
+    _this.resY = resY !== null && resY !== void 0 ? resY : res;
     _this.initMesh();
     _this.calculateMesh(); // abstract in base class, but we call to set initial transform if you compute it there
     return _this;
@@ -1713,7 +1724,7 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
   return CornerPinSurface_createClass(CornerPinSurface, [{
     key: "idx",
     value: function idx(x, y) {
-      return y * this.res + x;
+      return y * this.resX + x;
     }
 
     /** iterate all mesh points */
@@ -1721,8 +1732,8 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
     key: "forEachPoint",
     value: function forEachPoint(fn) {
       var i = 0;
-      for (var y = 0; y < this.res; y++) {
-        for (var x = 0; x < this.res; x++, i++) {
+      for (var y = 0; y < this.resY; y++) {
+        for (var x = 0; x < this.resX; x++, i++) {
           fn(this.mesh[i], x, y, i);
         }
       }
@@ -1733,23 +1744,23 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
     key: "initMesh",
     value: function initMesh() {
       var _this2 = this;
-      this.mesh = new Array(this.res * this.res);
+      this.mesh = new Array(this.resX * this.resY);
 
-      // map 0..res-1 → 0..width/height so corners land exactly on edges
+      // map 0..resX/Y-1 → 0..width/height so corners land exactly on edges
       var mapX = function mapX(gx) {
-        return gx / (_this2.res - 1) * _this2.width;
+        return gx / (_this2.resX - 1) * _this2.width;
       };
       var mapY = function mapY(gy) {
-        return gy / (_this2.res - 1) * _this2.height;
+        return gy / (_this2.resY - 1) * _this2.height;
       };
       var mapU = function mapU(gx) {
-        return gx / (_this2.res - 1);
+        return gx / (_this2.resX - 1);
       };
       var mapV = function mapV(gy) {
-        return gy / (_this2.res - 1);
+        return gy / (_this2.resY - 1);
       };
-      for (var y = 0; y < this.res; y++) {
-        for (var x = 0; x < this.res; x++) {
+      for (var y = 0; y < this.resY; y++) {
+        for (var x = 0; x < this.resX; x++) {
           var mx = Math.round(mapX(x));
           var my = Math.round(mapY(y));
           var u = mapU(x);
@@ -1758,9 +1769,9 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
         }
       }
       this.TL = this.idx(0, 0);
-      this.TR = this.idx(this.res - 1, 0);
-      this.BL = this.idx(0, this.res - 1);
-      this.BR = this.idx(this.res - 1, this.res - 1);
+      this.TR = this.idx(this.resX - 1, 0);
+      this.BL = this.idx(0, this.resY - 1);
+      this.BR = this.idx(this.resX - 1, this.resY - 1);
 
       // corners are control points
       [this.TL, this.TR, this.BR, this.BL].forEach(function (i) {
@@ -1958,6 +1969,7 @@ var CornerPinSurface = /*#__PURE__*/function (_Surface) {
       var data = {
         id: String(this.id),
         res: this.res,
+        resY: this.resY,
         x: this.x,
         y: this.y,
         width: this.width,
@@ -2118,13 +2130,10 @@ function QuadMap_toPrimitive(t, r) { if ("object" != QuadMap_typeof(t) || !t) re
 
 // type PerspectiveFn = (x: number, y: number) => [number, number];
 var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
-  function QuadMap(id, w, h, res, buffer, pInst) {
+  function QuadMap(id, w, h, res, buffer, pInst, resY) {
     var _this;
     QuadMap_classCallCheck(this, QuadMap);
-    _this = QuadMap_callSuper(this, QuadMap, [id, w, h, res, "QUAD", buffer, pInst]);
-
-    // Keep internal axes in sync with base resolution
-    /** We keep resX/resY mirrored to base `res` so the mesh stays consistent. */
+    _this = QuadMap_callSuper(this, QuadMap, [id, w, h, res, "QUAD", buffer, pInst, resY]);
     /** Throttle for the interior-point-rejection diagnostic warning below. */
     QuadMap_defineProperty(_this, "_lastRejectLogAt", -Infinity);
     /**
@@ -2138,8 +2147,6 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
     QuadMap_defineProperty(_this, "_geomV0", 0);
     QuadMap_defineProperty(_this, "_geomU1", 1);
     QuadMap_defineProperty(_this, "_geomV1", 1);
-    _this.resX = _this.res;
-    _this.resY = _this.res;
     return _this;
   }
 
@@ -2245,7 +2252,7 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       var maxRejectedMag = 0;
       for (var y = 0; y < this.resY; y++) {
         for (var x = 0; x < this.resX; x++) {
-          var i = y * this.res + x; // base mesh is res x res
+          var i = y * this.resX + x; // base mesh is resX x resY
           if (i === this.TL || i === this.TR || i === this.BR || i === this.BL) continue;
           var sx = x * stepX;
           var sy = y * stepY;
@@ -2397,10 +2404,10 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       g.fill(this.getMutedControlColor(this.controlPointColor));
       for (var x = 0; x < this.resX - 1; x++) {
         for (var y = 0; y < this.resY - 1; y++) {
-          var i00 = y * this.res + x;
-          var i10 = y * this.res + (x + 1);
-          var i11 = (y + 1) * this.res + (x + 1);
-          var i01 = (y + 1) * this.res + x;
+          var i00 = y * this.resX + x;
+          var i10 = y * this.resX + (x + 1);
+          var i11 = (y + 1) * this.resX + (x + 1);
+          var i01 = (y + 1) * this.resX + x;
           g.beginShape(g.TRIANGLES);
           g.vertex(this.mesh[i00].x + offX, this.mesh[i00].y + offY);
           g.vertex(this.mesh[i10].x + offX, this.mesh[i10].y + offY);
@@ -2430,10 +2437,10 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       g.stroke(this.controlPointColor);
       for (var _x2 = 0; _x2 < this.resX - 1; _x2++) {
         for (var _y2 = 0; _y2 < this.resY - 1; _y2++) {
-          var _i = _y2 * this.res + _x2;
-          var _i2 = _y2 * this.res + (_x2 + 1);
-          var _i3 = (_y2 + 1) * this.res + (_x2 + 1);
-          var _i4 = (_y2 + 1) * this.res + _x2;
+          var _i = _y2 * this.resX + _x2;
+          var _i2 = _y2 * this.resX + (_x2 + 1);
+          var _i3 = (_y2 + 1) * this.resX + (_x2 + 1);
+          var _i4 = (_y2 + 1) * this.resX + _x2;
           g.beginShape();
           g.vertex(this.mesh[_i].x + offX, this.mesh[_i].y + offY);
           g.vertex(this.mesh[_i2].x + offX, this.mesh[_i2].y + offY);
@@ -2465,10 +2472,10 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
   }, {
     key: "emitQuadAsTrianglesUV",
     value: function emitQuadAsTrianglesUV(x, y, u0, v0, u1, v1) {
-      var i00 = y * this.res + x;
-      var i10 = y * this.res + (x + 1);
-      var i11 = (y + 1) * this.res + (x + 1);
-      var i01 = (y + 1) * this.res + x;
+      var i00 = y * this.resX + x;
+      var i10 = y * this.resX + (x + 1);
+      var i11 = (y + 1) * this.resX + (x + 1);
+      var i01 = (y + 1) * this.resX + x;
 
       // Precompute UV scale factors once per cell; inline vertex calls to avoid
       // creating a closure (put = (i) => {...}) on every one of the 361 cell calls per frame.
@@ -2494,10 +2501,10 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
   }, {
     key: "emitQuadAsTrianglesOutline",
     value: function emitQuadAsTrianglesOutline(x, y) {
-      var i00 = y * this.res + x;
-      var i10 = y * this.res + (x + 1);
-      var i11 = (y + 1) * this.res + (x + 1);
-      var i01 = (y + 1) * this.res + x;
+      var i00 = y * this.resX + x;
+      var i10 = y * this.resX + (x + 1);
+      var i11 = (y + 1) * this.resX + (x + 1);
+      var i01 = (y + 1) * this.resX + x;
 
       // Inline to avoid closure allocation per cell call
       var p = this.pInst;
@@ -2513,24 +2520,29 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
     // --- Optional: if you ever want to change tessellation dynamically ----
 
     /**
-     * Set a new (square) resolution and rebuild the base mesh accordingly.
-     * Higher values give a smoother perspective warp under heavy keystoning
-     * (matters most for displayTexture/displaySketch content); lower values
-     * cost fewer vertices per frame. A solid-color display() fill looks the
-     * same at any resolution, so it's a good place to drop this toward 2.
+     * Set a new resolution and rebuild the base mesh accordingly. `resY`
+     * defaults to `resX` for a square grid; pass it explicitly to give an
+     * elongated quad more subdivisions along one axis than the other. Higher
+     * values give a smoother perspective warp under heavy keystoning (matters
+     * most for displayTexture/displaySketch content); lower values cost fewer
+     * vertices per frame. A solid-color display() fill looks the same at any
+     * resolution, so it's a good place to drop this toward 2.
+     *
+     * Note: changing resolution reindexes the mesh, so any previously
+     * calibrated corner pins for this surface will need to be redone.
      */
   }, {
     key: "setResolution",
-    value: function setResolution(res) {
-      var _initMesh, _ref5;
-      var r = Math.max(2, Math.floor(res));
-      if (r === this.res) return;
-      this.res = r;
-      this.resX = r;
-      this.resY = r;
+    value: function setResolution(resX, resY) {
+      var rx = Math.max(2, Math.floor(resX));
+      var ry = Math.max(2, Math.floor(resY !== null && resY !== void 0 ? resY : resX));
+      if (rx === this.resX && ry === this.resY) return;
+      this.res = rx;
+      this.resX = rx;
+      this.resY = ry;
 
       // Rebuild the base mesh & control points from CornerPinSurface
-      (_initMesh = (_ref5 = this).initMesh) === null || _initMesh === void 0 || _initMesh.call(_ref5);
+      this.initMesh();
       this.calculateMesh();
     }
   }]);
@@ -4373,13 +4385,20 @@ var ProjectionMapper = /*#__PURE__*/function () {
 
     // --------------------------- Factories ---------------------------
 
-    /** Creates and registers a new quad surface. */
+    /**
+     * Creates and registers a new quad surface.
+     * @param resY  optional independent vertical resolution. When omitted the
+     *              mesh is a square `res x res` grid as before; pass it to
+     *              give an elongated quad more subdivisions along one axis
+     *              (e.g. a wide, short strip) than the other.
+     */
   }, {
     key: "createQuadMap",
     value: function createQuadMap(w, h) {
       var res = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 20;
+      var resY = arguments.length > 3 ? arguments[3] : undefined;
       if (!this.pInst || !this.buffer) throw new Error("ProjectionMapper not initialized");
-      var s = new QuadMap(this.surfaces.length, w, h, res, this.buffer, this.pInst);
+      var s = new QuadMap(this.surfaces.length, w, h, res, this.buffer, this.pInst, resY);
       this.surfaces.push(s);
       return s;
     }

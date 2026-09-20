@@ -13,9 +13,17 @@ interface PerspectiveTransform {
     transformInverse: (pt: [number, number]) => [number, number];
 }
 export default class CornerPinSurface extends Surface {
-    /** grid resolution per axis (res x res points) */
+    /** grid resolution per axis (res x res points), kept for JSON/back-compat */
     res: number;
-    /** flattened grid of MeshPoints, row-major (y * res + x) */
+    /**
+     * Actual per-axis mesh dimensions. Equal to `res` unless a subclass (only
+     * QuadMap does today) is given an independent resY, e.g. to give an
+     * elongated quad more subdivisions along its long axis than its short one
+     * without over-tessellating the short one.
+     */
+    resX: number;
+    resY: number;
+    /** flattened grid of MeshPoints, row-major (y * resX + x) */
     protected mesh: MeshPoint[];
     /** top-left, top-right, bottom-right, bottom-left indices into mesh */
     TL: number;
@@ -26,13 +34,13 @@ export default class CornerPinSurface extends Surface {
     controlPoints: MeshPoint[];
     /** perspective transform used for inverse cursor mapping */
     private perspectiveTransform;
-    constructor(id: string | number, width: number, height: number, res: number, type: string, buffer: any, pInst: any);
+    constructor(id: string | number, width: number, height: number, res: number, type: string, buffer: any, pInst: any, resY?: number);
     /** index helper (row-major) */
     private idx;
     /** iterate all mesh points */
     private forEachPoint;
     /** build a regular grid + mark corners as control points */
-    private initMesh;
+    protected initMesh(): void;
     /**
      * Override in subclasses. Compute any per-frame mesh adjustments and
      * (recommended) update `this.perspectiveTransform` so cursor mapping works.

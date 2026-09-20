@@ -1,8 +1,5 @@
 import CornerPinSurface from "./CornerPinSurface";
 export default class QuadMap extends CornerPinSurface {
-    /** We keep resX/resY mirrored to base `res` so the mesh stays consistent. */
-    private resX;
-    private resY;
     /** Throttle for the interior-point-rejection diagnostic warning below. */
     private _lastRejectLogAt;
     /**
@@ -16,7 +13,7 @@ export default class QuadMap extends CornerPinSurface {
     private _geomV0;
     private _geomU1;
     private _geomV1;
-    constructor(id: string | number, w: number, h: number, res: number, buffer: any, pInst: any);
+    constructor(id: string | number, w: number, h: number, res: number, buffer: any, pInst: any, resY?: number);
     /**
      * Returns true if the mouse is over this surface.
      * We test in *local* space (mouse - surface origin) against the two triangles.
@@ -56,11 +53,16 @@ export default class QuadMap extends CornerPinSurface {
     /** Emit two triangles for outline/fill only (no UVs). */
     private emitQuadAsTrianglesOutline;
     /**
-     * Set a new (square) resolution and rebuild the base mesh accordingly.
-     * Higher values give a smoother perspective warp under heavy keystoning
-     * (matters most for displayTexture/displaySketch content); lower values
-     * cost fewer vertices per frame. A solid-color display() fill looks the
-     * same at any resolution, so it's a good place to drop this toward 2.
+     * Set a new resolution and rebuild the base mesh accordingly. `resY`
+     * defaults to `resX` for a square grid; pass it explicitly to give an
+     * elongated quad more subdivisions along one axis than the other. Higher
+     * values give a smoother perspective warp under heavy keystoning (matters
+     * most for displayTexture/displaySketch content); lower values cost fewer
+     * vertices per frame. A solid-color display() fill looks the same at any
+     * resolution, so it's a good place to drop this toward 2.
+     *
+     * Note: changing resolution reindexes the mesh, so any previously
+     * calibrated corner pins for this surface will need to be redone.
      */
-    setResolution(res: number): void;
+    setResolution(resX: number, resY?: number): void;
 }

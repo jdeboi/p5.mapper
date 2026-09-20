@@ -35,8 +35,14 @@ declare class ProjectionMapper {
     preload(shader: any): void;
     init(w: number, h: number): void;
     private initPMapperShaderStr;
-    /** Creates and registers a new quad surface. */
-    createQuadMap(w: number, h: number, res?: number): QuadMap;
+    /**
+     * Creates and registers a new quad surface.
+     * @param resY  optional independent vertical resolution. When omitted the
+     *              mesh is a square `res x res` grid as before; pass it to
+     *              give an elongated quad more subdivisions along one axis
+     *              (e.g. a wide, short strip) than the other.
+     */
+    createQuadMap(w: number, h: number, res?: number, resY?: number): QuadMap;
     /** Creates and registers a new triangle surface. */
     createTriMap(w: number, h: number, res?: number): TriMap;
     /** Creates and registers a new poly surface. */
