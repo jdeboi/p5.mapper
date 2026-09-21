@@ -3,7 +3,7 @@
 
 p5.mapper is a projection mapping library for [p5.js](https://p5js.org/). This library makes it easy to code and keystone interactive, algorithmic sketches onto quads, triangles, bezier shapes, and LED lines. Created by [Jenna deBoisblanc](https://jdeboi.com/).
 
-**Version 2.2.0** — requires p5.js 2.x. Written in TypeScript.
+**Version 3.0.0** — requires p5.js 2.x. Written in TypeScript. See [CHANGELOG.md](CHANGELOG.md) for breaking changes between versions.
 
 ![projection mapped example](images/mapped_surfaces.png)
 ![shapes example](images/shapes2.png)

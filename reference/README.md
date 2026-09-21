@@ -22,11 +22,13 @@ const pMapper = createProjectionMapper(this);
 
 ## Creating Mapping Surfaces
 
-* `pMapper.createQuadMap(width, height, [resolution])`
-  * *resolution* is the grid density used to tessellate the mapping surface (default `20`, minimum `2`). QuadMap warps its content by computing a perspective (homography) transform from the four corner pins, then applying it at every point on a `resolution` × `resolution` grid; it does not warp the whole quad as a single flat shape. More grid points make that warp smoother and follow the true perspective more closely; fewer points are faster, but may not look as good when heavily keystoned.
+* `pMapper.createQuadMap(width, height, [resolution], [resolutionY])`
+  * *resolution* is the mesh density along the surface's **shorter** axis (default `20`, minimum `2`). QuadMap warps its content by computing a perspective (homography) transform from the four corner pins, then applying it at every point on that grid; it does not warp the whole quad as a single flat shape. More grid points make that warp smoother and follow the true perspective more closely; fewer points are faster, but may not look as good when heavily keystoned.
+  * The longer axis is auto-scaled from *resolution* by the surface's own aspect ratio (capped at 200) so mesh cells stay roughly square, rather than a fixed `resolution` × `resolution` grid stretching cells to match an elongated quad's shape. Pass *resolutionY* explicitly to override this and set both axes manually — e.g. `createQuadMap(w, h, 20, 20)` forces the old fixed square grid regardless of aspect ratio.
+  * **Breaking in 3.0.0:** before this version, omitting *resolutionY* always built a square `resolution` × `resolution` grid. If you have a saved calibration for a non-square QuadMap from before 3.0.0, its corner-pin indices won't line up with the new auto-scaled mesh — either re-calibrate that surface, or pass its old *resolution* as *resolutionY* too to keep the exact old grid. See [CHANGELOG.md](../CHANGELOG.md).
   * A solid `display(color)` fill looks the same at any resolution since there's no texture to warp, so low resolution (`resolution = 2`) is visually identical to higher resolution. Use a low value for solid color.
   * `displayTexture()` / `displaySketch()` content benefits from a higher resolution when the surface is under strong keystone distortion.
-  * Adjustable after creation via `quad.setResolution(n)`.
+  * Adjustable after creation via `quad.setResolution(resolution, [resolutionY])` (same auto-scaling rule applies).
 * `pMapper.createTriMap(width, height, [resolution])`
   * *resolution* — unlike QuadMap, TriMap always renders as a single flat triangle (apex + the two base corners, no interior tessellation); leave at default.
 * `pMapper.createPolyMap([numPoints])`
