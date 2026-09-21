@@ -4,6 +4,11 @@ import pMapper from "../ProjectionMapper";
 
 // type PerspectiveFn = (x: number, y: number) => [number, number];
 
+// Upper bound on either mesh axis when resY is auto-derived from aspect
+// ratio (see computeAxisRes) — without this, a very elongated quad (e.g.
+// a thin 20:1 strip) would silently balloon into thousands of vertices.
+const MAX_AXIS_RES = 200;
+
 export default class QuadMap extends CornerPinSurface {
   /** Throttle for the interior-point-rejection diagnostic warning below. */
   private _lastRejectLogAt = -Infinity;
@@ -29,7 +34,32 @@ export default class QuadMap extends CornerPinSurface {
     pInst: any,
     resY?: number
   ) {
-    super(id, w, h, res, "QUAD", buffer, pInst, resY);
+    const axis =
+      resY !== undefined
+        ? { resX: Math.max(2, Math.floor(res)), resY: Math.max(2, Math.floor(resY)) }
+        : QuadMap.computeAxisRes(res, w, h);
+    super(id, w, h, axis.resX, "QUAD", buffer, pInst, axis.resY);
+  }
+
+  /**
+   * `res` sets the mesh density along a surface's *shorter* axis; the
+   * longer axis is scaled up by the surface's own aspect ratio so mesh
+   * cells stay roughly square regardless of how elongated the quad is,
+   * rather than a fixed `res x res` grid stretching cells to match the
+   * quad's shape. Pass `resY` explicitly (to the constructor or
+   * setResolution()) to bypass this and set both axes manually.
+   */
+  private static computeAxisRes(
+    res: number,
+    w: number,
+    h: number
+  ): { resX: number; resY: number } {
+    const base = Math.max(2, Math.floor(res));
+    if (!(w > 0) || !(h > 0)) return { resX: base, resY: base };
+
+    const aspect = Math.max(w, h) / Math.min(w, h);
+    const long = Math.min(MAX_AXIS_RES, Math.round(base * aspect));
+    return w >= h ? { resX: long, resY: base } : { resX: base, resY: long };
   }
 
   /**
@@ -456,24 +486,28 @@ export default class QuadMap extends CornerPinSurface {
   // --- Optional: if you ever want to change tessellation dynamically ----
 
   /**
-   * Set a new resolution and rebuild the base mesh accordingly. `resY`
-   * defaults to `resX` for a square grid; pass it explicitly to give an
-   * elongated quad more subdivisions along one axis than the other. Higher
-   * values give a smoother perspective warp under heavy keystoning (matters
-   * most for displayTexture/displaySketch content); lower values cost fewer
-   * vertices per frame. A solid-color display() fill looks the same at any
-   * resolution, so it's a good place to drop this toward 2.
+   * Set a new resolution and rebuild the base mesh accordingly. `resX`
+   * sets mesh density along this quad's shorter axis, auto-scaled up on
+   * the longer axis by its current aspect ratio (see computeAxisRes) so
+   * cells stay roughly square; pass `resY` explicitly to bypass that and
+   * set both axes manually. Higher values give a smoother perspective warp
+   * under heavy keystoning (matters most for displayTexture/displaySketch
+   * content); lower values cost fewer vertices per frame. A solid-color
+   * display() fill looks the same at any resolution, so it's a good place
+   * to drop this toward 2.
    *
    * Note: changing resolution reindexes the mesh, so any previously
    * calibrated corner pins for this surface will need to be redone.
    */
   public setResolution(resX: number, resY?: number): void {
-    const rx = Math.max(2, Math.floor(resX));
-    const ry = Math.max(2, Math.floor(resY ?? resX));
-    if (rx === this.resX && ry === this.resY) return;
-    this.res = rx;
-    this.resX = rx;
-    this.resY = ry;
+    const axis =
+      resY !== undefined
+        ? { resX: Math.max(2, Math.floor(resX)), resY: Math.max(2, Math.floor(resY)) }
+        : QuadMap.computeAxisRes(resX, this.width, this.height);
+    if (axis.resX === this.resX && axis.resY === this.resY) return;
+    this.res = axis.resX;
+    this.resX = axis.resX;
+    this.resY = axis.resY;
 
     // Rebuild the base mesh & control points from CornerPinSurface
     this.initMesh();
