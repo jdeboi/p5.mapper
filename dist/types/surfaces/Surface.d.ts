@@ -39,12 +39,17 @@ export default class Surface extends Draggable {
      * @param id        Identifier for the surface
      * @param w         width in px
      * @param h         height in px
-     * @param res       grid resolution per axis (>= 2). Meaningful for QuadMap, where it
-     *                  sets the density of the mesh used to tessellate the perspective
-     *                  warp — see `CornerPinSurface` and the resolution notes in
-     *                  reference/README.md. TriMap accepts the same param but always
-     *                  renders as a single flat (untessellated) triangle, so there `res`
-     *                  only affects where the apex control point is placed at construction.
+     * @param res       grid resolution along the shorter axis (>= 2). Meaningful for
+     *                  QuadMap, where it sets the density of the mesh used to
+     *                  tessellate the perspective warp — the longer axis is
+     *                  auto-scaled by the surface's own aspect ratio so mesh cells
+     *                  stay roughly square (see `QuadMap.computeAxisRes`; pass an
+     *                  explicit resY to `createQuadMap`/`setResolution` to override
+     *                  this and set both axes manually). See `CornerPinSurface` and
+     *                  the resolution notes in reference/README.md. TriMap accepts
+     *                  the same param but always renders as a single flat
+     *                  (untessellated) triangle, so there `res` only affects where
+     *                  the apex control point is placed at construction.
      * @param type      e.g. "QUAD" | "TRI"
      * @param buffer    optional p5.Graphics to draw into
      * @param pInst     p5 instance

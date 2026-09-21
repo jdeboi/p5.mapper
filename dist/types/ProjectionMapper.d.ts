@@ -37,10 +37,14 @@ declare class ProjectionMapper {
     private initPMapperShaderStr;
     /**
      * Creates and registers a new quad surface.
-     * @param resY  optional independent vertical resolution. When omitted the
-     *              mesh is a square `res x res` grid as before; pass it to
-     *              give an elongated quad more subdivisions along one axis
-     *              (e.g. a wide, short strip) than the other.
+     * @param res   mesh density along this quad's shorter axis. The longer
+     *              axis is auto-scaled by w/h's aspect ratio so mesh cells
+     *              stay roughly square (capped to avoid a huge mesh on an
+     *              extreme aspect ratio) rather than a fixed `res x res`
+     *              grid stretching cells to match the quad's shape.
+     * @param resY  optional explicit vertical resolution, overriding the
+     *              aspect-ratio auto-scaling above so both axes are set
+     *              manually (`res` is then used as-is for resX).
      */
     createQuadMap(w: number, h: number, res?: number, resY?: number): QuadMap;
     /** Creates and registers a new triangle surface. */

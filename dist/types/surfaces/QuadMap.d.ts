@@ -15,6 +15,15 @@ export default class QuadMap extends CornerPinSurface {
     private _geomV1;
     constructor(id: string | number, w: number, h: number, res: number, buffer: any, pInst: any, resY?: number);
     /**
+     * `res` sets the mesh density along a surface's *shorter* axis; the
+     * longer axis is scaled up by the surface's own aspect ratio so mesh
+     * cells stay roughly square regardless of how elongated the quad is,
+     * rather than a fixed `res x res` grid stretching cells to match the
+     * quad's shape. Pass `resY` explicitly (to the constructor or
+     * setResolution()) to bypass this and set both axes manually.
+     */
+    private static computeAxisRes;
+    /**
      * Returns true if the mouse is over this surface.
      * We test in *local* space (mouse - surface origin) against the two triangles.
      */
@@ -53,13 +62,15 @@ export default class QuadMap extends CornerPinSurface {
     /** Emit two triangles for outline/fill only (no UVs). */
     private emitQuadAsTrianglesOutline;
     /**
-     * Set a new resolution and rebuild the base mesh accordingly. `resY`
-     * defaults to `resX` for a square grid; pass it explicitly to give an
-     * elongated quad more subdivisions along one axis than the other. Higher
-     * values give a smoother perspective warp under heavy keystoning (matters
-     * most for displayTexture/displaySketch content); lower values cost fewer
-     * vertices per frame. A solid-color display() fill looks the same at any
-     * resolution, so it's a good place to drop this toward 2.
+     * Set a new resolution and rebuild the base mesh accordingly. `resX`
+     * sets mesh density along this quad's shorter axis, auto-scaled up on
+     * the longer axis by its current aspect ratio (see computeAxisRes) so
+     * cells stay roughly square; pass `resY` explicitly to bypass that and
+     * set both axes manually. Higher values give a smoother perspective warp
+     * under heavy keystoning (matters most for displayTexture/displaySketch
+     * content); lower values cost fewer vertices per frame. A solid-color
+     * display() fill looks the same at any resolution, so it's a good place
+     * to drop this toward 2.
      *
      * Note: changing resolution reindexes the mesh, so any previously
      * calibrated corner pins for this surface will need to be redone.

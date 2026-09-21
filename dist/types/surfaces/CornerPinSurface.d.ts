@@ -13,13 +13,16 @@ interface PerspectiveTransform {
     transformInverse: (pt: [number, number]) => [number, number];
 }
 export default class CornerPinSurface extends Surface {
-    /** grid resolution per axis (res x res points), kept for JSON/back-compat */
+    /** grid resolution along this surface's shorter axis, kept for JSON/back-compat */
     res: number;
     /**
-     * Actual per-axis mesh dimensions. Equal to `res` unless a subclass (only
-     * QuadMap does today) is given an independent resY, e.g. to give an
-     * elongated quad more subdivisions along its long axis than its short one
-     * without over-tessellating the short one.
+     * Actual per-axis mesh dimensions, both already resolved by the time
+     * this constructor runs. TriMap always passes them equal (it has no
+     * interior mesh to tessellate). QuadMap auto-derives resY from `res` and
+     * its own aspect ratio by default (see QuadMap.computeAxisRes) so mesh
+     * cells stay roughly square on an elongated quad instead of a fixed
+     * `res x res` grid stretching them to match its shape; passing an
+     * explicit resY there overrides that and sets both axes manually.
      */
     resX: number;
     resY: number;
