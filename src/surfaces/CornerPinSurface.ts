@@ -29,17 +29,19 @@ type CornerPinJSON = {
 };
 
 export default class CornerPinSurface extends Surface {
-  /** grid resolution along this surface's shorter axis, kept for JSON/back-compat */
+  /** resX after resolution — kept for JSON/back-compat, see resX/resY below */
   public res: number;
 
   /**
    * Actual per-axis mesh dimensions, both already resolved by the time
    * this constructor runs. TriMap always passes them equal (it has no
-   * interior mesh to tessellate). QuadMap auto-derives resY from `res` and
-   * its own aspect ratio by default (see QuadMap.computeAxisRes) so mesh
-   * cells stay roughly square on an elongated quad instead of a fixed
-   * `res x res` grid stretching them to match its shape; passing an
-   * explicit resY there overrides that and sets both axes manually.
+   * interior mesh to tessellate). QuadMap derives both from `res` as a
+   * target pixel spacing by default (see QuadMap.computeAxisRes) — each
+   * axis's division count is round(dimension / res) — so mesh density
+   * stays visually consistent across differently-sized/-shaped quads
+   * instead of a fixed `res x res` grid needing per-surface tuning;
+   * passing an explicit resY there bypasses that and sets literal
+   * division counts on both axes manually.
    */
   public resX: number;
   public resY: number;

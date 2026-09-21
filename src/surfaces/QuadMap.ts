@@ -4,10 +4,34 @@ import pMapper from "../ProjectionMapper";
 
 // type PerspectiveFn = (x: number, y: number) => [number, number];
 
-// Upper bound on either mesh axis when resY is auto-derived from aspect
-// ratio (see computeAxisRes) — without this, a very elongated quad (e.g.
-// a thin 20:1 strip) would silently balloon into thousands of vertices.
+// Clamp on divisions per axis when they're derived from pixel spacing (see
+// computeAxisRes) — without this, a very fine spacing on a large surface
+// (or a tiny spacing value on any surface) would silently balloon into
+// thousands of vertices.
 const MAX_AXIS_RES = 200;
+
+// Printed once (not per-surface) the first time a QuadMap is built without
+// an explicit resY, so anyone upgrading past 3.0.0 without reading the
+// changelog still finds out `res` changed meaning before they wonder why
+// their mesh looks wrong. TODO: remove this once 3.0.0 has been out a
+// couple of months (tentatively ~end of 2026).
+let hasWarnedAboutResSemantics = false;
+function warnAboutResSemanticsOnce(): void {
+  if (hasWarnedAboutResSemantics) return;
+  hasWarnedAboutResSemantics = true;
+  console.warn(
+    "p5.mapper 3.0.0: QuadMap's `res` argument now means target pixel " +
+      "spacing between mesh vertices, not a fixed division count — a " +
+      "single `res` no longer builds a flat `res x res` grid regardless " +
+      "of the quad's size. Divisions per axis are now derived from the " +
+      "quad's own width/height (round(dimension / res), clamped 2-" +
+      MAX_AXIS_RES +
+      "). If you want the exact old literal grid (e.g. a flat, " +
+      "untessellated quad for a solid-color fill via res=2), pass it as " +
+      "both resX and resY explicitly: createQuadMap(w, h, 2, 2) — that " +
+      "bypasses the spacing calculation entirely. See CHANGELOG.md."
+  );
+}
 
 export default class QuadMap extends CornerPinSurface {
   /** Throttle for the interior-point-rejection diagnostic warning below. */
@@ -37,29 +61,35 @@ export default class QuadMap extends CornerPinSurface {
     const axis =
       resY !== undefined
         ? { resX: Math.max(2, Math.floor(res)), resY: Math.max(2, Math.floor(resY)) }
-        : QuadMap.computeAxisRes(res, w, h);
+        : (warnAboutResSemanticsOnce(), QuadMap.computeAxisRes(res, w, h));
     super(id, w, h, axis.resX, "QUAD", buffer, pInst, axis.resY);
   }
 
   /**
-   * `res` sets the mesh density along a surface's *shorter* axis; the
-   * longer axis is scaled up by the surface's own aspect ratio so mesh
-   * cells stay roughly square regardless of how elongated the quad is,
-   * rather than a fixed `res x res` grid stretching cells to match the
-   * quad's shape. Pass `resY` explicitly (to the constructor or
-   * setResolution()) to bypass this and set both axes manually.
+   * `res` is a target pixel spacing between adjacent mesh vertices, not a
+   * division count — divisions per axis are `round(dimension / res)`,
+   * independently for width and height, each clamped to [2, MAX_AXIS_RES].
+   * A quad twice as wide as another gets roughly twice the horizontal
+   * divisions for the same `res`, so mesh density stays visually
+   * consistent regardless of a surface's absolute size or aspect ratio,
+   * instead of needing `res` hand-tuned per surface (e.g. a small painting
+   * vs. a large wall panel). Pass `resY` explicitly (to the constructor or
+   * setResolution()) to bypass this entirely and set literal division
+   * counts on both axes — e.g. `createQuadMap(w, h, 2, 2)` for the
+   * cheapest possible flat quad (a solid-color fill looks identical at
+   * any resolution, so there's no reason to pay for interior vertices).
    */
   private static computeAxisRes(
     res: number,
     w: number,
     h: number
   ): { resX: number; resY: number } {
-    const base = Math.max(2, Math.floor(res));
-    if (!(w > 0) || !(h > 0)) return { resX: base, resY: base };
+    if (!(w > 0) || !(h > 0)) return { resX: 2, resY: 2 };
 
-    const aspect = Math.max(w, h) / Math.min(w, h);
-    const long = Math.min(MAX_AXIS_RES, Math.round(base * aspect));
-    return w >= h ? { resX: long, resY: base } : { resX: base, resY: long };
+    const spacing = Math.max(0.001, res);
+    const resX = Math.min(MAX_AXIS_RES, Math.max(2, Math.round(w / spacing)));
+    const resY = Math.min(MAX_AXIS_RES, Math.max(2, Math.round(h / spacing)));
+    return { resX, resY };
   }
 
   /**
@@ -486,15 +516,16 @@ export default class QuadMap extends CornerPinSurface {
   // --- Optional: if you ever want to change tessellation dynamically ----
 
   /**
-   * Set a new resolution and rebuild the base mesh accordingly. `resX`
-   * sets mesh density along this quad's shorter axis, auto-scaled up on
-   * the longer axis by its current aspect ratio (see computeAxisRes) so
-   * cells stay roughly square; pass `resY` explicitly to bypass that and
-   * set both axes manually. Higher values give a smoother perspective warp
-   * under heavy keystoning (matters most for displayTexture/displaySketch
-   * content); lower values cost fewer vertices per frame. A solid-color
-   * display() fill looks the same at any resolution, so it's a good place
-   * to drop this toward 2.
+   * Set a new resolution and rebuild the base mesh accordingly. `resX` is
+   * a target pixel spacing between mesh vertices — divisions on both axes
+   * are derived from it and this quad's current width/height (see
+   * computeAxisRes); pass `resY` explicitly to bypass that and set
+   * literal division counts on both axes manually (e.g. `2, 2` for the
+   * cheapest possible flat quad). Finer spacing gives a smoother
+   * perspective warp under heavy keystoning (matters most for
+   * displayTexture/displaySketch content); coarser spacing costs fewer
+   * vertices per frame. A solid-color display() fill looks the same at
+   * any resolution, so it's a good place to use the literal-2x2 override.
    *
    * Note: changing resolution reindexes the mesh, so any previously
    * calibrated corner pins for this surface will need to be redone.
@@ -503,7 +534,7 @@ export default class QuadMap extends CornerPinSurface {
     const axis =
       resY !== undefined
         ? { resX: Math.max(2, Math.floor(resX)), resY: Math.max(2, Math.floor(resY)) }
-        : QuadMap.computeAxisRes(resX, this.width, this.height);
+        : (warnAboutResSemanticsOnce(), QuadMap.computeAxisRes(resX, this.width, this.height));
     if (axis.resX === this.resX && axis.resY === this.resY) return;
     this.res = axis.resX;
     this.resX = axis.resX;
