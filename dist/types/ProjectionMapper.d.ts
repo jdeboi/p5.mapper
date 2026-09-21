@@ -37,14 +37,21 @@ declare class ProjectionMapper {
     private initPMapperShaderStr;
     /**
      * Creates and registers a new quad surface.
-     * @param res   mesh density along this quad's shorter axis. The longer
-     *              axis is auto-scaled by w/h's aspect ratio so mesh cells
-     *              stay roughly square (capped to avoid a huge mesh on an
-     *              extreme aspect ratio) rather than a fixed `res x res`
-     *              grid stretching cells to match the quad's shape.
-     * @param resY  optional explicit vertical resolution, overriding the
-     *              aspect-ratio auto-scaling above so both axes are set
-     *              manually (`res` is then used as-is for resX).
+     * @param res   target pixel spacing between adjacent mesh vertices
+     *              (default 40px). Divisions per axis are derived from this
+     *              quad's own width/height — round(dimension / res), each
+     *              clamped to [2, 200] — so mesh density stays visually
+     *              consistent across differently-sized/-shaped quads instead
+     *              of a fixed `res x res` grid needing to be hand-tuned per
+     *              surface. Smaller res = finer mesh (more vertices);
+     *              larger res = coarser.
+     * @param resY  optional explicit second value, bypassing the pixel-
+     *              spacing calculation above entirely and setting literal
+     *              division counts on both axes manually (`res` = resX,
+     *              `resY` = resY, used as-is). E.g. `createQuadMap(w, h, 2, 2)`
+     *              for the cheapest possible flat quad — a solid-color fill
+     *              looks identical at any resolution, so there's no reason
+     *              to pay for interior vertices.
      */
     createQuadMap(w: number, h: number, res?: number, resY?: number): QuadMap;
     /** Creates and registers a new triangle surface. */

@@ -15,12 +15,18 @@ export default class QuadMap extends CornerPinSurface {
     private _geomV1;
     constructor(id: string | number, w: number, h: number, res: number, buffer: any, pInst: any, resY?: number);
     /**
-     * `res` sets the mesh density along a surface's *shorter* axis; the
-     * longer axis is scaled up by the surface's own aspect ratio so mesh
-     * cells stay roughly square regardless of how elongated the quad is,
-     * rather than a fixed `res x res` grid stretching cells to match the
-     * quad's shape. Pass `resY` explicitly (to the constructor or
-     * setResolution()) to bypass this and set both axes manually.
+     * `res` is a target pixel spacing between adjacent mesh vertices, not a
+     * division count — divisions per axis are `round(dimension / res)`,
+     * independently for width and height, each clamped to [2, MAX_AXIS_RES].
+     * A quad twice as wide as another gets roughly twice the horizontal
+     * divisions for the same `res`, so mesh density stays visually
+     * consistent regardless of a surface's absolute size or aspect ratio,
+     * instead of needing `res` hand-tuned per surface (e.g. a small painting
+     * vs. a large wall panel). Pass `resY` explicitly (to the constructor or
+     * setResolution()) to bypass this entirely and set literal division
+     * counts on both axes — e.g. `createQuadMap(w, h, 2, 2)` for the
+     * cheapest possible flat quad (a solid-color fill looks identical at
+     * any resolution, so there's no reason to pay for interior vertices).
      */
     private static computeAxisRes;
     /**
@@ -62,15 +68,16 @@ export default class QuadMap extends CornerPinSurface {
     /** Emit two triangles for outline/fill only (no UVs). */
     private emitQuadAsTrianglesOutline;
     /**
-     * Set a new resolution and rebuild the base mesh accordingly. `resX`
-     * sets mesh density along this quad's shorter axis, auto-scaled up on
-     * the longer axis by its current aspect ratio (see computeAxisRes) so
-     * cells stay roughly square; pass `resY` explicitly to bypass that and
-     * set both axes manually. Higher values give a smoother perspective warp
-     * under heavy keystoning (matters most for displayTexture/displaySketch
-     * content); lower values cost fewer vertices per frame. A solid-color
-     * display() fill looks the same at any resolution, so it's a good place
-     * to drop this toward 2.
+     * Set a new resolution and rebuild the base mesh accordingly. `resX` is
+     * a target pixel spacing between mesh vertices — divisions on both axes
+     * are derived from it and this quad's current width/height (see
+     * computeAxisRes); pass `resY` explicitly to bypass that and set
+     * literal division counts on both axes manually (e.g. `2, 2` for the
+     * cheapest possible flat quad). Finer spacing gives a smoother
+     * perspective warp under heavy keystoning (matters most for
+     * displayTexture/displaySketch content); coarser spacing costs fewer
+     * vertices per frame. A solid-color display() fill looks the same at
+     * any resolution, so it's a good place to use the literal-2x2 override.
      *
      * Note: changing resolution reindexes the mesh, so any previously
      * calibrated corner pins for this surface will need to be redone.
