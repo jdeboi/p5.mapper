@@ -173,12 +173,18 @@ export default class BezierMap extends Surface {
   // --- Persistence -------------------------------------------------------
 
   public load(json: DraggableJSON): void {
+    if (!json.points || json.points.length < 3) {
+      console.warn(
+        `p5.mapper: BezierMap "${this.id}" has no saved points in map.json (or it predates a fix that made save() include them) — keeping the current shape.`
+      );
+      return;
+    }
     this.points = [];
     this.x = json.x;
     this.y = json.y;
     this.closed = json.closed || false;
     this.auto = json.auto || false;
-    for (const p of json.points || []) {
+    for (const p of json.points) {
       this.points.push(new BezierPoint(p.x, p.y, this, this.pInst));
     }
     this._updatePointIndices();
@@ -195,6 +201,21 @@ export default class BezierMap extends Surface {
       closed: this.closed,
       auto: this.auto,
     };
+  }
+
+  /** Persist id/pos/type + point positions (used by ProjectionMapper.save()). */
+  public override toJSON(): DraggableJSON {
+    const out: DraggableJSON = {
+      id: this.id,
+      type: this.type,
+      x: this.x,
+      y: this.y,
+      closed: this.closed,
+      auto: this.auto,
+      points: this.points.map((p, i) => ({ i, x: p.pos.x, y: p.pos.y })),
+    };
+    if (this.parentSurface) out.parentId = this.parentSurface.id;
+    return out;
   }
 
   public serialize(): string {

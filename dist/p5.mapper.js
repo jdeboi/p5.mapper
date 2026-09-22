@@ -3401,12 +3401,16 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
   }, {
     key: "load",
     value: function load(json) {
+      if (!json.points || json.points.length < 3) {
+        console.warn("p5.mapper: BezierMap \"".concat(this.id, "\" has no saved points in map.json (or it predates a fix that made save() include them) \u2014 keeping the current shape."));
+        return;
+      }
       this.points = [];
       this.x = json.x;
       this.y = json.y;
       this.closed = json.closed || false;
       this.auto = json.auto || false;
-      var _iterator = BezierMap_createForOfIteratorHelper(json.points || []),
+      var _iterator = BezierMap_createForOfIteratorHelper(json.points),
         _step;
       try {
         for (_iterator.s(); !(_step = _iterator.n()).done;) {
@@ -3438,6 +3442,29 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
         closed: this.closed,
         auto: this.auto
       };
+    }
+
+    /** Persist id/pos/type + point positions (used by ProjectionMapper.save()). */
+  }, {
+    key: "toJSON",
+    value: function toJSON() {
+      var out = {
+        id: this.id,
+        type: this.type,
+        x: this.x,
+        y: this.y,
+        closed: this.closed,
+        auto: this.auto,
+        points: this.points.map(function (p, i) {
+          return {
+            i: i,
+            x: p.pos.x,
+            y: p.pos.y
+          };
+        })
+      };
+      if (this.parentSurface) out.parentId = this.parentSurface.id;
+      return out;
     }
   }, {
     key: "serialize",

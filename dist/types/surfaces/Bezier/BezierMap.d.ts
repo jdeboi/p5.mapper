@@ -55,6 +55,8 @@ export default class BezierMap extends Surface {
     isReady(): boolean;
     load(json: DraggableJSON): void;
     getJson(): BezierJSON;
+    /** Persist id/pos/type + point positions (used by ProjectionMapper.save()). */
+    toJSON(): DraggableJSON;
     serialize(): string;
     selectPoints(): BezierPoint | null;
     private selectAnchors;
