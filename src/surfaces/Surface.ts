@@ -136,7 +136,6 @@ export default class Surface extends Draggable {
     p.fill(col);
     p.translate(this.x, this.y);
     this.displaySurface(false);
-    if (p.isCalibratingMapper()) this.displayCalibration();
     p.pop();
   }
 
@@ -222,12 +221,14 @@ export default class Surface extends Draggable {
 
     // displaySurface expects (isUV, u0, v0, u1, v1)
     this.displaySurface(true, u0, v0, u1, v1);
-
-    if (p.isCalibratingMapper()) this.displayCalibration();
     p.pop();
   }
 
-  /** Outline + fill overlay used in calibration mode */
+  /**
+   * Outline + fill overlay used in calibration mode. Called once per frame
+   * for every surface by ProjectionMapper (postdraw), whether or not the
+   * sketch rendered this surface - so it must apply its own translate.
+   */
   public displayCalibration(): void {
     const p = this.pInst;
     p.push();

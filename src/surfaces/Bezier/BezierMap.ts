@@ -506,16 +506,15 @@ export default class BezierMap extends Surface {
     this.pInst.noStroke();
     this.pInst.fill(col);
     this.displayBezier();
-    this.displayCalib();
   }
 
-  private displayCalib(): void {
-    if (this.pInst.isCalibratingMapper()) {
-      this.pInst.strokeWeight(3);
-      this.pInst.stroke(this.controlPointColor);
-      this.pInst.fill(this.getMutedControlColor());
-      this.displayBezier();
-    }
+  public override displayCalibration(): void {
+    this.pInst.push();
+    this.pInst.strokeWeight(3);
+    this.pInst.stroke(this.controlPointColor);
+    this.pInst.fill(this.getMutedControlColor());
+    this.displayBezier();
+    this.pInst.pop();
   }
 
   /** Composite an *image* through the Bezier mask using the shader */
@@ -525,7 +524,6 @@ export default class BezierMap extends Surface {
     const buffer = this.pMapper.buffer;
     this.drawImage(img, buffer, x, y, texW, texH);
     this.displayGraphicsTexture(buffer);
-    this.displayCalib();
   }
 
   /** Draw a *sketch* into the buffer and then composite it through the mask */
@@ -601,8 +599,6 @@ void main() {
     this.pInst.translate(x - this.bufferSpace, y - this.bufferSpace);
     this.pInst.image(pOutput, 0, 0);
     this.pInst.pop();
-
-    this.displayCalib();
   }
 
   /** Draw img into pg; default size to intrinsic if not provided */

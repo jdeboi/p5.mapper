@@ -412,6 +412,20 @@ class ProjectionMapper {
 
   // --------------------------- Rendering hooks ---------------------------
 
+  /**
+   * Draw every surface's calibration outline/fill, whether or not the sketch
+   * rendered that surface this frame (otherwise un-rendered surfaces show
+   * only their corner handles). Runs in postdraw, before the shared
+   * calibration buffer is blitted and before any control points are drawn,
+   * so handles always sit on top of every overlay.
+   */
+  displayCalibration() {
+    if (!this.calibrate) return;
+    for (const s of this.surfaces) {
+      if (s instanceof Surface) s.displayCalibration();
+    }
+  }
+
   displayControlPoints() {
     if (!this.calibrate) return;
 
@@ -444,7 +458,7 @@ class ProjectionMapper {
   // drawing (a handful of small grids), not the createGraphics()/GPU-buffer
   // churn this consolidation exists to avoid, so there's no real cost to
   // giving up the partial-redraw optimization. The clear happens once, in
-  // predraw below, strictly before any surface's own draw() call this frame
+  // predraw below, strictly before any surface's displayCalibration() this frame
   // - i.e. before any surface has had a chance to draw into it - and the
   // single blit of the combined result happens once, in postdraw, strictly
   // after every surface's draw() call this frame has run.
@@ -593,15 +607,15 @@ p5.registerAddon((_p5: any, _fn: any, lifecycles: any) => {
     pMapper.beginCalibFrame();
   };
   lifecycles.postdraw = () => {
+    pMapper.displayCalibration();
+    // Every QuadMap-type surface has drawn its grid into the shared
+    // calibration buffer by this point - this is the single, once-per-frame
+    // blit of the combined result. See ProjectionMapper's "Shared
+    // calibration overlay" section for why this can't just happen
+    // per-surface.
+    pMapper.blitCalibSharedGfx();
     pMapper.displayControlPoints();
     pMapper.updateEvents();
-    // Every QuadMap-type surface's own draw() call this frame has already
-    // run by this point (postdraw fires once, after the whole sketch draw()
-    // completes) and had its chance to update its own region of the shared
-    // calibration buffer - this is the single, once-per-frame blit of the
-    // combined result. See ProjectionMapper's "Shared calibration overlay"
-    // section for why this can't just happen per-surface.
-    pMapper.blitCalibSharedGfx();
   };
 });
 

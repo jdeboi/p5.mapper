@@ -362,16 +362,15 @@ export default class QuadMap extends CornerPinSurface {
    * on the wall, and one surface's region can't be judged in isolation from
    * its neighbors'). The buffer itself is blitted to screen exactly once
    * per frame by ProjectionMapper.blitCalibSharedGfx() in postdraw, after
-   * every surface's displayCalibration() has had a chance to run - so this
-   * method must NOT call image()/blit anything itself.
+   * every surface's displayCalibration() has run - so this method must NOT
+   * call image()/blit anything itself.
    */
   public displayCalibration(): void {
     const g = pMapper.getCalibSharedGfx();
     if (!g) return;
 
-    // This surface's own translate(this.x, this.y) is already active (see
-    // Surface.display()), so `mesh[i].x/y` are WEBGL-centered coordinates
-    // relative to this surface's origin. The shared buffer is a plain 2D
+    // `mesh[i].x/y` are WEBGL-centered coordinates relative to this
+    // surface's origin. The shared buffer is a plain 2D
     // graphics object sized to the canvas with a top-left origin (matching
     // how ProjectionMapper.blitCalibSharedGfx() places it at
     // (-width/2, -height/2) to cover the WEBGL-centered canvas exactly), so

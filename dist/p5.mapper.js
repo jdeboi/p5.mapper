@@ -1254,7 +1254,6 @@ var Surface = /*#__PURE__*/function (_Draggable) {
       p.fill(col);
       p.translate(this.x, this.y);
       this.displaySurface(false);
-      if (p.isCalibratingMapper()) this.displayCalibration();
       p.pop();
     }
 
@@ -1350,11 +1349,14 @@ var Surface = /*#__PURE__*/function (_Draggable) {
 
       // displaySurface expects (isUV, u0, v0, u1, v1)
       this.displaySurface(true, u0, v0, u1, v1);
-      if (p.isCalibratingMapper()) this.displayCalibration();
       p.pop();
     }
 
-    /** Outline + fill overlay used in calibration mode */
+    /**
+     * Outline + fill overlay used in calibration mode. Called once per frame
+     * for every surface by ProjectionMapper (postdraw), whether or not the
+     * sketch rendered this surface - so it must apply its own translate.
+     */
   }, {
     key: "displayCalibration",
     value: function displayCalibration() {
@@ -2414,8 +2416,8 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
      * on the wall, and one surface's region can't be judged in isolation from
      * its neighbors'). The buffer itself is blitted to screen exactly once
      * per frame by ProjectionMapper.blitCalibSharedGfx() in postdraw, after
-     * every surface's displayCalibration() has had a chance to run - so this
-     * method must NOT call image()/blit anything itself.
+     * every surface's displayCalibration() has run - so this method must NOT
+     * call image()/blit anything itself.
      */
   }, {
     key: "displayCalibration",
@@ -2423,9 +2425,8 @@ var QuadMap = /*#__PURE__*/function (_CornerPinSurface) {
       var g = src_ProjectionMapper.getCalibSharedGfx();
       if (!g) return;
 
-      // This surface's own translate(this.x, this.y) is already active (see
-      // Surface.display()), so `mesh[i].x/y` are WEBGL-centered coordinates
-      // relative to this surface's origin. The shared buffer is a plain 2D
+      // `mesh[i].x/y` are WEBGL-centered coordinates relative to this
+      // surface's origin. The shared buffer is a plain 2D
       // graphics object sized to the canvas with a top-left origin (matching
       // how ProjectionMapper.blitCalibSharedGfx() places it at
       // (-width/2, -height/2) to cover the WEBGL-centered canvas exactly), so
@@ -2734,6 +2735,7 @@ var TriMap = /*#__PURE__*/function (_CornerPinSurface) {
       var bl = this.mesh[this.BL];
       var br = this.mesh[this.BR];
       p.push();
+      p.translate(this.x, this.y);
       p.strokeWeight(2);
       p.stroke(this.controlPointColor);
       p.fill(this.getMutedControlColor());
@@ -2868,7 +2870,7 @@ var PolyMap = /*#__PURE__*/function (_Surface) {
       p.strokeWeight(3);
       p.stroke(col);
       p.fill(this.getMutedControlColor());
-      // p.translate(this.x, this.y);
+      p.translate(this.x, this.y);
       this.displaySurface(false);
       p.pop();
     }
@@ -3734,17 +3736,16 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       this.pInst.noStroke();
       this.pInst.fill(col);
       this.displayBezier();
-      this.displayCalib();
     }
   }, {
-    key: "displayCalib",
-    value: function displayCalib() {
-      if (this.pInst.isCalibratingMapper()) {
-        this.pInst.strokeWeight(3);
-        this.pInst.stroke(this.controlPointColor);
-        this.pInst.fill(this.getMutedControlColor());
-        this.displayBezier();
-      }
+    key: "displayCalibration",
+    value: function displayCalibration() {
+      this.pInst.push();
+      this.pInst.strokeWeight(3);
+      this.pInst.stroke(this.controlPointColor);
+      this.pInst.fill(this.getMutedControlColor());
+      this.displayBezier();
+      this.pInst.pop();
     }
 
     /** Composite an *image* through the Bezier mask using the shader */
@@ -3759,7 +3760,6 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       var buffer = this.pMapper.buffer;
       this.drawImage(img, buffer, x, y, texW, texH);
       this.displayGraphicsTexture(buffer);
-      this.displayCalib();
     }
 
     /** Draw a *sketch* into the buffer and then composite it through the mask */
@@ -3805,7 +3805,6 @@ var BezierMap = /*#__PURE__*/function (_Surface) {
       this.pInst.translate(x - this.bufferSpace, y - this.bufferSpace);
       this.pInst.image(pOutput, 0, 0);
       this.pInst.pop();
-      this.displayCalib();
     }
 
     /** Draw img into pg; default size to intrinsic if not provided */
@@ -4441,7 +4440,7 @@ var ProjectionMapper = /*#__PURE__*/function () {
     // drawing (a handful of small grids), not the createGraphics()/GPU-buffer
     // churn this consolidation exists to avoid, so there's no real cost to
     // giving up the partial-redraw optimization. The clear happens once, in
-    // predraw below, strictly before any surface's own draw() call this frame
+    // predraw below, strictly before any surface's displayCalibration() this frame
     // - i.e. before any surface has had a chance to draw into it - and the
     // single blit of the combined result happens once, in postdraw, strictly
     // after every surface's draw() call this frame has run.
@@ -4821,34 +4820,59 @@ var ProjectionMapper = /*#__PURE__*/function () {
     }
 
     // --------------------------- Rendering hooks ---------------------------
+
+    /**
+     * Draw every surface's calibration outline/fill, whether or not the sketch
+     * rendered that surface this frame (otherwise un-rendered surfaces show
+     * only their corner handles). Runs in postdraw, before the shared
+     * calibration buffer is blitted and before any control points are drawn,
+     * so handles always sit on top of every overlay.
+     */
   }, {
-    key: "displayControlPoints",
-    value: function displayControlPoints() {
+    key: "displayCalibration",
+    value: function displayCalibration() {
       if (!this.calibrate) return;
       var _iterator3 = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
         _step3;
       try {
         for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
           var s = _step3.value;
-          if (s instanceof Surface) s.displayControlPoints();
+          if (s instanceof Surface) s.displayCalibration();
         }
       } catch (err) {
         _iterator3.e(err);
       } finally {
         _iterator3.f();
       }
-      var _iterator4 = ProjectionMapper_createForOfIteratorHelper(this.lines),
+    }
+  }, {
+    key: "displayControlPoints",
+    value: function displayControlPoints() {
+      if (!this.calibrate) return;
+      var _iterator4 = ProjectionMapper_createForOfIteratorHelper(this.surfaces),
         _step4;
       try {
         for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
-          var l = _step4.value;
-          l.displayCalibration();
-          l.displayControlPoints();
+          var s = _step4.value;
+          if (s instanceof Surface) s.displayControlPoints();
         }
       } catch (err) {
         _iterator4.e(err);
       } finally {
         _iterator4.f();
+      }
+      var _iterator5 = ProjectionMapper_createForOfIteratorHelper(this.lines),
+        _step5;
+      try {
+        for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
+          var l = _step5.value;
+          l.displayCalibration();
+          l.displayControlPoints();
+        }
+      } catch (err) {
+        _iterator5.e(err);
+      } finally {
+        _iterator5.f();
       }
     }
   }, {
@@ -4969,15 +4993,15 @@ p5.registerAddon(function (_p5, _fn, lifecycles) {
     pMapper.beginCalibFrame();
   };
   lifecycles.postdraw = function () {
+    pMapper.displayCalibration();
+    // Every QuadMap-type surface has drawn its grid into the shared
+    // calibration buffer by this point - this is the single, once-per-frame
+    // blit of the combined result. See ProjectionMapper's "Shared
+    // calibration overlay" section for why this can't just happen
+    // per-surface.
+    pMapper.blitCalibSharedGfx();
     pMapper.displayControlPoints();
     pMapper.updateEvents();
-    // Every QuadMap-type surface's own draw() call this frame has already
-    // run by this point (postdraw fires once, after the whole sketch draw()
-    // completes) and had its chance to update its own region of the shared
-    // calibration buffer - this is the single, once-per-frame blit of the
-    // combined result. See ProjectionMapper's "Shared calibration overlay"
-    // section for why this can't just happen per-surface.
-    pMapper.blitCalibSharedGfx();
   };
 });
 /* harmony default export */ const src_ProjectionMapper = (pMapper);

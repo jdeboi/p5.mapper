@@ -87,7 +87,11 @@ export default class Surface extends Draggable {
      *  2) UV mode   (texW<=0 || texH<=0): (tX,tY) are u0,v0; u1=v1=1 by default
      */
     displayTexture(tex: any, tX?: number, tY?: number, texW?: number, texH?: number): void;
-    /** Outline + fill overlay used in calibration mode */
+    /**
+     * Outline + fill overlay used in calibration mode. Called once per frame
+     * for every surface by ProjectionMapper (postdraw), whether or not the
+     * sketch rendered this surface - so it must apply its own translate.
+     */
     displayCalibration(): void;
     /** Draws the outline (no texture). Subclass displaySurface(false) should render the shape edges. */
     displayOutline(col?: any): void;

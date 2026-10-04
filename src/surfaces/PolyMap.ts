@@ -78,7 +78,7 @@ export default class PolyMap extends Surface {
     p.strokeWeight(3);
     p.stroke(col);
     p.fill(this.getMutedControlColor());
-    // p.translate(this.x, this.y);
+    p.translate(this.x, this.y);
     this.displaySurface(false);
     p.pop();
   }

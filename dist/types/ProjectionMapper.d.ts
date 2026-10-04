@@ -92,6 +92,14 @@ declare class ProjectionMapper {
     startCalibration(): void;
     stopCalibration(): void;
     toggleCalibration(): void;
+    /**
+     * Draw every surface's calibration outline/fill, whether or not the sketch
+     * rendered that surface this frame (otherwise un-rendered surfaces show
+     * only their corner handles). Runs in postdraw, before the shared
+     * calibration buffer is blitted and before any control points are drawn,
+     * so handles always sit on top of every overlay.
+     */
+    displayCalibration(): void;
     displayControlPoints(): void;
     private calibSharedGfx;
     private calibSharedGfxW;

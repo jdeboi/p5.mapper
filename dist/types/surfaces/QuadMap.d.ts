@@ -59,8 +59,8 @@ export default class QuadMap extends CornerPinSurface {
      * on the wall, and one surface's region can't be judged in isolation from
      * its neighbors'). The buffer itself is blitted to screen exactly once
      * per frame by ProjectionMapper.blitCalibSharedGfx() in postdraw, after
-     * every surface's displayCalibration() has had a chance to run - so this
-     * method must NOT call image()/blit anything itself.
+     * every surface's displayCalibration() has run - so this method must NOT
+     * call image()/blit anything itself.
      */
     displayCalibration(): void;
     /** Emit two triangles for a cell with proper UVs (normalized 0..1). */

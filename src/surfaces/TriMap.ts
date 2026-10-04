@@ -108,6 +108,7 @@ export default class TriMap extends CornerPinSurface {
     const br = this.mesh[this.BR];
 
     p.push();
+    p.translate(this.x, this.y);
     p.strokeWeight(2);
     p.stroke(this.controlPointColor);
     p.fill(this.getMutedControlColor());

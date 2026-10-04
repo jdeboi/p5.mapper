@@ -78,7 +78,7 @@ export default class BezierMap extends Surface {
     autoSetEdgePoints(controlSpacing: number): void;
     autoSetAllControlPoints(controlSpacing?: number): void;
     display(col?: any): void;
-    private displayCalib;
+    displayCalibration(): void;
     /** Composite an *image* through the Bezier mask using the shader */
     displayTexture(img: any, x?: number, y?: number, texW?: number, texH?: number): void;
     /** Draw a *sketch* into the buffer and then composite it through the mask */
